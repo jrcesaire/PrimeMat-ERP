@@ -1,0 +1,47 @@
+# Core
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.4
+pydantic-settings==2.7.0
+sqlalchemy==2.0.36
+psycopg[binary]==3.2.4
+alembic==1.14.1
+redis==5.2.1
+celery==5.4.0
+
+# Auth
+python-jose[cryptography]==3.5.0
+python-multipart==0.0.9
+bcrypt==4.2.1
+
+# PDF & Documents
+weasyprint==62.3
+jinja2==3.1.5
+cssselect2==0.1
+pyphen==5.0.0
+Pillow==11.0.0
+
+# File storage
+boto3==1.35.90
+aioboto3==12.7.0
+
+# Cloud backup providers
+google-api-python-client==2.159.1
+google-auth-httplib2==0.2.1
+google-auth-oauthlib==1.2.1
+dropbox==12.5.0.dev1
+email-validator==2.2.0
+
+# Real-time
+websockets==13.1
+
+# Monitoring
+sentry-sdk[fastapi]==2.14.0
+prometheus-client==0.21.1
+
+# File processing
+python-magic==0.4.27
+
+# Misc
+python-slugify==8.0.4
+tenacity==9.0.0

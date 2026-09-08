@@ -1,0 +1,102 @@
+name: erp-materiaux
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: erp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: erp_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_pass
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    networks: [erp-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: erp-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes: [redis_data:/data]
+    networks: [erp-net]
+
+  minio:
+    image: minio/minio:latest
+    container_name: erp-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: erp_user
+      MINIO_ROOT_PASSWORD: erp_pass
+    ports: ["9001:9001"]
+    volumes: [minio_data:/data]
+    networks: [erp-net]
+
+  backend:
+    build: {context: ./backend, dockerfile: Dockerfile}
+    container_name: erp-backend
+    restart: unless-stopped
+    env_file: [./backend/.env]
+    environment:
+      - DATABASE_URL=postgresql+psycopg://erp_user:erp_pass@db:5432/erp_db
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes: [./backend/resources:/app/resources]
+    networks: [erp-net]
+    expose: ["8000"]
+
+  worker:
+    build: {context: ./backend, dockerfile: Dockerfile}
+    container_name: erp-worker
+    restart: unless-stopped
+    env_file: [./backend/.env]
+    command: celery -A celery_worker.celery_app worker --loglevel=info -Q default
+    depends_on: [backend, redis]
+    volumes: [./backend/resources:/app/resources]
+    networks: [erp-net]
+
+  beat:
+    build: {context: ./backend, dockerfile: Dockerfile}
+    container_name: erp-beat
+    restart: unless-stopped
+    env_file: [./backend/.env]
+    command: celery -A celery_worker.celery_app beat --loglevel=info
+    depends_on: [worker, redis]
+    networks: [erp-net]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - NEXT_PUBLIC_API_URL=/api/v1
+    container_name: erp-frontend
+    restart: unless-stopped
+    depends_on: [backend]
+    networks: [erp-net]
+    expose: ["3000"]
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: erp-nginx
+    restart: unless-stopped
+    ports: ["80:80"]
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on: [frontend, backend]
+    networks: [erp-net]
+
+volumes:
+  postgres_data: {}
+  redis_data: {}
+  minio_data: {}
+networks:
+  erp-net:
+    driver: bridge

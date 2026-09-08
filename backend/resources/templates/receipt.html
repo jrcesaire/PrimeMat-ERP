@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><style>
+@page { size: A5 landscape; margin: 8mm; }
+body { font-family: Helvetica, Arial, sans-serif; color:#111; }
+.rec-head { text-align:center; border-bottom:3px solid #0a2a6b; padding-bottom:10px;}
+.rec-head img.logo { height:60px; max-width:90px; margin-bottom:4px; }
+.rec-head h1 { margin:0; font-size:24px; color:#0a2a6b;}
+.rec-head .estab { font-size:12px; color:#333; font-weight:bold; margin-top:2px;}
+.rec-head .slogan { font-size:11px; color:#0a2a6b; font-style:italic; margin-top:2px;}
+.rec-head .addr { font-size:11px; color:#444; margin-top:3px;}
+.rec-head .tax { font-size:11px; color:#333; margin-top:2px;}
+.doc-title { font-size:22px; color:#0a2a6b; text-align:center; margin:16px 0 8px;}
+.ref { text-align:center; font-size:16px; font-weight:bold; letter-spacing:1px;}
+table.amnt { width:70%; margin:20px auto; border-collapse:collapse; font-size:14px;}
+table.amnt td { padding:8px 10px; border-bottom:1px solid #ccc;}
+table.amnt td.val { text-align:right; font-weight:bold;}
+.client { text-align:center; font-size:13px; margin:8px 0;}
+.footer { text-align:center; font-size:10px; color:#666; margin-top:20px; border-top:1px solid #ccc; padding-top:8px;}
+</style></head>
+<body>
+<div class="rec-head">
+  {% if company and company.logo %}<img src="{{ company.logo }}" class="logo" alt=""/>{% endif %}
+  <h1>{{ company.name }}</h1>
+  {% if company and company.establishment %}<div class="estab">Établissement : {{ company.establishment }}</div>{% endif %}
+  {% if company and company.slogan %}<div class="slogan">{{ company.slogan }}</div>{% endif %}
+  {% if company %}<div class="addr">{{ fmt_addr(company) }}{% if company.phone %} • Tél : {{ company.phone }}{% endif %}</div>{% endif %}
+  {% if company and company.ncc %}<div class="tax">N° Compte Contribuable (NCC) : {{ company.ncc }}</div>{% endif %}
+</div>
+<div class="doc-title">REÇU</div>
+<div class="ref">{{ payment.reference }}</div>
+<div class="client">Client : <b>{{ partner.name if partner }}</b> — {{ payment.payment_date }}</div>
+<table class="amnt">
+  <tr><td>Total TTC</td><td class="val">{{ '%.0f' % total }} {{currency}}</td></tr>
+  <tr><td>Acompte</td><td class="val">{{ '%.0f' % acompte }} {{currency}}</td></tr>
+  <tr><td>Solde</td><td class="val">{{ '%.0f' % solde }} {{currency}}</td></tr>
+</table>
+{% if invoice %}<p style="text-align:center;font-size:12px">Facture : {{ invoice.reference }}</p>{% endif %}
+<div class="footer">
+{% if company and company.slogan %}<b style="color:#0a2a6b">{{ company.slogan }}</b><br>{% endif %}
+{% if company %}
+{% set fparts = [] %}
+{% if company.rccm %}{% set fparts = fparts + ['N° RCCM : ' ~ company.rccm] %}{% endif %}
+{% if company.ncc %}{% set fparts = fparts + ['NCC : ' ~ company.ncc] %}{% endif %}
+{% if company.share_capital %}{% set fparts = fparts + ['Capital : ' ~ company.share_capital] %}{% endif %}
+{% if fparts %}{{ fparts | join(' | ') }}{% endif %}
+{% endif %}
+</div>
+</body></html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><style>
+@page { size: 80mm 250mm; margin: 4mm; }
+body { font-family: monospace; font-size: 11px; color:#000; width:72mm; margin:0 auto; }
+.tape { text-align:center; }
+.tape img.logo { height:44px; max-width:60px; margin-bottom:2px; }
+.tape h1 { font-size:15px; margin:2px 0; }
+.tape .estab { font-size:10px; font-weight:bold; margin:1px 0; }
+.tape .slogan { font-size:9px; font-style:italic; margin:1px 0; }
+.tape .tax { font-size:10px; margin:1px 0; }
+.tape hr { border:none; border-top:1px dashed #000; margin:4px 0; }
+.big-title { text-align:center; font-size:14px; font-weight:bold; margin:6px 0; }
+row { display:table; width:100%; }
+row::after{content:'';display:block;clear:both;}
+.l { float:left; } .r { float:right; }
+table.items { width:100%; border-collapse:collapse; }
+table.items td, table.items th { padding:2px 0; font-size:11px; text-align:left; }
+table.items td.r, table.items th.r { text-align:right; }
+table.items td.m, table.items th.m { text-align:right; }
+.section { text-align:center; font-weight:bold; margin:6px 0 2px; }
+.qr { text-align:center; margin-top:8px; }
+.qr img { width:70px; height:70px; }
+.thanks { text-align:center; font-size:11px; margin-top:6px; }
+</style></head>
+<body>
+<div class="tape">
+  {% if company and company.logo %}<img src="{{ company.logo }}" class="logo" alt=""/>{% endif %}
+  <h1>{{ company.name }}</h1>
+  {% if company and company.establishment %}<div class="estab">{{ company.establishment }}</div>{% endif %}
+  {% if company and company.slogan %}<div class="slogan">{{ company.slogan }}</div>{% endif %}
+  {% if company and company.ncc %}<div class="tax">N° Compte Contribuable (NCC) : {{ company.ncc }}</div>{% endif %}
+  {% if company %}<div>{{ fmt_addr(company) }}</div>{% if company.phone %}<div>Tel : {{ company.phone }}</div>{% endif %}{% endif %}
+  <hr/>
+</div>
+<div class="brief">{{ order.reference }}</div>
+<div class="brief" style="font-size:12px;border:1px solid #000;display:inline-block;padding:2px 6px;">DATE : {{ order.order_date.strftime('%d/%m/%Y %H:%M') if order.order_date }}</div>
+<div class="section">-- VOTRE VENTE COMPTOIR --</div>
+<table class="items">
+  <thead><tr><th>Item</th><th class="r">Qté</th><th class="r">PU</th><th class="r">Montant</th></tr></thead>
+  <tbody>
+  {% for line in lines %}
+  <tr><td>{{ line.description or 'Produit' }}</td><td class="r">{{ '%.2f' % line.quantity_ordered }}</td><td class="r">{{ '%.0f' % line.unit_price }}</td><td class="r">{{ '%.0f' % line.subtotal }}</td></tr>
+  {% if line.cuts %}{% for c in line.cuts %}
+  <tr><td colspan="4" style="font-size:9px">↳ {{ c.quantity }} × {{ '%.2f' % c.length }} m</td></tr>
+  {% endfor %}{% endif %}
+  {% endfor %}
+  <tr><td colspan="3" style="text-align:right;font-weight:bold">TOTAL</td><td class="r" style="font-weight:bold">{{ '%.0f' % total }} {{currency}}</td></tr>
+</table>
+{% if qr_data_uri %}
+<div class="qr"><img src="{{ qr_data_uri }}" alt="QR"/></div>
+{% if pos_url %}<div style="text-align:center;font-size:9px">{{ pos_url }}</div>{% endif %}
+{% endif %}
+<div class="thanks">Merci de votre confiance</div>
+<div class="footer" style="text-align:center;font-size:9px;border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
+{% if company %}
+{% set fparts = [] %}
+{% if company.rccm %}{% set fparts = fparts + ['RCCM : ' ~ company.rccm] %}{% endif %}
+{% if company.ncc %}{% set fparts = fparts + ['NCC : ' ~ company.ncc] %}{% endif %}
+{% if company.share_capital %}{% set fparts = fparts + ['Capital : ' ~ company.share_capital] %}{% endif %}
+{% if fparts %}{{ fparts | join(' | ') }}{% endif %}
+{% endif %}
+</div>
+</body></html>
+

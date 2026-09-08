@@ -1,0 +1,22 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    version: 1
+    editable: false
+
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: db:5432
+    database: erp_db
+    user: erp_user
+    secureJsonData:
+      password: erp_pass
+    isDefault: false
+    version: 1
+    editable: false

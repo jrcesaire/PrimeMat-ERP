@@ -1,0 +1,17 @@
+.git
+.gitignore
+node_modules
+.gitlab
+.github
+Dockerfile
+.dockerignore
+.env
+.nova
+.vscode
+.idea
+*.md
+docs
+tests
+*.log
+**/.git
+**/.gitignore
