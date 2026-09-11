@@ -48,3 +48,8 @@ htmlcov/
 tmp/
 temp/
 *.tmp
+
+# Documents générés
+resources/generated/
+backend/resources/generated/
+

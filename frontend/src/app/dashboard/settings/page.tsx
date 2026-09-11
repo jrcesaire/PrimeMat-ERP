@@ -119,6 +119,35 @@ export default function SettingsPage() {
     logo: null as string | null,
   });
   const [companyError, setCompanyError] = useState("");
+  // --- SGAV : Conditions Générales de Vente (page finale des devis/factures) ---
+  const [cgv, setCgv] = useState("");
+  const [cgvSaved, setCgvSaved] = useState(false);
+
+  // Charge la CGV depuis les paramètres
+  useEffect(() => {
+    let mounted = true;
+    apiClient
+      .get("/core/settings/cgv_content")
+      .then((res) => {
+        if (mounted) setCgv(String(res.data?.value ?? ""));
+      })
+      .catch(() => {
+        if (mounted) setCgv("");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const saveCgv = async () => {
+    setCgvSaved(false);
+    await apiClient.post(
+      "/core/settings/",
+      { key: "cgv_content", value: cgv, is_public: true },
+    );
+    setCgvSaved(true);
+    setTimeout(() => setCgvSaved(false), 3000);
+  };
 
   // Pré-remplit le formulaire quand l'entreprise est chargée
   useEffect(() => {
@@ -688,6 +717,47 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Conditions Générales de Vente — dernière page des devis et factures */}
+                <div>
+                  <h3 className="mb-3 mt-6 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                    Conditions Générales de Vente (CGV)
+                  </h3>
+                  <p className="mb-2 text-xs text-gray-500">
+                    Affichées en dernière page des devis et factures. Chaque ligne
+                    correspond à une clause.
+                  </p>
+                  <textarea
+                    value={cgv}
+                    onChange={(e) => setCgv(e.target.value)}
+                    disabled={!canEditCompany}
+                    rows={8}
+                    className="w-full rounded-md border border-gray-300 bg-white p-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                    placeholder={"1. Les commandes sont fermes et définitives après confirmation.\n2. Aucune reprise ni échange sur les marchandises découpées sur mesure.\n3. Les matériaux voyagent aux risques et périls du client."}
+                  />
+                  {canEditCompany && (
+                    <div className="mt-2 flex items-center gap-3">
+                      <Button
+                        onClick={async () => {
+                          try {
+                            await saveCgv();
+                          } catch (err: unknown) {
+                            setCompanyError(
+                              (err as { response?: { data?: { detail?: string } } })?.response
+                                ?.data?.detail ||
+                                "Erreur lors de la sauvegarde des CGV.",
+                            );
+                          }
+                        }}
+                        variant="outline"
+                        size="sm"
+                      >
+                        {cgvSaved ? "CGV enregistrées ✓" : "Enregistrer les CGV"}
+                      </Button>
+                      {cgvSaved && <span className="text-xs text-green-600">Page finale des documents mise à jour.</span>}
+                    </div>
+                  )}
                 </div>
 
                 {!canEditCompany && (

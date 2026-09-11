@@ -29,7 +29,7 @@ export function useLogin() {
     onSuccess: (token) => {
       setTokens(token);
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.user] });
-      router.push("/dashboard");
+      router.push("/");
     },
     onError: (error) => {
       const err = handleApiError(error);
@@ -44,12 +44,17 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      await apiClient.post("/core/auth/logout");
+      try {
+        await apiClient.post("/core/auth/logout");
+      } catch {
+        // La deconnexion locale doit aboutir meme si l endpoint echoue
+      }
     },
     onSuccess: () => {
       clearTokens();
       queryClient.clear();
       router.push("/login");
+      router.refresh();
     },
   });
 }

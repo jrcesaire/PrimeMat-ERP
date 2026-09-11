@@ -14,9 +14,13 @@ type Theme = {
   accent: string;
 };
 
+export type ThemeMode = "light" | "dark";
+
 type ThemeContextType = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  mode: ThemeMode;
+  toggleMode: () => void;
 };
 
 const defaultTheme: Theme = {
@@ -28,12 +32,39 @@ const defaultTheme: Theme = {
 const ThemeContext = createContext<{
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  mode: ThemeMode;
+  toggleMode: () => void;
 } | undefined>(undefined);
 
 const THEME_KEY = "erp-theme";
+const MODE_KEY = "erp-theme-mode";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(defaultTheme);
+  const [mode, setModeState] = useState<ThemeMode>("light");
+
+  // Restaurer le mode sauvegardé (ou suivre le système au 1er lancement)
+  useEffect(() => {
+    const saved = localStorage.getItem(MODE_KEY);
+    if (saved === "dark" || saved === "light") {
+      setModeState(saved);
+    } else if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
+      setModeState("dark");
+    }
+  }, []);
+
+  // Appliquer la classe `dark` sur <html>
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", mode === "dark");
+  }, [mode]);
+
+  const toggleMode = () => {
+    setModeState((prev) => {
+      const next: ThemeMode = prev === "dark" ? "light" : "dark";
+      localStorage.setItem(MODE_KEY, next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem(THEME_KEY);
@@ -70,7 +101,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, mode, toggleMode }}>
       {children}
     </ThemeContext.Provider>
   );

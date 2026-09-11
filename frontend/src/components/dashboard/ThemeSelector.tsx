@@ -11,7 +11,7 @@ export function ThemeSelector() {
 
   return (
     <div className="flex items-center gap-2">
-      <Paintbrush className="h-4 w-4 text-gray-500" />
+      <Paintbrush className="h-4 w-4 text-gray-500 dark:text-gray-400" />
       <select
         value={Object.keys(themePresets).find(
           (key) =>
@@ -19,7 +19,7 @@ export function ThemeSelector() {
             themePresets[key].secondary === theme.secondary,
         ) || "default"}
         onChange={(e) => setTheme(themePresets[e.target.value])}
-        className="text-sm text-gray-700 bg-white border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
+        className="text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
       >
         <option value="default">Bleu (défaut)</option>
         <option value="ocean">Océan</option>

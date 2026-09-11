@@ -26,6 +26,13 @@ DEFAULT_SETTINGS: dict[str, dict[str, Any]] = {
     "tax_enabled": {"value": "true", "type": "boolean", "is_public": True},
     "discount_enabled": {"value": "true", "type": "boolean", "is_public": True},
     "payment_terms_days": {"value": "30", "type": "integer", "is_public": True},
+    # Conditions generales de vente (derniere page des devis et factures)
+    "cgv_content": {
+        "value": "",
+        "type": "string",
+        "is_public": True,
+        "description": "Conditions Générales de Vente (page finale des devis et factures)",
+    },
     # URL du site du POS, affichée dans le QR code des tickets de caisse
     "pos_ticket_url": {
         "value": "",
@@ -64,6 +71,32 @@ class SettingService:
         val = self._deserialize(setting.value, setting.type)
         _CACHE[key] = val
         return val
+
+    async def update(
+        self, key: str, value: Any, type: str | None = None,
+        is_public: bool | None = None, description: str | None = None,
+company_id: int | None = None,
+    ) -> Setting | None:
+        """Met a jour un parametre existant (None si introuvable)."""
+        result = await self.session.execute(
+            select(Setting).where(
+                Setting.key == key, Setting.company_id == company_id,
+            )
+        )
+        setting: Setting | None = result.scalars().first()
+        if setting is None:
+            return None
+        setting.value = self._serialize(value, type or setting.type)
+        if type:
+            setting.type = type
+        if is_public is not None:
+            setting.is_public = is_public
+        if description:
+            setting.description = description
+        await self.session.commit()
+        await self.session.refresh(setting)
+        _CACHE.pop(key, None)
+        return setting
 
     async def set(
         self, key: str, value: Any, type: str = "string",

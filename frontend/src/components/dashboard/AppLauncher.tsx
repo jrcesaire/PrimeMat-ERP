@@ -67,10 +67,14 @@ export function AppLauncher() {
       .map((m) => m.name)
   );
 
-  const activeApps = APP_TILES.filter((a) => activeModules.has(a.module));
+  const activeApps = APP_TILES.filter(
+    (a) => a.always || activeModules.has(a.module)
+  );
 
   // Modules installés mais désactivés → section « autres applications »
-  const knownModules = new Set(APP_TILES.map((a) => a.module));
+  const knownModules = new Set(
+    APP_TILES.filter((a) => !a.always).map((a) => a.module)
+  );
   const inactiveModules = moduleStates.filter(
     (m) =>
       m.name !== "core" &&
@@ -81,7 +85,7 @@ export function AppLauncher() {
 
   // Applications du catalogue rattachées à un module désactivé
   const inactiveApps = APP_TILES.filter(
-    (a) => inactiveModules.some((m) => m.name === a.module)
+    (a) => !a.always && inactiveModules.some((m) => m.name === a.module)
   );
   // Dé-duplique : une seule tuile par module désactivé
   const seen = new Set<string>();

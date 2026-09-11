@@ -7,6 +7,7 @@
  */
 import {
   BarChart3,
+  LayoutDashboard,
   BookOpen,
   CreditCard,
   FileText,
@@ -31,9 +32,21 @@ export interface AppTile {
   icon: LucideIcon;
   /** Classes gradient de la tuile (façon icône colorée Odoo). */
   gradient: string;
+  /** Toujours affichée, indépendamment de l état des modules. */
+  always?: boolean;
 }
 
 export const APP_TILES: AppTile[] = [
+  {
+    key: "dashboard",
+    module: "core",
+    label: "Tableau de bord",
+    description: "Vue d’ensemble de l’activité",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    gradient: "from-blue-500 to-blue-700",
+    always: true,
+  },
   {
     key: "sales",
     module: "sales",

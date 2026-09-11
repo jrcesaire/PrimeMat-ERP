@@ -18,9 +18,10 @@ import {
 import { User, LogOut, Settings, Bell, Paintbrush } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeSelector } from "@/components/dashboard/ThemeSelector";
+import { ThemeToggle } from "@/components/dashboard/ThemeToggle";
 import { useCurrentCompany } from "@/hooks/useAuth";
 
-export function Header() {
+export function Header({ title = "Tableau de bord" }: { title?: string }) {
   const router = useRouter();
   const { data: user } = useCurrentUser();
   const { data: company } = useCurrentCompany();
@@ -33,9 +34,7 @@ export function Header() {
   return (
     <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
       <div className="flex items-center gap-4">
-        <h2 className="text-lg font-semibold">
-          Tableau de bord
-        </h2>
+        <h2 className="text-lg font-semibold">{title}</h2>
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <span>{company?.name ?? "Entreprise"}</span>
           {company?.establishment && (
@@ -48,6 +47,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        <ThemeToggle />
         <ThemeSelector />
         <Button variant="ghost" size="sm">
           <Bell className="h-4 w-4" />
@@ -63,11 +63,11 @@ export function Header() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
               <User className="mr-2 h-4 w-4" />
               Profil
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
               <Settings className="mr-2 h-4 w-4" />
               Paramètres
             </DropdownMenuItem>

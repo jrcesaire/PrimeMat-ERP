@@ -1,49 +1,82 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="utf-8"><style>
-@page { size: A5 landscape; margin: 8mm; }
-body { font-family: Helvetica, Arial, sans-serif; color:#111; }
-.rec-head { text-align:center; border-bottom:3px solid #0a2a6b; padding-bottom:10px;}
-.rec-head img.logo { height:60px; max-width:90px; margin-bottom:4px; }
-.rec-head h1 { margin:0; font-size:24px; color:#0a2a6b;}
-.rec-head .estab { font-size:12px; color:#333; font-weight:bold; margin-top:2px;}
-.rec-head .slogan { font-size:11px; color:#0a2a6b; font-style:italic; margin-top:2px;}
-.rec-head .addr { font-size:11px; color:#444; margin-top:3px;}
-.rec-head .tax { font-size:11px; color:#333; margin-top:2px;}
-.doc-title { font-size:22px; color:#0a2a6b; text-align:center; margin:16px 0 8px;}
-.ref { text-align:center; font-size:16px; font-weight:bold; letter-spacing:1px;}
-table.amnt { width:70%; margin:20px auto; border-collapse:collapse; font-size:14px;}
-table.amnt td { padding:8px 10px; border-bottom:1px solid #ccc;}
-table.amnt td.val { text-align:right; font-weight:bold;}
-.client { text-align:center; font-size:13px; margin:8px 0;}
-.footer { text-align:center; font-size:10px; color:#666; margin-top:20px; border-top:1px solid #ccc; padding-top:8px;}
+@page {
+  size: A5 landscape;
+  margin: 0;
+  @frame footer_frame {
+    -pdf-frame-content: page-footer;
+    left: 0mm; width: 210mm; top: 138mm; height: 17mm;
+  }
+}
+* { box-sizing: border-box; }
+body { margin:0; padding:0; font-family: Helvetica, Arial, sans-serif; color:#111; font-size:10px; }
+.page { width:210mm; min-height:148mm; margin:0 auto; padding:10mm 15mm 20mm; background:#fff; }
+.rec-head { text-align:center; border-bottom:1px solid #e8e8e8; padding-bottom:10px; }
+.rec-head .logo { height:52px; width:auto; max-width:130px; margin:0 auto 4px; display:block; border:1px solid #e8e8e8; border-radius:8px; padding:3px; }
+.rec-head h1 { margin:0; font-size:19px; letter-spacing:-0.3px; }
+.rec-head .estab { font-size:10px; color:#666; font-weight:bold; margin-top:2px; }
+.rec-head .slogan { font-size:9.5px; color:#0a2a6b; font-style:italic; margin-top:2px; }
+.rec-head .addr { font-size:9px; color:#666; margin-top:3px; }
+.rec-head .tax { font-size:9px; color:#333; margin-top:2px; }
+.doc-title { font-size:22px; color:#0a2a6b; text-align:center; margin:12px 0 4px; letter-spacing:-0.5px; }
+.ref { text-align:center; font-size:14px; font-weight:bold; letter-spacing:1px; }
+.status { display:block; width:max-content; margin:6px auto 0; padding:3px 9px; border-radius:999px; font-size:8px; font-weight:bold; text-transform:uppercase; }
+.status-paid { color:#218739; background:#edf8ef; }
+.status-cancelled { color:#666; background:#f1f1f1; }
+table.pay-amt { width:65%; margin:14px auto; border-collapse:collapse; font-size:12px; }
+table.pay-amt td { padding:7px 10px; border-bottom:1px solid #e8e8e8; color:#666; }
+table.pay-amt td.val { text-align:right; font-weight:bold; color:#111; }
+table.pay-amt tr.solde td { border-bottom:2px solid #111; font-weight:bold; color:#111; }
+.client { text-align:center; font-size:11px; margin:6px 0; }
+.words { text-align:center; font-size:8px; color:#666; margin-top:2px; }
+.invoice-ref { text-align:center; font-size:10px; color:#666; margin-top:8px; }
+#page-footer {
+  position:fixed; bottom:0; left:0; right:0;
+  padding:2mm 15mm 4mm;
+  border-top:1px solid #e8e8e8;
+  background:#fff;
+}
+#page-footer table { width:100%; border-collapse:collapse; }
+#page-footer td { vertical-align:bottom; color:#999; font-size:7px; line-height:1.5; }
+#page-footer .thanks { text-align:right; color:#111; font-size:8.5px; font-weight:bold; }
+#page-footer .slogan { color:#0a2a6b; font-weight:bold; }
 </style></head>
 <body>
-<div class="rec-head">
-  {% if company and company.logo %}<img src="{{ company.logo }}" class="logo" alt=""/>{% endif %}
-  <h1>{{ company.name }}</h1>
-  {% if company and company.establishment %}<div class="estab">Établissement : {{ company.establishment }}</div>{% endif %}
-  {% if company and company.slogan %}<div class="slogan">{{ company.slogan }}</div>{% endif %}
-  {% if company %}<div class="addr">{{ fmt_addr(company) }}{% if company.phone %} • Tél : {{ company.phone }}{% endif %}</div>{% endif %}
-  {% if company and company.ncc %}<div class="tax">N° Compte Contribuable (NCC) : {{ company.ncc }}</div>{% endif %}
+<div class="page">
+  <div class="rec-head">
+    {% if company and company.logo %}<img src="{{ company.logo }}" class="logo" alt=""/>{% endif %}
+    <h1>{{ company.name if company }}</h1>
+    {% if company and company.establishment %}<div class="estab">Établissement : {{ company.establishment }}</div>{% endif %}
+    {% if company and company.slogan %}<div class="slogan">{{ company.slogan }}</div>{% endif %}
+    {% if company %}<div class="addr">{{ fmt_addr(company) }}{% if company.phone %} • Tél : {{ company.phone }}{% endif %}</div>{% endif %}
+    {% if company and company.ncc %}<div class="tax">N° Compte Contribuable (NCC) : {{ company.ncc }}</div>{% endif %}
+  </div>
+  <div class="doc-title">REÇU</div>
+  <div class="ref">{{ payment.reference }}</div>
+  <div class="client">Reçu de : <b>{{ partner.name if partner }}</b> — {{ fmt_date(payment.payment_date) or '—' }}{% if payment.payment_method %} — Mode : {{ payment.payment_method }}{% endif %}</div>
+  <table class="pay-amt">
+    <tr><td>Total TTC</td><td class="val">{{ fmt_num(total) }} {{ currency }}</td></tr>
+    <tr><td>Acompte (avant ce reçu)</td><td class="val">{{ fmt_num(acompte) }} {{ currency }}</td></tr>
+    <tr class="solde"><td>Solde restant</td><td class="val">{{ fmt_num(solde) }} {{ currency }}</td></tr>
+  </table>
+  <div class="words">Arrêté le présent reçu à la somme de : <b>{{ amount_in_words(total, currency) }}</b></div>
+  {% if invoice %}<div class="invoice-ref">Facture : {{ invoice.reference }}</div>{% endif %}
 </div>
-<div class="doc-title">REÇU</div>
-<div class="ref">{{ payment.reference }}</div>
-<div class="client">Client : <b>{{ partner.name if partner }}</b> — {{ payment.payment_date }}</div>
-<table class="amnt">
-  <tr><td>Total TTC</td><td class="val">{{ '%.0f' % total }} {{currency}}</td></tr>
-  <tr><td>Acompte</td><td class="val">{{ '%.0f' % acompte }} {{currency}}</td></tr>
-  <tr><td>Solde</td><td class="val">{{ '%.0f' % solde }} {{currency}}</td></tr>
-</table>
-{% if invoice %}<p style="text-align:center;font-size:12px">Facture : {{ invoice.reference }}</p>{% endif %}
-<div class="footer">
-{% if company and company.slogan %}<b style="color:#0a2a6b">{{ company.slogan }}</b><br>{% endif %}
-{% if company %}
-{% set fparts = [] %}
-{% if company.rccm %}{% set fparts = fparts + ['N° RCCM : ' ~ company.rccm] %}{% endif %}
-{% if company.ncc %}{% set fparts = fparts + ['NCC : ' ~ company.ncc] %}{% endif %}
-{% if company.share_capital %}{% set fparts = fparts + ['Capital : ' ~ company.share_capital] %}{% endif %}
-{% if fparts %}{{ fparts | join(' | ') }}{% endif %}
-{% endif %}
+<div id="page-footer">
+  <table><tr>
+    <td style="width:70%">
+      {% if company and company.slogan %}<span class="slogan">{{ company.slogan }}</span> — {% endif %}
+      {{ company.name if company }}{% if company and company.phone %} · {{ company.phone }}{% endif %}{% if company and company.email %} · {{ company.email }}{% endif %}<br>
+      {% if company %}
+        {% set fparts = [] %}
+        {% if company.rccm %}{% set fparts = fparts + ['N° RCCM : ' ~ company.rccm] %}{% endif %}
+        {% if company.ncc %}{% set fparts = fparts + ['NCC : ' ~ company.ncc] %}{% endif %}
+        {% if company.share_capital %}{% set fparts = fparts + ['Capital : ' ~ company.share_capital] %}{% endif %}
+        {{ fparts | join(' | ') }}
+      {% endif %}
+    </td>
+    <td class="thanks">Merci pour votre confiance.</td>
+  </tr></table>
 </div>
 </body></html>

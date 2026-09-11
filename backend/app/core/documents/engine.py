@@ -54,6 +54,148 @@ def _fmt_contacts(company: Any) -> str:
     return " • ".join(parts)
 
 
+# --------------------------------------------------------------------------- #
+# Helpers de formatage (disponibles dans tous les templates)
+# --------------------------------------------------------------------------- #
+
+_UNITE_FR = [
+    "", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit",
+    "neuf", "dix", "onze", "douze", "treize", "quatorze", "quinze",
+    "seize", "dix-sept", "dix-huit", "dix-neuf",
+]
+_DIZAINE_FR = {
+    2: "vingt", 3: "trente", 4: "quarante", 5: "cinquante",
+    6: "soixante", 7: "soixante", 8: "quatre-vingt", 9: "quatre-vingt",
+}
+
+
+def _centaines_to_words(n: int) -> str:
+    """Convertit 0..999 en lettres francaises."""
+    if n < 20:
+        return _UNITE_FR[n]
+    if n < 100:
+        d, u = divmod(n, 10)
+        base = _DIZAINE_FR[d]
+        if d in (7, 9) and u < 10:
+            if u == 0:
+                return base + "-dix"
+            if u == 1:
+                return base + (" et onze" if d == 7 else "-onze")
+            return base + "-" + _UNITE_FR[u + 10]
+        if u == 1 and d != 8:
+            return f"{base} et un"
+        if u == 0 and d == 8:
+            return base
+        return f"{base}-{_UNITE_FR[u]}" if u else base
+    c, rest = divmod(n, 100)
+    if c == 1:
+        prefix = "cent" + (" " + _centaines_to_words(rest) if rest else "")
+    else:
+        prefix = _UNITE_FR[c] + " cent"
+        if rest:
+            prefix += " " + _centaines_to_words(rest)
+        else:
+            prefix += "s"
+    return prefix
+
+
+def _number_to_words_fr(n: int) -> str:
+    """Convertit un entier (>= 0) en lettres francaises."""
+    if n == 0:
+        return "zero"
+    parts: list[str] = []
+    for value, label, plural in ((10**9, "milliard", True), (10**6, "million", True)):
+        count, n = divmod(n, value)
+        if count:
+            head = _centaines_to_words(count) + " " + label
+            if plural and count > 1:
+                head += "s"
+            parts.append(head)
+    count, n = divmod(n, 1000)
+    if count:
+        parts.append("mille" if count == 1 else _centaines_to_words(count) + " mille")
+    if n or not parts:
+        parts.append(_centaines_to_words(n))
+    return " ".join(parts)
+
+
+def amount_in_words(amount: Any, currency: str = "XOF") -> str:
+    """Montant en lettres : "quatre-vingt-douze mille cinq cents francs CFA"."""
+    try:
+        total = int(round(float(amount)))
+    except (TypeError, ValueError):
+        return ""
+    unit_name = "francs CFA" if currency.upper() in ("XOF", "FCFA", "") else currency
+    words = _number_to_words_fr(total)
+    if total >= 1_000_000:
+        # "deux millions" -> "deux millions de francs CFA"
+        unit_name = "de " + unit_name
+    centimes = int(round((float(amount) - total) * 100))
+    if centimes:
+        return f"{words} {unit_name} et {_number_to_words_fr(centimes)} centimes"
+    return f"{words} {unit_name}"
+
+
+def cut_label(cut: Any) -> str:
+    """Sous-ligne de coupe : "10 feuilles de 5,50 m"."""
+    try:
+        fqty = float(cut.quantity)
+        length = f"{float(cut.length):.2f}".replace(".", ",")
+    except (TypeError, ValueError, AttributeError):
+        return ""
+    qty = int(fqty) if fqty.is_integer() else f"{fqty:g}".replace(".", ",")
+    return f"{qty} feuilles de {length} m"
+
+
+def fmt_num(value: Any, decimals: int = 0) -> str:
+    """Format francais : separateur de milliers espace, virgule decimale."""
+    try:
+        n = float(value or 0)
+    except (TypeError, ValueError):
+        n = 0.0
+    return f"{n:,.{decimals}f}".replace(",", " ").replace(".", ",")
+
+
+def fmt_date(value: Any) -> str:
+    """Date jj/mm/aaaa (chaine vide si absente)."""
+    if not value:
+        return ""
+    if isinstance(value, str):
+        return value
+    return value.strftime("%d/%m/%Y")
+
+
+def status_label(status: Any) -> str:
+    """Libelle francais du statut d un document."""
+    labels = {
+        "draft": "Brouillon", "confirmed": "Confirme", "posted": "Validee",
+        "paid": "Payee", "partial": "Partiel", "unpaid": "Impayee",
+        "cancelled": "Annulee", "pending": "En attente", "sent": "Expedie",
+        "delivered": "Livree", "planned": "Prevu",
+    }
+    return labels.get(str(status or ""), str(status or ""))
+
+
+def nl2br(value: Any) -> str:
+    """Echappe un texte multiligne et convertit les retours en <br/> (CGV)."""
+    from markupsafe import Markup, escape
+
+    if not value:
+        return ""
+    return Markup(escape(str(value)).replace("\n", "<br/>"))
+
+
+def status_class(status: Any) -> str:
+    """Classe CSS du pill de statut (palette du modele)."""
+    mapping = {
+        "paid": "status-paid", "partial": "status-partial",
+        "pending": "status-pending", "unpaid": "status-unpaid",
+        "cancelled": "status-cancelled", "posted": "status-paid",
+        "confirmed": "status-partial", "draft": "status-cancelled",
+    }
+    return mapping.get(str(status or ""), "status-cancelled")
+
+
 class DocumentEngine:
     """
     Moteur centralisé de génération de documents PDF.
@@ -72,6 +214,13 @@ class DocumentEngine:
         # Helpers disponibles dans tous les templates de documents
         self.jinja_env.globals["fmt_addr"] = _fmt_addr
         self.jinja_env.globals["fmt_contacts"] = _fmt_contacts
+        self.jinja_env.globals["amount_in_words"] = amount_in_words
+        self.jinja_env.globals["cut_label"] = cut_label
+        self.jinja_env.globals["fmt_num"] = fmt_num
+        self.jinja_env.globals["fmt_date"] = fmt_date
+        self.jinja_env.globals["status_label"] = status_label
+        self.jinja_env.globals["status_class"] = status_class
+        self.jinja_env.filters["nl2br"] = nl2br
 
     def render_template(self, template_name: str, context: dict[str, Any]) -> str:
         """Rend un template HTML avec le contexte fourni."""

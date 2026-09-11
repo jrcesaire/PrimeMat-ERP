@@ -35,3 +35,44 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* ===== MODE SOMBRE ===== */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+/* Surfaces */
+.dark .bg-white { background-color: #1e293b !important; }
+.dark .bg-gray-50 { background-color: #0f172a !important; }
+.dark .bg-gray-100 { background-color: #24324a !important; }
+.dark .bg-gray-200 { background-color: #334155 !important; }
+.dark .bg-gray-900 { background-color: #0b1220 !important; }
+
+/* Texte */
+.dark .text-gray-900 { color: #f1f5f9 !important; }
+.dark .text-gray-800 { color: #e2e8f0 !important; }
+.dark .text-gray-700 { color: #cbd5e1 !important; }
+.dark .text-gray-600 { color: #94a3b8 !important; }
+.dark .text-gray-500 { color: #94a3b8 !important; }
+.dark .text-gray-400 { color: #7c8ba1 !important; }
+
+/* Bordures */
+.dark .border-gray-100 { border-color: #26334d !important; }
+.dark .border-gray-200 { border-color: #334155 !important; }
+.dark .border-gray-300 { border-color: #475569 !important; }
+
+/* États de survol */
+.dark .hover\:bg-gray-50:hover { background-color: #1e293b !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #24324a !important; }
+.dark .hover\:bg-gray-800:hover { background-color: #1e293b !important; }
+.dark .hover\:text-white:hover { color: #f8fafc !important; }
+
+/* Scrollbar */
+.dark ::-webkit-scrollbar-track { background: #0f172a; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }

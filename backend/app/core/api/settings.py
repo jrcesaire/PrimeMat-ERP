@@ -3,12 +3,13 @@ Endpoints de gestion des paramètres.
 
 - GET  /settings              — liste (avec filtres)
 - GET  /settings/{key}        — valeur par clé
-- POST /settings              — création / mise à jour
-- PUT  /settings/{key}        — mise à jour
+- POST /settings              — création / mise à jour (body JSON)
+- PUT  /settings/{key}        — mise à jour (body JSON partiel)
 """
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.api.deps import SessionDep
@@ -18,6 +19,17 @@ from app.core.models.setting import Setting
 from app.core.models.user import User
 
 router = APIRouter()
+
+
+class SettingUpsert(BaseModel):
+    """Corps JSON pour la création / mise à jour d'un paramètre."""
+
+    key: str | None = Field(default=None, description="Clé (optionnelle pour PUT dédié)")
+    value: str = Field(default="")
+    type: str = "string"
+    is_public: bool = False
+    description: str | None = None
+    company_id: int | None = None
 
 
 @router.get("/")
@@ -66,18 +78,20 @@ async def get_setting(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_setting(
     session: SessionDep,
-    key: str,
-    value: str,
-    type: str = "string",
-    is_public: bool = False,
-    description: str | None = None,
-    company_id: int | None = None,
+    body: SettingUpsert,
     _: User = Depends(require_permission("setting", "create")),
 ):
-    """Crée ou met à jour un paramètre."""
+    """Crée ou met à jour un paramètre (body JSON — compatible longues valeurs)."""
     from app.core.services.setting_service import SettingService
     svc = SettingService(session)
-    setting = await svc.set(key, value, type, is_public, description, company_id)
+    setting = await svc.set(
+        body.key or "setting",
+        body.value,
+        body.type,
+        body.is_public,
+        body.description,
+        body.company_id,
+    )
     return setting
 
 
@@ -85,16 +99,15 @@ async def create_setting(
 async def update_setting(
     session: SessionDep,
     key: str,
-    value: str,
-    type: str | None = None,
-    is_public: bool | None = None,
-    description: str | None = None,
+    body: SettingUpsert,
     _: User = Depends(require_permission("setting", "edit")),
 ):
-    """Met à jour un paramètre existant."""
+    """Met à jour un paramètre existant (body JSON partiel)."""
     from app.core.services.setting_service import SettingService
     svc = SettingService(session)
-    setting = await svc.update(key, value, type, is_public, description)
+    setting = await svc.update(
+        key, body.value, body.type, body.is_public, body.description
+    )
     if setting is None:
         raise HTTPException(status_code=404, detail=f"Paramètre '{key}' introuvable")
     return setting
