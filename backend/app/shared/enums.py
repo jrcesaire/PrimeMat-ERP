@@ -90,6 +90,7 @@ class DeliveryStatus(str, enum.Enum):
     DRAFT = "draft"
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
+    DELIVERED = "delivered"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 

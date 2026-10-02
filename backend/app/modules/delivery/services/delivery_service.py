@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +22,31 @@ logger = logging.getLogger(__name__)
 class DeliveryService:
     """Service des bons de livraison."""
 
+    #: Transitions autorisées entre statuts (un bon complété n'est plus modifiable).
+    _NEXT_STATUS: dict[str, tuple[str, ...]] = {
+        DeliveryStatus.DRAFT.value: (
+            DeliveryStatus.PENDING.value,
+            DeliveryStatus.IN_PROGRESS.value,
+            DeliveryStatus.CANCELLED.value,
+        ),
+        DeliveryStatus.PENDING.value: (
+            DeliveryStatus.IN_PROGRESS.value,
+            DeliveryStatus.DELIVERED.value,
+            DeliveryStatus.COMPLETED.value,
+            DeliveryStatus.CANCELLED.value,
+        ),
+        DeliveryStatus.IN_PROGRESS.value: (
+            DeliveryStatus.DELIVERED.value,
+            DeliveryStatus.COMPLETED.value,
+            DeliveryStatus.CANCELLED.value,
+        ),
+        DeliveryStatus.DELIVERED.value: (
+            DeliveryStatus.COMPLETED.value,
+        ),
+        DeliveryStatus.COMPLETED.value: (),
+        DeliveryStatus.CANCELLED.value: (),
+    }
+
     def __init__(self, session: AsyncSession):
         self.session = session
         self.sequences = SequenceService(session)
@@ -28,10 +54,15 @@ class DeliveryService:
     async def get_delivery(self, delivery_id: int) -> DeliveryNote | None:
         return await self.session.get(DeliveryNote, delivery_id)
 
-    async def list_deliveries(self, skip: int = 0, limit: int = 100) -> list[DeliveryNote]:
+    async def list_deliveries(
+        self, skip: int = 0, limit: int = 100, order_id: int | None = None
+    ) -> list[DeliveryNote]:
+        """Bons de livraison (plus récents d'abord), filtrables par commande."""
+        stmt = select(DeliveryNote)
+        if order_id is not None:
+            stmt = stmt.where(DeliveryNote.order_id == order_id)
         result = await self.session.execute(
-            select(DeliveryNote)
-            .options(
+            stmt.options(
                 selectinload(DeliveryNote.lines).selectinload(DeliveryLine.cuts),
             )
             .order_by(DeliveryNote.id.desc())
@@ -41,10 +72,32 @@ class DeliveryService:
         return list(result.scalars().all())
 
     async def update_status(self, delivery_id: int, status: str) -> DeliveryNote | None:
+        """Fait avancer un bon de livraison selon les transitions autorisées.
+
+        ``pending → in_progress → delivered → completed`` (ou ``cancelled``
+        avant complétion).  La date de livraison est horodatée dès la
+        livraison (ou à la complétion si livrée directement).
+        Lève ``ValueError`` si la transition demandée est interdite.
+        """
         delivery = await self.session.get(DeliveryNote, delivery_id)
         if delivery is None:
             return None
+        current = delivery.status or DeliveryStatus.PENDING.value
+        if status == current:
+            return delivery
+        allowed = self._NEXT_STATUS.get(current, ())
+        if status not in allowed:
+            raise ValueError(
+                f"Transition « {current} » → « {status} » impossible "
+                f"(statut attendu : {', '.join(allowed) or 'aucun'})."
+            )
         delivery.status = status
+        if (
+            status
+            in (DeliveryStatus.DELIVERED.value, DeliveryStatus.COMPLETED.value)
+            and delivery.delivery_date is None
+        ):
+            delivery.delivery_date = date.today()
         await self.session.commit()
         await self.session.refresh(delivery)
         return delivery

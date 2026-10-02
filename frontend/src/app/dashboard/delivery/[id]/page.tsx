@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -15,10 +16,18 @@ import { formatDate, StatusBadge } from "@/lib/utils";
 const NEXT_STATUS: Record<string, { label: string; value: string }> = {
   planned: { label: "Expédier", value: "shipped" },
   shipped: { label: "Livrer", value: "delivered" },
+  pending: { label: "Livrer", value: "delivered" },
+  in_progress: { label: "Livrer", value: "delivered" },
+  delivered: { label: "Terminer", value: "completed" },
 };
 
-export default function DeliveryDetailPage({ params }: { params: { id: string } }) {
-  const id = Number(params.id) || 0;
+export default function DeliveryDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: idParam } = use(params);
+  const id = Number(idParam) || 0;
   const { data: d, isLoading } = useDeliveryNote(id);
   const { data: clients = [] } = useClients();
   const updateStatus = useUpdateDeliveryStatus();

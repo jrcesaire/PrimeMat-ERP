@@ -31,9 +31,15 @@ export function formatDate(iso: string | null | undefined): string {
 export const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   draft: { label: "Brouillon", className: "bg-gray-100 text-gray-700" },
   confirmed: { label: "Confirmé", className: "bg-blue-100 text-blue-800" },
+  posted: { label: "Confirmée", className: "bg-blue-100 text-blue-800" },
+  partially_paid: { label: "Partiellement payée", className: "bg-amber-100 text-amber-800" },
+  paid: { label: "Payée", className: "bg-green-100 text-green-800" },
+  pending: { label: "En attente", className: "bg-yellow-100 text-yellow-800" },
+  in_progress: { label: "En cours", className: "bg-indigo-100 text-indigo-800" },
   reserved: { label: "Réservé", className: "bg-indigo-100 text-indigo-800" },
   shipped: { label: "Expédié", className: "bg-cyan-100 text-cyan-800" },
   delivered: { label: "Livré", className: "bg-green-100 text-green-800" },
+  completed: { label: "Terminé", className: "bg-green-100 text-green-800" },
   cancelled: { label: "Annulé", className: "bg-red-100 text-red-700" },
   converted: { label: "Converti", className: "bg-purple-100 text-purple-800" },
 };

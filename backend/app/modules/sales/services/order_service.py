@@ -256,6 +256,78 @@ class OrderService:
         )
         return result.scalar_one()
 
+    async def close_order(self, order_id: int) -> SalesOrder:
+        """Clôture la vente — dernière étape du parcours de vente.
+
+        Conditions : commande non annulée ni déjà clôturée, au moins une
+        facture active **entièrement soldée**, et chaque bon de livraison
+        éventuel au statut ``delivered`` ou ``completed`` (la vente peut se
+        clôturer dès la livraison physique).  La commande passe à ``delivered``.
+
+        La commande peut encore être au brouillon : dans le parcours de vente
+        elle sert de conteneur technique (le devis confirmé la crée), et sa
+        confirmation (réservation de stock) n'est pas une condition de vente.
+        """
+        from app.modules.delivery.models.delivery import DeliveryNote
+        from app.modules.invoicing.models.invoice import Invoice
+
+        order = await self.get_order(order_id)
+        if order is None:
+            raise ValueError(f"Commande {order_id} introuvable")
+        if order.status == "delivered":
+            raise ValueError("Cette vente est déjà clôturée.")
+        if order.status == "cancelled":
+            raise ValueError("Une commande annulée ne peut pas être clôturée.")
+
+        invoices = list(
+            (
+                await self.session.execute(
+                    select(Invoice).where(Invoice.order_id == order.id)
+                )
+            ).scalars().all()
+        )
+        active = [i for i in invoices if i.status not in ("cancelled", "credit")]
+        if not active:
+            raise ValueError(
+                "Aucune facture active : facturez la vente avant de clôturer."
+            )
+        total = float(order.amount_total or 0)
+        paid = sum(float(i.paid_amount or 0) for i in active)
+        if paid + 0.005 < total:
+            raise ValueError(
+                f"Reste à encaisser {total - paid:.2f} — la vente doit être "
+                "entièrement réglée avant clôture."
+            )
+
+        deliveries = list(
+            (
+                await self.session.execute(
+                    select(DeliveryNote).where(DeliveryNote.order_id == order.id)
+                )
+            ).scalars().all()
+        )
+        unfinished = [
+            d
+            for d in deliveries
+            if (d.status or "") not in ("delivered", "completed")
+        ]
+        if unfinished:
+            raise ValueError(
+                "Bon(s) de livraison non terminé(s) : "
+                + ", ".join(d.reference for d in unfinished)
+            )
+
+        order.status = "delivered"
+        await self.session.commit()
+        logger.info("Vente %s clôturée (commande livrée)", order.reference)
+
+        result = await self.session.execute(
+            select(SalesOrder)
+            .options(selectinload(SalesOrder.lines).selectinload(SalesOrderLine.cuts))
+            .where(SalesOrder.id == order.id)
+        )
+        return result.scalar_one()
+
     async def confirm_order(self, order_id: int) -> dict:
         """
         Confirme une commande et lance l'analyse de fulfillment.
@@ -301,7 +373,12 @@ class OrderService:
 
         for line in order.lines:
             available = 0.0
-            if line.product_id and not line.sell_by_length:
+            # Type de produit : on_demand (production) ne touche jamais au stock
+            stype = "stockable"
+            if line.product_id and line.product is not None:
+                stype = str(getattr(line.product, "storage_type", "") or "stockable")
+            on_demand = stype == "on_demand"
+            if line.product_id and not line.sell_by_length and not on_demand:
                 available = await stock_service.get_available_stock(line.product_id)
 
             to_purchase = max(float(line.quantity_ordered) - available, 0.0)

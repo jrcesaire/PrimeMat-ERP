@@ -3,6 +3,7 @@
  */
 "use client";
 
+import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -24,8 +25,13 @@ const METHOD_LABELS: Record<string, string> = {
   bank: "Virement",
 };
 
-export default function ExpenseDetailPage({ params }: { params: { id: string } }) {
-  const id = Number(params.id) || 0;
+export default function ExpenseDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: idParam } = use(params);
+  const id = Number(idParam) || 0;
   const { data: expenses = [], isLoading } = useExpenses();
 
   const expense: Expense | undefined = expenses.find((e) => e.id === id);
