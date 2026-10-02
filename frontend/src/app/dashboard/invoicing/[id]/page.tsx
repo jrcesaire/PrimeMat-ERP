@@ -1,10 +1,24 @@
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Printer } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, Banknote, CheckCircle2, Printer, Truck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useInvoice } from "@/hooks/useOperations";
+import { PaymentDialog } from "@/components/sales/PaymentDialog";
+import {
+  useCloseOrder,
+  useDeliveryNotes,
+  useCreateDeliveryFromOrder,
+  useInvoice,
+  usePayments,
+  usePostInvoice,
+  useResetInvoiceToDraft,
+  useCancelInvoice,
+} from "@/hooks/useOperations";
 import { useClients } from "@/hooks/useCRM";
-import { printInvoice } from "@/lib/api/pdf";
+import { printDelivery, printInvoice, printReceipt } from "@/lib/api/pdf";
 import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
 import type { InvoiceLine } from "@/hooks/useOperations";
 
@@ -43,12 +57,25 @@ function LineDetail({ line, currency }: { line: InvoiceLine; currency: string })
   );
 }
 
-export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default function InvoiceDetailPage() {
+  const params = useParams<{ id: string }>();
   const router = useRouter();
-  const invoiceId = Number(id);
+  const invoiceId = Number(params.id);
   const { data: invoice, isLoading, error } = useInvoice(invoiceId);
   const { data: clients = [] } = useClients();
+  const postInvoice = usePostInvoice();
+  const closeOrder = useCloseOrder();
+  const createDelivery = useCreateDeliveryFromOrder();
+  const resetToDraft = useResetInvoiceToDraft();
+  const cancelInvoice = useCancelInvoice();
+  const { data: orderDeliveries = [] } = useDeliveryNotes(
+    invoice?.order_id ?? undefined
+  );
+  const { data: invoicePayments = [] } = usePayments(invoiceId);
+  const [payOpen, setPayOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // --- Enregistrement d'un paiement ---
 
   if (isLoading) return <p className="p-6 text-sm text-gray-500">Chargement…</p>;
   if (error || !invoice) return <p className="p-6 text-sm text-red-500">Facture introuvable.</p>;
@@ -56,6 +83,112 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   const client = clients.find((c) => c.id === invoice.partner_id);
   const remaining = Math.max(invoice.amount_total - invoice.paid_amount, 0);
   const currency = invoice.currency_code || "XOF";
+  const isConfirmed = invoice.status !== "draft";
+  const isPaid = invoice.status === "paid" || remaining <= 0.005;
+  const activeDeliveries = (orderDeliveries ?? []).filter(
+    (d) => d.status !== "cancelled"
+  );
+  const canPay =
+    ["posted", "partially_paid", "paid"].includes(invoice.status) &&
+    remaining > 0.005;
+  const delivery = activeDeliveries[0];
+  const pendingDelivery =
+    delivery != null &&
+    delivery.status !== "delivered" &&
+    delivery.status !== "completed";
+
+  const handlePost = async () => {
+    try {
+      await postInvoice.mutateAsync(invoice.id);
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de la confirmation");
+    }
+  };
+
+  const handleResetToDraft = async () => {
+    if (
+      !window.confirm(
+        "Remettre cette facture en brouillon ? Son écriture comptable sera supprimée."
+      )
+    ) {
+      return;
+    }
+    try {
+      await resetToDraft.mutateAsync(invoice.id);
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      alert(
+        typeof detail === "string" ? detail : "Erreur lors de la remise en brouillon"
+      );
+    }
+  };
+
+  const handleCancelInvoice = async () => {
+    if (
+      !window.confirm(
+        "Annuler définitivement cette facture ? La commande redeviendra facturable."
+      )
+    ) {
+      return;
+    }
+    try {
+      await cancelInvoice.mutateAsync(invoice.id);
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de l'annulation");
+    }
+  };
+
+  const handlePay = () => {
+    setActionError(null);
+    setPayOpen(true);
+  };
+
+  const handleCreateDelivery = async () => {
+    if (invoice.order_id == null) return;
+    setActionError(null);
+    try {
+      const created = await createDelivery.mutateAsync({
+        order_id: invoice.order_id,
+      });
+      router.push(`/dashboard/delivery/${created.id}`);
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data
+          ?.detail;
+      setActionError(
+        typeof detail === "string"
+          ? detail
+          : "Erreur lors de la création du bon de livraison"
+      );
+    }
+  };
+
+  const handleCloseSale = async () => {
+    if (invoice.order_id == null) return;
+    if (
+      !window.confirm(
+        "Clôturer cette vente ? La commande sera marquée comme livrée."
+      )
+    ) {
+      return;
+    }
+    setActionError(null);
+    try {
+      await closeOrder.mutateAsync(invoice.order_id);
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data
+          ?.detail;
+      setActionError(
+        typeof detail === "string" ? detail : "Erreur lors de la clôture"
+      );
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -73,11 +206,91 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={invoice.status} />
+          {invoice.status === "draft" && (
+            <Button
+              size="sm"
+              onClick={handlePost}
+              disabled={postInvoice.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              {postInvoice.isPending ? "Confirmation…" : "Confirmer"}
+            </Button>
+          )}
+          {invoice.status === "posted" && invoice.paid_amount === 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetToDraft}
+              disabled={resetToDraft.isPending}
+            >
+              {resetToDraft.isPending ? "Reprise…" : "Remettre en brouillon"}
+            </Button>
+          )}
+          {["draft", "posted"].includes(invoice.status) &&
+            invoice.paid_amount === 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:bg-red-50"
+                onClick={handleCancelInvoice}
+                disabled={cancelInvoice.isPending}
+              >
+                {cancelInvoice.isPending ? "Annulation…" : "Annuler la facture"}
+              </Button>
+            )}
           <Button variant="outline" size="sm" onClick={() => printInvoice(invoice.id)}>
             <Printer className="mr-2 h-4 w-4" /> Imprimer
           </Button>
+          {canPay && (
+            <Button variant="outline" size="sm" onClick={handlePay}>
+              <Banknote className="mr-2 h-4 w-4 text-green-600" /> Paiement
+            </Button>
+          )}
+          {invoice.order_id != null && (
+            delivery == null ? (
+              <Button
+                variant="outline"
+                size="icon"
+                title={
+                  isPaid
+                    ? `Créer le bon de livraison de la commande #${invoice.order_id}`
+                    : "Le bon de livraison sera disponible une fois la facture confirmée"
+                }
+                onClick={handleCreateDelivery}
+                disabled={createDelivery.isPending || !isConfirmed}
+              >
+                <Truck className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="icon"
+                title={`Voir le bon ${delivery.reference}`}
+                onClick={() => router.push(`/dashboard/delivery/${delivery.id}`)}
+              >
+                <Truck className="h-4 w-4" />
+              </Button>
+            )
+          )}
+          {invoice.order_id != null && isPaid && !pendingDelivery && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCloseSale}
+              disabled={closeOrder.isPending}
+            >
+              {closeOrder.isPending ? "Clôture…" : "Clôturer la vente"}
+            </Button>
+          )}
         </div>
       </div>
+
+      {actionError && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+          {actionError}
+        </div>
+      )}
 
       <Card className="grid grid-cols-2 gap-4 p-4 text-sm md:grid-cols-3">
         <div>
@@ -166,7 +379,86 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             {formatCurrency(remaining, currency)}
           </span>
         </div>
+        {invoice.order_id && (
+          <div className="mt-2 border-t border-gray-100 pt-2 text-xs">
+            <Link
+              href="/dashboard/sales"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              Créée à partir de la commande #{invoice.order_id} →
+            </Link>
+          </div>
+        )}
       </Card>
+
+      {/* Fenêtre d'encaissement (étape 4 : intégral / partiel + journal) */}
+      <PaymentDialog
+        open={payOpen && canPay}
+        onClose={() => setPayOpen(false)}
+        invoiceId={invoice.id}
+        partnerId={invoice.partner_id}
+        remaining={remaining}
+        currency={currency}
+      />
+
+      {/* Historique des paiements + reçus (étape 5) */}
+      {invoicePayments.length > 0 && (
+        <Card className="space-y-2 p-4">
+          <h2 className="flex items-center gap-2 font-semibold text-gray-800">
+            <Banknote className="h-4 w-4 text-green-600" />
+            Paiements ({invoicePayments.length})
+          </h2>
+          {invoicePayments.map((p) => (
+            <div
+              key={p.id}
+              className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 py-2 text-sm last:border-0"
+            >
+              <div>
+                <span className="font-medium text-gray-900">{p.reference}</span>
+                <span className="ml-2 text-xs text-gray-500">
+                  {formatDate(p.payment_date)} — {formatCurrency(p.amount, currency)}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => printReceipt(p.id)}
+              >
+                <Printer className="mr-2 h-4 w-4" /> Reçu
+              </Button>
+            </div>
+          ))}
+        </Card>
+      )}
+
+      {/* Bon de livraison lié (validation / impression) */}
+      {delivery != null && (
+        <Card className="flex flex-wrap items-center justify-between gap-2 p-4 text-sm">
+          <div>
+            <span className="text-gray-500">Bon de livraison : </span>
+            <span className="font-medium text-gray-900">{delivery.reference}</span>
+            <span className="ml-2">
+              <StatusBadge status={delivery.status} />
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/dashboard/delivery/${delivery.id}`)}
+            >
+              <Truck className="mr-2 h-4 w-4" /> Valider
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => printDelivery(delivery.id)}
+            >
+              <Printer className="mr-2 h-4 w-4" /> Imprimer
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

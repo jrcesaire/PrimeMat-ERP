@@ -12,6 +12,7 @@ export const OPERATIONS_KEYS = {
   payments: "payments",
   deliveries: "deliveries",
   expenses: "expenses",
+  journals: "journals",
 };
 
 // --- Types minimaux (réponses API) ---
@@ -52,6 +53,7 @@ export interface Payment {
   partner_id: number | null;
   invoice_id: number | null;
   method: string;
+  journal_code: string | null;
   amount: number;
   payment_date: string;
   status: string;
@@ -89,11 +91,13 @@ export interface Expense {
 }
 
 // --- Factures ---
-export function useInvoices() {
+export function useInvoices(orderId?: number) {
   return useQuery({
-    queryKey: [OPERATIONS_KEYS.invoices],
+    queryKey: [OPERATIONS_KEYS.invoices, orderId ?? "all"],
     queryFn: async (): Promise<Invoice[]> => {
-      const res = await apiClient.get("/invoicing/invoices");
+      const res = await apiClient.get("/invoicing/invoices", {
+        params: orderId ? { order_id: orderId } : undefined,
+      });
       return res.data;
     },
   });
@@ -116,13 +120,23 @@ export function useCreateInvoiceFromOrder() {
     mutationFn: async ({
       orderId,
       dueDays = 0,
+      mode = "full",
+      value = null,
+      post = false,
     }: {
       orderId: number;
       dueDays?: number;
+      /** "full" : totale/solde — "down_payment_percent" / "down_payment_fixed" : acompte */
+      mode?: "full" | "down_payment_percent" | "down_payment_fixed";
+      value?: number | null;
+      post?: boolean;
     }): Promise<Invoice> => {
       const res = await apiClient.post("/invoicing/invoices/from-order", {
         order_id: orderId,
         due_days: dueDays,
+        mode,
+        value,
+        post,
       });
       return res.data;
     },
@@ -132,12 +146,107 @@ export function useCreateInvoiceFromOrder() {
   });
 }
 
+/** Résultat du parcours « Créer facture » depuis un devis. */
+export interface QuoteInvoiceResult {
+  quote_id: number;
+  quote_reference: string;
+  order_id: number;
+  order_reference: string;
+  invoice_id: number;
+  invoice_reference: string;
+  invoice_status: string;
+  created: boolean;
+}
+
+/**
+ * Crée la facture d'un devis confirmé (parcours de vente, étape 2).
+ *
+ * Idempotent côté serveur : si la commande liée est déjà facturée, la facture
+ * existante est renvoyée avec `created = false` — le bouton sert alors de
+ * « Voir la facture ».
+ */
+export function useCreateInvoiceFromQuote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      quoteId,
+      mode = "full",
+      value = null,
+      dueDays = 0,
+      post = false,
+    }: {
+      quoteId: number;
+      mode?: "full" | "down_payment_percent" | "down_payment_fixed";
+      value?: number | null;
+      dueDays?: number;
+      post?: boolean;
+    }): Promise<QuoteInvoiceResult> => {
+      const res = await apiClient.post(`/sales/quotes/${quoteId}/invoice`, {
+        mode,
+        value,
+        due_days: dueDays,
+        post,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+    },
+  });
+}
+
+/** Confirme une facture brouillon (brouillon → comptabilisée). */
+export function usePostInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (invoiceId: number): Promise<Invoice> => {
+      const res = await apiClient.post(`/invoicing/invoices/${invoiceId}/post`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+    },
+  });
+}
+
+/** Remet une facture confirmée en brouillon (refusé si un paiement existe). */
+export function useResetInvoiceToDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (invoiceId: number): Promise<Invoice> => {
+      const res = await apiClient.post(
+        `/invoicing/invoices/${invoiceId}/reset-to-draft`
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+    },
+  });
+}
+
+/** Annule une facture non payée (la commande redevient facturable). */
+export function useCancelInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (invoiceId: number): Promise<Invoice> => {
+      const res = await apiClient.post(`/invoicing/invoices/${invoiceId}/cancel`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+    },
+  });
+}
+
 // --- Paiements ---
-export function usePayments() {
+export function usePayments(invoiceId?: number) {
   return useQuery({
-    queryKey: [OPERATIONS_KEYS.payments],
+    queryKey: [OPERATIONS_KEYS.payments, invoiceId ?? "all"],
     queryFn: async (): Promise<Payment[]> => {
-      const res = await apiClient.get("/payments/payments");
+      const res = await apiClient.get("/payments/payments", {
+        params: invoiceId ? { invoice_id: invoiceId } : undefined,
+      });
       return res.data;
     },
   });
@@ -151,25 +260,70 @@ export function useCreatePayment() {
       invoice_id?: number | null;
       method?: string;
       amount: number;
+      payment_date?: string;
+      journal_code?: string | null;
       direction?: string;
       notes?: string;
     }): Promise<Payment> => {
       const res = await apiClient.post("/payments/payments", data);
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (payment) => {
       queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.payments] });
       queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+      if (payment.invoice_id) {
+        queryClient.invalidateQueries({
+          queryKey: [OPERATIONS_KEYS.invoices, payment.invoice_id],
+        });
+      }
     },
   });
 }
 
-// --- Livraisons ---
-export function useDeliveryNotes() {
+// --- Clôture de vente (dernière étape du parcours de vente) ---
+export function useCloseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderId: number) => {
+      const res = await apiClient.post(`/sales/orders/${orderId}/close`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.deliveries] });
+    },
+  });
+}
+
+// --- Journaux comptables (registres caisse / banque / Mobile Money…) ---
+export interface Journal {
+  id: number;
+  code: string;
+  name: string;
+  journal_type: string;
+  is_active: boolean;
+}
+
+export function useJournals() {
   return useQuery({
-    queryKey: [OPERATIONS_KEYS.deliveries],
+    queryKey: [OPERATIONS_KEYS.journals],
+    queryFn: async (): Promise<Journal[]> => {
+      const res = await apiClient.get("/accounting/journals");
+      return res.data;
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
+// --- Livraisons ---
+export function useDeliveryNotes(orderId?: number) {
+  return useQuery({
+    queryKey: [OPERATIONS_KEYS.deliveries, orderId ?? "all"],
     queryFn: async (): Promise<DeliveryNote[]> => {
-      const res = await apiClient.get("/delivery/notes");
+      const res = await apiClient.get("/delivery/notes", {
+        params: orderId ? { order_id: orderId } : undefined,
+      });
       return res.data;
     },
   });
