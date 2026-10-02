@@ -19,6 +19,7 @@ import {
   Printer,
   CheckCircle2,
   ChevronRight,
+  ReceiptText,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,11 +33,19 @@ import {
   useCreateQuote,
   useConfirmQuote,
   useOrder,
+  useOrders,
   useQuote,
   useUpdateOrder,
   useUpdateQuote,
 } from "@/hooks/useSales";
+import {
+  useCreateInvoiceFromQuote,
+  useInvoices,
+} from "@/hooks/useOperations";
+import { useCurrentUser } from "@/hooks/useAuth";
+import { useSalespersons } from "@/hooks/useUsers";
 import { ClientAutocomplete } from "@/components/crm/client-autocomplete";
+import { ProductPicker } from "@/components/sales/product-picker";
 import { printOrder, printQuote } from "@/lib/api/pdf";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import type { Partner, Product } from "@/lib/types";
@@ -63,6 +72,8 @@ function emptyLine(): LineState {
 
 /** Totaux d'une ligne selon son mode de vente. */
 function lineTotals(line: LineState, product: Product | null) {
+  // Une ligne sans produit n'est pas facturable : ni quantité, ni montant.
+  if (line.product_id == null) return { totalLength: 0, subtotal: 0 };
   const price = Number(line.unit_price) || 0;
   const disc = (Number(line.discount_percent) || 0) / 100;
   if (line.sell_by_length) {
@@ -95,6 +106,18 @@ const PAYMENT_TERMS = [
   "60 jours",
 ];
 
+/** Date ISO (YYYY-MM-DD) + 1 mois — jour clampé (31/01 → 28/02). */
+function addOneMonthISO(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const nextY = m === 12 ? y + 1 : y;
+  const nextM = m === 12 ? 1 : m + 1;
+  const lastDay = new Date(Date.UTC(nextY, nextM, 0)).getUTCDate();
+  return `${nextY}-${String(nextM).padStart(2, "0")}-${String(
+    Math.min(d, lastDay)
+  ).padStart(2, "0")}`;
+}
+
 export default function NewQuotePage() {
   return (
     <Suspense fallback={null}>
@@ -119,17 +142,51 @@ function NewQuotePageInner() {
   const confirmQuote = useConfirmQuote();
   const { data: existingQuote } = useQuote(editId ?? 0);
   const { data: existingOrder } = useOrder(editOrderId ?? 0);
+  const { data: currentUser } = useCurrentUser();
+  const { data: salespersons = [] } = useSalespersons();
+  const { data: orders = [] } = useOrders();
+  const { data: invoices = [] } = useInvoices();
+  const createInvoice = useCreateInvoiceFromQuote();
 
   const entity = existingQuote ?? existingOrder;
   const locked = entity?.status === "confirmed";
 
+  // --- Parcours de vente : facture liée au devis / à la commande (étape 2) ---
+  const activeInvoices = useMemo(
+    () => invoices.filter((i) => !["cancelled", "credit"].includes(i.status)),
+    [invoices]
+  );
+  const linkedOrder = useMemo(
+    () => (editId ? orders.find((o) => o.quote_id === editId) ?? null : null),
+    [orders, editId]
+  );
+  const quoteInvoice = useMemo(
+    () =>
+      linkedOrder
+        ? activeInvoices.find((i) => i.order_id === linkedOrder.id) ?? null
+        : null,
+    [activeInvoices, linkedOrder]
+  );
+  const linkedInvoice = useMemo(
+    () =>
+      editOrderId
+        ? activeInvoices.find((i) => i.order_id === editOrderId) ?? quoteInvoice
+        : quoteInvoice,
+    [activeInvoices, editOrderId, quoteInvoice]
+  );
+
   // --- État du formulaire ---
   const [partnerId, setPartnerId] = useState<number | null>(null);
   const [siteId, setSiteId] = useState<number | null>(null);
+  const [salespersonId, setSalespersonId] = useState<number | null>(null);
   const [quoteDate, setQuoteDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
-  const [validUntil, setValidUntil] = useState("");
+  // Validité par défaut : 1 mois après la date d'émission.
+  const [validUntil, setValidUntil] = useState(() =>
+    addOneMonthISO(new Date().toISOString().slice(0, 10))
+  );
+  const validTouchedRef = useRef(false);
   const [paymentTerm, setPaymentTerm] = useState("Immédiat");
   const [customerReference, setCustomerReference] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
@@ -149,6 +206,26 @@ function NewQuotePageInner() {
   const productOf = (line: LineState): Product | null =>
     products.find((p) => p.id === line.product_id) ?? null;
   const partnerSites = sites.filter((s) => s.partner_id === partnerId);
+
+  // --- Contact commercial ---
+  // Choix du commercial : admin/manager uniquement (miroir des règles
+  // backend `_is_privileged_seller_chooser`). Un compte commercial voit
+  // le champ grisé avec le nom concerné.
+  const roleCodes = new Set(
+    (currentUser?.roles ?? []).map((r) => (r.code ?? "").trim().toLowerCase())
+  );
+  const isChooser =
+    currentUser?.is_superuser === true ||
+    ["admin", "manager", "administrateur"].some((c) => roleCodes.has(c));
+  const salespersonLabel = (() => {
+    const found = salespersons.find((sp) => sp.id === salespersonId);
+    if (found) return `${found.first_name} ${found.last_name}`;
+    if (salespersonId != null) return `Utilisateur #${salespersonId}`;
+    // Nouveau devis : le commercial sera le créateur.
+    return currentUser
+      ? `${currentUser.first_name} ${currentUser.last_name}`
+      : "—";
+  })();
 
   // --- Pré-remplissage en mode édition (une seule fois par entité) ---
   useEffect(() => {
@@ -201,7 +278,9 @@ function NewQuotePageInner() {
     if (!editingOrder && "quote_date" in entity) {
       const q = entity as typeof existingQuote & { quote_date: string };
       setQuoteDate(q.quote_date?.slice(0, 10) ?? "");
+      setSalespersonId(q.salesperson_id ?? null);
       setValidUntil(q.valid_until?.slice(0, 10) ?? "");
+      validTouchedRef.current = true; // ne pas recalculer en mode édition
       setTerms(q.terms ?? "");
       setTaxPercent(Number(q.metadata_json?.tax_percent ?? 0));
       setGlobalDiscount(Number(q.discount_amount ?? 0));
@@ -219,8 +298,13 @@ function NewQuotePageInner() {
   const removeLine = (key: number) =>
     setLines((ls) => (ls.length > 1 ? ls.filter((l) => l.key !== key) : ls));
 
-  const handleProductChange = (key: number, productId: number | null) => {
-    const product = products.find((p) => p.id === productId) ?? null;
+  const handleProductChange = (
+    key: number,
+    productId: number | null,
+    provided?: Product | null
+  ) => {
+    const product =
+      provided ?? products.find((p) => p.id === productId) ?? null;
     const patch: Partial<LineState> = {
       product_id: productId,
       standard_piece: false,
@@ -240,6 +324,7 @@ function NewQuotePageInner() {
   };
 
   // --- Totaux globaux ---
+  // `lineTotals` ignore déjà les lignes sans produit (comme `buildPayloadLines`).
   const subTotal = useMemo(
     () => lines.reduce((s, l) => s + lineTotals(l, productOf(l)).subtotal, 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -315,6 +400,8 @@ function NewQuotePageInner() {
             payment_term: paymentTerm,
             customer_reference: customerReference || null,
             lines: payloadLines,
+            // Le backend ignore la valeur pour un compte non-admin.
+            ...(isChooser ? { salesperson_id: salespersonId } : {}),
           },
         });
         setJustSaved("Devis enregistré");
@@ -343,6 +430,7 @@ function NewQuotePageInner() {
           payment_term: paymentTerm,
           customer_reference: customerReference || null,
           lines: payloadLines,
+          ...(isChooser ? { salesperson_id: salespersonId } : {}),
         });
         // Reste sur le document (façon Odoo) — l'URL porte désormais l'id
         router.replace(`/dashboard/sales/quotes/new?id=${created.id}`);
@@ -371,6 +459,20 @@ function NewQuotePageInner() {
     }
   };
 
+  const handleInvoice = async () => {
+    if (!editId) return;
+    setError(null);
+    try {
+      const res = await createInvoice.mutateAsync({ quoteId: editId });
+      router.push(`/dashboard/invoicing/${res.invoice_id}`);
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data
+          ?.detail;
+      setError(detail || "Erreur lors de la création de la facture.");
+    }
+  };
+
   const handlePrint = () => {
     if (editId)
       printQuote(editId).catch(() =>
@@ -388,9 +490,9 @@ function NewQuotePageInner() {
     ? entity?.reference ?? "Nouvelle commande"
     : entity?.reference ?? "Nouveau devis";
   const timelineSteps = editingOrder
-    ? ["Brouillon", "Confirmée"]
-    : ["Brouillon", "Envoyé", "Confirmé"];
-  const currentStep = locked ? timelineSteps.length : 1;
+    ? ["Brouillon", "Confirmée", "Facturée"]
+    : ["Brouillon", "Confirmé", "Facturé"];
+  const currentStep = linkedInvoice ? timelineSteps.length : locked ? 2 : 1;
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 pb-24">
@@ -420,6 +522,29 @@ function NewQuotePageInner() {
           >
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             Confirmer
+          </Button>
+        )}
+        {!editingOrder && editId && locked && !quoteInvoice && (
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={handleInvoice}
+            disabled={createInvoice.isPending}
+          >
+            <ReceiptText className="h-4 w-4 text-emerald-600" />
+            {createInvoice.isPending ? "Facturation…" : "Créer facture"}
+          </Button>
+        )}
+        {linkedInvoice && (
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() =>
+              router.push(`/dashboard/invoicing/${linkedInvoice.id}`)
+            }
+          >
+            <ReceiptText className="h-4 w-4 text-emerald-600" />
+            Voir la facture
           </Button>
         )}
         {entity && (
@@ -515,6 +640,35 @@ function NewQuotePageInner() {
                   : "Sélectionnez un client"}
               </p>
             </div>
+            {!editingOrder && (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Contact commercial
+                </label>
+                {isChooser ? (
+                  <select
+                    value={salespersonId ?? ""}
+                    onChange={(e) =>
+                      setSalespersonId(
+                        e.target.value ? Number(e.target.value) : null
+                      )
+                    }
+                    className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm focus:border-primary focus:outline-none"
+                  >
+                    <option value="">— Par défaut (moi-même) —</option>
+                    {salespersons.map((sp) => (
+                      <option key={sp.id} value={sp.id}>
+                        {`${sp.first_name} ${sp.last_name}`}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="min-h-9 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                    {salespersonLabel}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -532,7 +686,13 @@ function NewQuotePageInner() {
                   <Input
                     type="date"
                     value={quoteDate}
-                    onChange={(e) => setQuoteDate(e.target.value)}
+                    onChange={(e) => {
+                      setQuoteDate(e.target.value);
+                      // Validité recalculée tant que l'utilisateur n'y est pas touché.
+                      if (!validTouchedRef.current && e.target.value) {
+                        setValidUntil(addOneMonthISO(e.target.value));
+                      }
+                    }}
                   />
                 )}
               </div>
@@ -543,11 +703,14 @@ function NewQuotePageInner() {
                 <Input
                   type="date"
                   value={editingOrder ? deliveryDate : validUntil}
-                  onChange={(e) =>
-                    editingOrder
-                      ? setDeliveryDate(e.target.value)
-                      : setValidUntil(e.target.value)
-                  }
+                  onChange={(e) => {
+                    if (editingOrder) {
+                      setDeliveryDate(e.target.value);
+                    } else {
+                      validTouchedRef.current = true;
+                      setValidUntil(e.target.value);
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -625,28 +788,13 @@ function NewQuotePageInner() {
                       {/* Ligne principale */}
                       <tr className="border-b border-gray-100">
                         <td className="px-3 py-2">
-                          <select
-                            value={line.product_id ?? ""}
-                            onChange={(e) =>
-                              handleProductChange(
-                                line.key,
-                                e.target.value ? Number(e.target.value) : null
-                              )
+                          <ProductPicker
+                            value={line.product_id}
+                            products={products}
+                            onChange={(productId, product) =>
+                              handleProductChange(line.key, productId, product)
                             }
-                            className="h-8 w-full max-w-xs rounded-md border border-gray-300 bg-white px-2 text-sm focus:border-primary focus:outline-none"
-                          >
-                            <option value="">— Choisir un produit —</option>
-                            {products.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name}
-                                {p.sale_mode === "length"
-                                  ? " (au m)"
-                                  : p.sale_mode === "dual"
-                                    ? " (ml / pièce)"
-                                    : ""}
-                              </option>
-                            ))}
-                          </select>
+                          />
                         </td>
                         <td className="px-3 py-2">
                           {isBac ? (

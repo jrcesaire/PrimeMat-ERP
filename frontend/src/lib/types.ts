@@ -161,6 +161,7 @@ export interface ProductUnit {
 
 export interface Product {
   id: number;
+  variants_count?: number;
   reference: string;
   barcode: string | null;
   name: string;
@@ -220,6 +221,7 @@ export interface Quote {
   reference: string;
   partner_id: number;
   site_id: number | null;
+  salesperson_id?: number | null;
   status: string;
   quote_date: string;
   valid_until: string | null;
@@ -487,6 +489,8 @@ export interface SiteCreate {
 export interface QuoteCreate {
   partner_id: number;
   site_id?: number | null;
+  /** Contact commercial — choisi par admin/manager, sinon = créateur. */
+  salesperson_id?: number | null;
   quote_date?: string;
   valid_until?: string | null;
   currency_code?: string;
@@ -519,6 +523,7 @@ export interface QuoteCutCreate {
 export interface QuoteUpdate {
   partner_id?: number;
   site_id?: number | null;
+  salesperson_id?: number | null;
   quote_date?: string;
   valid_until?: string | null;
   currency_code?: string;
@@ -584,4 +589,37 @@ export interface CategoryTreeNode {
   resolved_sale_mode: "unit" | "length" | "dual";
   sells_by_length: boolean;
   children: CategoryTreeNode[];
+}
+export interface PropertyValue {
+  id: number;
+  value: string;
+  position: number;
+}
+
+export interface ProductProperty {
+  id: number;
+  name: string;
+  position: number;
+  is_active: boolean;
+  values: PropertyValue[];
+}
+
+export interface VariantPropertyInfo {
+  property_id: number;
+  property_name: string;
+  value_id: number;
+  value: string;
+}
+
+export interface ProductVariant {
+  id: number;
+  product_id: number;
+  reference: string | null;
+  name_suffix: string;
+  selling_price: number | null;
+  purchase_price: number | null;
+  price_per_meter: number | null;
+  is_default: boolean;
+  is_active: boolean;
+  properties: VariantPropertyInfo[];
 }
