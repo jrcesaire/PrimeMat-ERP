@@ -20,9 +20,11 @@ import { QuickProductDialog } from "./quick-product-dialog";
 
 interface Props {
   onAdd: (product: Product) => void;
+  /** Filtre les suggestions par catégorie (null = Tout). */
+  categoryId?: number | null;
 }
 
-export function ProductSearchAdd({ onAdd }: Props) {
+export function ProductSearchAdd({ onAdd, categoryId }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Product[]>([]);
   const [open, setOpen] = useState(false);
@@ -39,9 +41,10 @@ export function ProductSearchAdd({ onAdd }: Props) {
     }
     const t = setTimeout(async () => {
       try {
-        const res = await apiClient.get(
-          `/catalogue/products?search=${encodeURIComponent(q)}&limit=8`,
-        );
+        const params = new URLSearchParams({ limit: String(8) });
+        if (categoryId) params.set("category_id", String(categoryId));
+        if (q) params.set("search", q);
+        const res = await apiClient.get(`/catalogue/products?${params.toString()}`);
         setResults(res.data ?? []);
         setHighlight(0);
         setOpen(true);

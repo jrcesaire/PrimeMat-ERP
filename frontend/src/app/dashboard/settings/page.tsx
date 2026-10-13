@@ -31,6 +31,11 @@ import { apiClient } from "@/lib/api/client";
 import { COMPANY_KEY, useCurrentCompany, useCurrentUser } from "@/hooks/useAuth";
 import { useModules, useModuleActions } from "@/hooks/useModules";
 import type { Company, ModuleInfo } from "@/lib/types";
+import { DocumentsTab } from "@/components/settings/documents-tab";
+import {
+  useConfirm,
+  confirmDeleteOptions,
+} from "@/components/ui/confirm";
 
 interface SystemUser {
   id: number;
@@ -74,6 +79,7 @@ function moduleName(name: string): string {
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState("general");
   const { data: currentUser } = useCurrentUser();
 
@@ -404,11 +410,16 @@ export default function SettingsPage() {
   };
 
   const handleDelete = async (u: SystemUser) => {
-    if (
-      !window.confirm(
-        `Supprimer définitivement le compte de ${u.first_name} ${u.last_name} (${u.email}) ?\nCette action est irréversible.`,
-      )
-    ) {
+    const label = `${u.first_name} ${u.last_name} (${u.email})`;
+    const { confirmed } = await confirm({
+      ...confirmDeleteOptions(`le compte de ${label}`),
+      description:
+        "Pour confirmer, retapez l'adresse e-mail du compte ci-dessous. Le compte sera définitivement supprimé et ses accès révoqués.",
+      requireKeyword: u.email,
+      keywordLabel: `Tapez « ${u.email} » pour confirmer`,
+      confirmLabel: "Supprimer le compte",
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -474,6 +485,7 @@ export default function SettingsPage() {
 
       <div className="flex gap-4 border-b border-gray-200">
         {tabBtn("Général", "general", true)}
+        {tabBtn("Documents", "documents", true)}
         {tabBtn("Modules", "modules", canManageModules)}
         {tabBtn("Utilisateurs", "users", canManageUsers)}
       </div>
@@ -719,47 +731,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Conditions Générales de Vente — dernière page des devis et factures */}
-                <div>
-                  <h3 className="mb-3 mt-6 text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Conditions Générales de Vente (CGV)
-                  </h3>
-                  <p className="mb-2 text-xs text-gray-500">
-                    Affichées en dernière page des devis et factures. Chaque ligne
-                    correspond à une clause.
-                  </p>
-                  <textarea
-                    value={cgv}
-                    onChange={(e) => setCgv(e.target.value)}
-                    disabled={!canEditCompany}
-                    rows={8}
-                    className="w-full rounded-md border border-gray-300 bg-white p-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
-                    placeholder={"1. Les commandes sont fermes et définitives après confirmation.\n2. Aucune reprise ni échange sur les marchandises découpées sur mesure.\n3. Les matériaux voyagent aux risques et périls du client."}
-                  />
-                  {canEditCompany && (
-                    <div className="mt-2 flex items-center gap-3">
-                      <Button
-                        onClick={async () => {
-                          try {
-                            await saveCgv();
-                          } catch (err: unknown) {
-                            setCompanyError(
-                              (err as { response?: { data?: { detail?: string } } })?.response
-                                ?.data?.detail ||
-                                "Erreur lors de la sauvegarde des CGV.",
-                            );
-                          }
-                        }}
-                        variant="outline"
-                        size="sm"
-                      >
-                        {cgvSaved ? "CGV enregistrées ✓" : "Enregistrer les CGV"}
-                      </Button>
-                      {cgvSaved && <span className="text-xs text-green-600">Page finale des documents mise à jour.</span>}
-                    </div>
-                  )}
-                </div>
-
                 {!canEditCompany && (
                   <p className="flex items-center gap-1 text-xs text-gray-400">
                     <Lock className="h-3 w-3" /> Lecture seule — modification réservée au
@@ -797,6 +768,8 @@ export default function SettingsPage() {
           </Card>
         </div>
       )}
+
+      {activeTab === "documents" && <DocumentsTab />}
 
       {activeTab === "modules" && canManageModules && (
         <ModuleManager

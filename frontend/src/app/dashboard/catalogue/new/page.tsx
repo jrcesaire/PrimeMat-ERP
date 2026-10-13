@@ -14,6 +14,7 @@ import {
   useProduct,
   useCategoryTree,
 } from "@/hooks/useCatalogue";
+import { BarcodeScanner } from "@/components/catalogue/barcode-scanner";
 
 interface FlatCategory {
   id: number;
@@ -74,6 +75,9 @@ function NewProductPageInner() {
 
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [isStock, setIsStock] = useState(true);       // Quincaillerie (en stock)
+  const [isProduction, setIsProduction] = useState(false); // Production (a produire)
+  const [barcode, setBarcode] = useState("");
   const [sellingPrice, setSellingPrice] = useState(0);
   const [pricePerMeter, setPricePerMeter] = useState(0);
   const [unitLength, setUnitLength] = useState(2.5);
@@ -89,6 +93,10 @@ function NewProductPageInner() {
     setSellingPrice(existing.selling_price ?? 0);
     setPricePerMeter(existing.price_per_meter ?? 0);
     setUnitLength(existing.unit_length ?? 2.5);
+    setBarcode(existing.barcode ?? "");
+    const st = existing.storage_type ?? "stockable";
+    setIsStock(st === "stockable" || st === "hybrid");
+    setIsProduction(st === "on_demand" || st === "hybrid");
   }, [existing, loaded]);
 
   const selectedCat = categories.find((c) => c.id === categoryId) ?? null;
@@ -98,9 +106,14 @@ function NewProductPageInner() {
     setError(null);
     if (!name.trim()) return setError("Nom du produit requis.");
     if (!categoryId) return setError("Choisissez une catégorie.");
+    if (!isStock && !isProduction)
+      return setError("Cochez au moins un type : Quincaillerie et/ou Production.");
+    const storage_type = isStock && isProduction ? "hybrid" : isProduction ? "on_demand" : "stockable";
     const data = {
       name: name.trim(),
       category_id: categoryId,
+      storage_type,
+      barcode: barcode.trim() || undefined,
       selling_price: mode === "length" ? undefined : Number(sellingPrice),
       price_per_meter: mode === "unit" ? undefined : Number(pricePerMeter),
       unit_length: mode === "dual" ? Number(unitLength) : undefined,
@@ -159,6 +172,65 @@ function NewProductPageInner() {
             </select>
           </div>
         </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Type de produit *</label>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-300 p-3 hover:border-primary">
+              <input
+                type="checkbox"
+                checked={isStock}
+                onChange={(e) => setIsStock(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+              />
+              <span>
+                <span className="block text-sm font-medium text-gray-900">Quincaillerie</span>
+                <span className="block text-xs text-gray-500">En stock — vendu depuis le stock</span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-300 p-3 hover:border-primary">
+              <input
+                type="checkbox"
+                checked={isProduction}
+                onChange={(e) => setIsProduction(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+              />
+              <span>
+                <span className="block text-sm font-medium text-gray-900">Production</span>
+                <span className="block text-xs text-gray-500">Pas en stock — nécessite production</span>
+              </span>
+            </label>
+          </div>
+          {(isStock || isProduction) && (
+            <p className="mt-1 text-xs text-gray-500">
+              Type enregistré :{" "}
+              <strong>
+                {isStock && isProduction ? "Stock + Production (hybride)" : isProduction ? "Production (sur commande)" : "Quincaillerie (en stock)"}
+              </strong>
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-gray-700">Code-barres / QR (optionnel)</label>
+            <Input
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              placeholder="Scanner le code du fabricant ou saisir manuellement"
+            />
+          </div>
+          <div className="flex items-end">
+            <BarcodeScanner
+              label="Scanner"
+              className="w-full"
+              onScan={(code) => setBarcode(code)}
+            />
+          </div>
+        </div>
+        <p className="text-xs text-gray-500">
+          Sans code-barres, une référence système (PRD-XXXXXX) est générée automatiquement.
+        </p>
 
         {selectedCat && (
           <p className="text-xs text-gray-500">

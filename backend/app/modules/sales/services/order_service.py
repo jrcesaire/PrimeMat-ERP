@@ -16,6 +16,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.services.sequence_service import SequenceService
 from app.shared.events import event_bus
+from app.modules.catalogue.models.variant import ProductVariant
 from app.modules.sales.models.order import OrderLineCut, SalesOrder, SalesOrderLine
 from app.modules.sales.schemas import (
     OrderLineCreate,
@@ -34,8 +35,16 @@ class OrderService:
         self.sequences = SequenceService(session)
 
     async def _build_line(self, data: OrderLineCreate) -> SalesOrderLine:
+        # Variante (optionnelle) : libellé résolu depuis la base.
+        variant_name: str | None = None
+        if data.variant_id is not None:
+            variant = await self.session.get(ProductVariant, data.variant_id)
+            if variant is not None:
+                variant_name = variant.name_suffix
         line = SalesOrderLine(
             product_id=data.product_id,
+            variant_id=data.variant_id,
+            variant_name=variant_name,
             description=data.description,
             quantity_ordered=data.quantity_ordered,
             unit=data.unit,
@@ -124,11 +133,23 @@ class OrderService:
         return await self.session.get(SalesOrder, order_id)
 
     async def list_orders(
-        self, skip: int = 0, limit: int = 100, partner_id: int | None = None
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        partner_id: int | None = None,
+        include_pos: bool = False,
     ) -> list[SalesOrder]:
+        """Liste les commandes, plus récentes d'abord.
+
+        Les ventes comptoir (``fulfillment_mode="pos"``) sont exclues par
+        défaut : elles vivent uniquement dans l'historique du Point de Vente
+        pour ne pas surcharger la facturation globale.
+        """
         stmt = select(SalesOrder).offset(skip).limit(limit).order_by(SalesOrder.id.desc())
         if partner_id:
             stmt = stmt.where(SalesOrder.partner_id == partner_id)
+        if not include_pos:
+            stmt = stmt.where(SalesOrder.fulfillment_mode != "pos")
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
@@ -192,6 +213,33 @@ class OrderService:
                 "Seule une commande au statut « brouillon » peut être supprimée. "
                 "Une commande confirmée a déjà des réservations de stock."
             )
+
+        # Garde-fous FK (cascade de suppression) : ni facture ni BL rattachés.
+        from app.modules.invoicing.models.invoice import Invoice
+        from app.modules.delivery.models.delivery import DeliveryNote
+
+        inv = await self.session.execute(
+            select(Invoice.reference).where(Invoice.order_id == order.id).limit(5)
+        )
+        refs = list(inv.scalars().all())
+        if refs:
+            raise ValueError(
+                "Impossible : une facture est rattachée à cette commande ("
+                + ", ".join(refs)
+                + ") — supprimez-la ou annulez-la d'abord."
+            )
+        dlv = await self.session.execute(
+            select(DeliveryNote.reference)
+            .where(DeliveryNote.order_id == order.id)
+            .limit(5)
+        )
+        bl_refs = list(dlv.scalars().all())
+        if bl_refs:
+            raise ValueError(
+                "Impossible : un bon de livraison est rattaché à cette "
+                "commande (" + ", ".join(bl_refs) + ") — supprimez-le d'abord."
+            )
+
         await self.session.delete(order)  # cascade lines + cuts
         await self.session.commit()
 

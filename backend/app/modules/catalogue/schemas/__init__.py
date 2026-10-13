@@ -64,6 +64,7 @@ class ProductRead(ProductBase):
     company_id: int
     sale_mode: str = "unit"      # mode effectif résolu depuis la catégorie
     is_bac_sheet: bool = False   # vrai si vendu au mètre linéaire
+    variants_count: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -180,3 +181,178 @@ class BACSheetRead(BaseModel):
     unit_cost: float | None = None
     unit_price: float | None = None
     cuts: list[BACCutRead] = Field(default_factory=list)
+
+# ------------------------------------------------------------------ #
+# Variantes de produits — propriétés, valeurs, variantes
+# ------------------------------------------------------------------ #
+class PropertyValueRead(BaseModel):
+    """Valeur d'une propriété (ex. Rouge)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    value: str
+    position: int = 0
+
+
+class PropertyCreate(BaseModel):
+    """Création d'une propriété (ex. Couleur) avec valeurs initiales."""
+
+    name: str
+    values: list[str] = Field(default_factory=list)
+
+
+class PropertyRead(BaseModel):
+    """Propriété et ses valeurs possibles."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    position: int = 0
+    is_active: bool = True
+    values: list[PropertyValueRead] = Field(default_factory=list)
+
+
+class PropertyValueCreate(BaseModel):
+    """Ajout d'une valeur sur une propriété existante."""
+
+    value: str
+
+
+class VariantPropertyRead(BaseModel):
+    """(Propriété, valeur) d'une variante."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    property_id: int
+    property_name: str
+    value_id: int
+    value: str
+
+
+class VariantRead(BaseModel):
+    """Variante d'un produit."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    product_id: int
+    reference: str | None = None
+    name_suffix: str
+    selling_price: float | None = None
+    purchase_price: float | None = None
+    price_per_meter: float | None = None
+    is_default: bool = False
+    is_active: bool = True
+    properties: list[VariantPropertyRead] = Field(default_factory=list)
+
+
+class VariantGenerate(BaseModel):
+    """Génération des variantes — valeurs choisies par propriété.
+
+    ``values`` : {property_id: [value_ids]} — le produit cartésien des
+    valeurs crée les variantes (idempotent : les combinaisons existantes
+    sont ignorées).
+    """
+
+    values: dict[int, list[int]] = Field(default_factory=dict)
+    copy_prices: bool = True
+
+
+class VariantUpdate(BaseModel):
+    """Mise à jour partielle d'une variante."""
+
+    reference: str | None = None
+    selling_price: float | None = None
+    purchase_price: float | None = None
+    price_per_meter: float | None = None
+    is_active: bool | None = None
+    is_default: bool | None = None
+
+
+# ------------------------------------------------------------------ #
+# Variantes de produits — propriétés, valeurs, variantes
+# ------------------------------------------------------------------ #
+class PropertyValueRead(BaseModel):
+    """Valeur d'une propriété (ex. Rouge)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    value: str
+    position: int = 0
+
+
+class PropertyCreate(BaseModel):
+    """Création d'une propriété (ex. Couleur) avec valeurs initiales."""
+
+    name: str
+    values: list[str] = Field(default_factory=list)
+
+
+class PropertyRead(BaseModel):
+    """Propriété et ses valeurs possibles."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    position: int = 0
+    is_active: bool = True
+    values: list[PropertyValueRead] = Field(default_factory=list)
+
+
+class PropertyValueCreate(BaseModel):
+    """Ajout d'une valeur sur une propriété existante."""
+
+    value: str
+
+
+class VariantPropertyRead(BaseModel):
+    """(Propriété, valeur) d'une variante."""
+
+    property_id: int
+    property_name: str
+    value_id: int
+    value: str
+
+
+class VariantRead(BaseModel):
+    """Variante d'un produit."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    product_id: int
+    reference: str | None = None
+    name_suffix: str
+    selling_price: float | None = None
+    purchase_price: float | None = None
+    price_per_meter: float | None = None
+    is_default: bool = False
+    is_active: bool = True
+    properties: list[VariantPropertyRead] = Field(default_factory=list)
+
+
+class VariantGenerate(BaseModel):
+    """Génération des variantes — valeurs choisies par propriété.
+
+    ``values`` : {property_id: [value_ids]} — le produit cartésien des
+    valeurs crée les variantes (idempotent : les combinaisons existantes
+    sont ignorées).
+    """
+
+    values: dict[int, list[int]] = Field(default_factory=dict)
+    copy_prices: bool = True
+
+
+class VariantUpdate(BaseModel):
+    """Mise à jour partielle d'une variante."""
+
+    reference: str | None = None
+    selling_price: float | None = None
+    purchase_price: float | None = None
+    price_per_meter: float | None = None
+    is_active: bool | None = None
+    is_default: bool | None = None

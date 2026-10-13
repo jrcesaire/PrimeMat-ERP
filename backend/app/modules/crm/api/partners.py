@@ -3,7 +3,7 @@ Endpoints API du module CRM — partenaires, contacts, adresses, chantiers.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import select
 
 from app.api.deps import SessionDep
@@ -20,6 +20,10 @@ from app.modules.crm.schemas import (
     SiteRead,
 )
 from app.modules.crm.services.crm_service import CrmService
+from app.modules.crm.services.export_service import CrmExportService
+from app.modules.crm.services.import_service import CrmImportService
+from app.shared.file_export import export_response
+from app.shared.file_import import read_rows_from_bytes
 
 router = APIRouter()
 
@@ -39,6 +43,28 @@ async def list_partners(
     )
 
 
+# Déclaré AVANT /partners/{partner_id} : sinon « export » serait capturé
+# comme identifiant et renverrait 422.
+@router.get("/partners/export")
+async def export_partners(
+    session: SessionDep,
+    format: str = "xlsx",
+    template: bool = False,
+    role: str | None = None,
+    _: User = Depends(require_permission("partner", "view")),
+):
+    """Export Excel / CSV des contacts (aller‑retour avec l'import).
+
+    - ``format`` : ``xlsx`` (défaut) ou ``csv`` ;
+    - ``template=1`` : en‑têtes seuls → modèle vierge à remplir ;
+    - ``role`` : filtre repris de l'écran (``client`` / ``supplier``).
+    """
+    headers, rows = await CrmExportService(session).partners(
+        include_rows=not template, role=role
+    )
+    return export_response(format, "Contacts", headers, rows)
+
+
 @router.post("/partners", response_model=PartnerRead, status_code=status.HTTP_201_CREATED)
 async def create_partner(
     body: PartnerCreate,
@@ -47,6 +73,26 @@ async def create_partner(
 ):
     service = CrmService(session)
     return await service.create_partner(body, company_id=user.company_id)
+
+
+@router.post("/partners/import")
+async def import_partners(
+    file: UploadFile,
+    session: SessionDep,
+    user: User = Depends(require_permission("partner", "create")),
+):
+    """Import de clients/fournisseurs depuis un fichier .xlsx ou .csv.
+
+    Colonnes attendues (première ligne d'en-têtes) ::
+        nom | code | role (client/fournisseur) | telephone | email | ville
+        | adresse | type_entite (particulier/entreprise) | ncc | limite_credit
+
+    Upsert par nom : les partenaires existants sont mis à jour.
+    """
+    content = await file.read()
+    rows = read_rows_from_bytes(file.filename or "import.csv", content)
+    service = CrmImportService(session, company_id=user.company_id)
+    return await service.import_partners(rows)
 
 
 @router.get("/partners/{partner_id}", response_model=PartnerRead)

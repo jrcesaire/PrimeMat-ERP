@@ -16,8 +16,16 @@ import {
   usePostInvoice,
   useResetInvoiceToDraft,
   useCancelInvoice,
+  useDeleteInvoice,
 } from "@/hooks/useOperations";
 import { useClients } from "@/hooks/useCRM";
+import { usePermission } from "@/hooks/useAuth";
+import {
+  useConfirm,
+  confirmBackToDraftOptions,
+  confirmCloseOptions,
+  confirmDeleteOptions,
+} from "@/components/ui/confirm";
 import { printDelivery, printInvoice, printReceipt } from "@/lib/api/pdf";
 import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
 import type { InvoiceLine } from "@/hooks/useOperations";
@@ -27,7 +35,14 @@ function LineDetail({ line, currency }: { line: InvoiceLine; currency: string })
   if (line.sell_by_length && line.cuts && line.cuts.length > 0) {
     return (
       <div className="border-b border-gray-100 py-3">
-        <div className="font-medium text-gray-900">{line.description ?? `Ligne #${line.id}`}</div>
+        <div className="font-medium text-gray-900">
+          {line.description ?? `Ligne #${line.id}`}
+          {line.variant_name && (
+            <span className="ml-2 inline-block rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 align-middle text-[11px] font-semibold text-blue-700">
+              {line.variant_name}
+            </span>
+          )}
+        </div>
         <div className="mt-1 space-y-0.5 text-xs text-gray-500">
           {line.cuts.map((c, i) => (
             <div key={i} className="flex justify-between">
@@ -46,7 +61,14 @@ function LineDetail({ line, currency }: { line: InvoiceLine; currency: string })
   return (
     <div className="flex justify-between border-b border-gray-100 py-3">
       <div>
-        <div className="font-medium text-gray-900">{line.description ?? `Ligne #${line.id}`}</div>
+        <div className="font-medium text-gray-900">
+          {line.description ?? `Ligne #${line.id}`}
+          {line.variant_name && (
+            <span className="ml-2 inline-block rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 align-middle text-[11px] font-semibold text-blue-700">
+              {line.variant_name}
+            </span>
+          )}
+        </div>
         <div className="text-xs text-gray-500">Quantité: {line.quantity}</div>
       </div>
       <div className="text-right">
@@ -68,10 +90,14 @@ export default function InvoiceDetailPage() {
   const createDelivery = useCreateDeliveryFromOrder();
   const resetToDraft = useResetInvoiceToDraft();
   const cancelInvoice = useCancelInvoice();
+  const deleteInvoice = useDeleteInvoice();
+  const can = usePermission();
+  const canDeleteInvoice = can("invoice:delete");
   const { data: orderDeliveries = [] } = useDeliveryNotes(
     invoice?.order_id ?? undefined
   );
   const { data: invoicePayments = [] } = usePayments(invoiceId);
+  const confirm = useConfirm();
   const [payOpen, setPayOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -108,11 +134,12 @@ export default function InvoiceDetailPage() {
   };
 
   const handleResetToDraft = async () => {
-    if (
-      !window.confirm(
-        "Remettre cette facture en brouillon ? Son écriture comptable sera supprimée."
-      )
-    ) {
+    const { confirmed } = await confirm({
+      ...confirmBackToDraftOptions(invoice.reference),
+      description:
+        "Son écriture comptable sera supprimée. Vous pourrez modifier la facture puis la confirmer à nouveau.",
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -127,11 +154,15 @@ export default function InvoiceDetailPage() {
   };
 
   const handleCancelInvoice = async () => {
-    if (
-      !window.confirm(
-        "Annuler définitivement cette facture ? La commande redeviendra facturable."
-      )
-    ) {
+    const { confirmed } = await confirm({
+      title: `Annuler définitivement la facture ${invoice.reference} ?`,
+      description:
+        "La commande liée redeviendra facturable. Vous pourrez créer une nouvelle facture depuis la commande.",
+      confirmLabel: "Annuler la facture",
+      cancelLabel: "Revenir",
+      tone: "danger",
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -140,6 +171,25 @@ export default function InvoiceDetailPage() {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       alert(typeof detail === "string" ? detail : "Erreur lors de l'annulation");
+    }
+  };
+
+  const handleDeleteInvoice = async () => {
+    const { confirmed } = await confirm({
+      ...confirmDeleteOptions(invoice.reference),
+      description:
+        "Seules les factures en brouillon et sans paiement peuvent être supprimées. Cette action est irréversible.",
+    });
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deleteInvoice.mutateAsync(invoice.id);
+      router.push("/dashboard/invoicing");
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de la suppression");
     }
   };
 
@@ -170,11 +220,12 @@ export default function InvoiceDetailPage() {
 
   const handleCloseSale = async () => {
     if (invoice.order_id == null) return;
-    if (
-      !window.confirm(
-        "Clôturer cette vente ? La commande sera marquée comme livrée."
-      )
-    ) {
+    const { confirmed } = await confirm({
+      ...confirmCloseOptions(`la vente ${invoice.reference}`),
+      description:
+        "La commande sera marquée comme livrée et la vente sera close définitivement.",
+    });
+    if (!confirmed) {
       return;
     }
     setActionError(null);
@@ -239,6 +290,17 @@ export default function InvoiceDetailPage() {
                 {cancelInvoice.isPending ? "Annulation…" : "Annuler la facture"}
               </Button>
             )}
+          {invoice.status === "draft" && canDeleteInvoice && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:bg-red-50"
+              onClick={handleDeleteInvoice}
+              disabled={deleteInvoice.isPending}
+            >
+              {deleteInvoice.isPending ? "Suppression…" : "Supprimer"}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => printInvoice(invoice.id)}>
             <Printer className="mr-2 h-4 w-4" /> Imprimer
           </Button>
@@ -334,6 +396,11 @@ export default function InvoiceDetailPage() {
               <tr key={l.id} className="border-b border-gray-100">
                 <td className="px-4 py-3 font-medium text-gray-900">
                   {l.description ?? `Produit #${l.product_id}`}
+                  {l.variant_name && (
+                    <span className="ml-2 inline-block rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 align-middle text-[11px] font-semibold text-blue-700">
+                      {l.variant_name}
+                    </span>
+                  )}
                   {l.cuts && l.cuts.length > 0 && (
                     <p className="mt-0.5 text-xs italic text-gray-500">
                       {l.cuts.map((c) => `${c.quantity} × ${c.length} m`).join(", ")}
@@ -411,10 +478,13 @@ export default function InvoiceDetailPage() {
           {invoicePayments.map((p) => (
             <div
               key={p.id}
-              className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 py-2 text-sm last:border-0"
+              onClick={() => router.push(`/dashboard/payments/${p.id}`)}
+              className="-mx-2 flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-md border-b border-gray-100 px-2 py-2 text-sm transition-colors last:border-0 hover:bg-gray-50"
             >
               <div>
-                <span className="font-medium text-gray-900">{p.reference}</span>
+                <span className="font-medium text-gray-900 hover:text-primary hover:underline">
+                  {p.reference}
+                </span>
                 <span className="ml-2 text-xs text-gray-500">
                   {formatDate(p.payment_date)} — {formatCurrency(p.amount, currency)}
                 </span>
@@ -422,7 +492,10 @@ export default function InvoiceDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => printReceipt(p.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  printReceipt(p.id);
+                }}
               >
                 <Printer className="mr-2 h-4 w-4" /> Reçu
               </Button>
@@ -433,10 +506,15 @@ export default function InvoiceDetailPage() {
 
       {/* Bon de livraison lié (validation / impression) */}
       {delivery != null && (
-        <Card className="flex flex-wrap items-center justify-between gap-2 p-4 text-sm">
+        <Card
+          onClick={() => router.push(`/dashboard/delivery/${delivery.id}`)}
+          className="flex cursor-pointer flex-wrap items-center justify-between gap-2 p-4 text-sm transition-colors hover:bg-gray-50"
+        >
           <div>
             <span className="text-gray-500">Bon de livraison : </span>
-            <span className="font-medium text-gray-900">{delivery.reference}</span>
+            <span className="font-medium text-gray-900 hover:text-primary hover:underline">
+              {delivery.reference}
+            </span>
             <span className="ml-2">
               <StatusBadge status={delivery.status} />
             </span>
@@ -445,14 +523,20 @@ export default function InvoiceDetailPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push(`/dashboard/delivery/${delivery.id}`)}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/dashboard/delivery/${delivery.id}`);
+              }}
             >
               <Truck className="mr-2 h-4 w-4" /> Valider
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => printDelivery(delivery.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                printDelivery(delivery.id);
+              }}
             >
               <Printer className="mr-2 h-4 w-4" /> Imprimer
             </Button>

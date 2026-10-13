@@ -13,7 +13,22 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from app.core.documents.naming import document_filename, document_title
+
 logger = logging.getLogger(__name__)
+
+
+def _naming(kind: str, reference: Any) -> dict[str, str]:
+    """Clés de nommage d'un document : titre affiché + nom de fichier du PDF.
+
+    Source unique de vérité partagée par les templates (``<title>``), la
+    métadonnée ``/Title`` du PDF et l'en-tête ``Content-Disposition`` —
+    voir :mod:`app.core.documents.naming`.
+    """
+    return {
+        "doc_title": document_title(kind, reference),
+        "doc_filename": document_filename(kind, reference),
+    }
 
 
 class ContextBuilder:
@@ -43,6 +58,7 @@ class ContextBuilder:
                 .options(
                     selectinload(Invoice.company),
                     selectinload(Invoice.partner),
+                    selectinload(Invoice.salesperson),
                     selectinload(Invoice.lines).selectinload(InvoiceLine.cuts),
                 )
                 .where(Invoice.id == invoice_id)
@@ -57,10 +73,12 @@ class ContextBuilder:
             "invoice": invoice,
             "company": invoice.company,
             "partner": invoice.partner,
+            "salesperson": invoice.salesperson,
             "lines": invoice.lines,
-            "currency": getattr(invoice.company, "currency_code", "XOF"),
+            "currency": getattr(invoice.company, "currency_code", "FCFA"),
             "document_type": "invoice",
             "cgv": cgv,
+            **_naming("invoice", invoice.reference),
         }
 
     async def build_quote_context(self, quote_id: int) -> dict[str, Any]:
@@ -76,11 +94,18 @@ class ContextBuilder:
                 .options(
                     selectinload(Quote.company),
                     selectinload(Quote.partner),
+                    selectinload(Quote.salesperson),
                     selectinload(Quote.lines).selectinload(QuoteLine.cuts),
                 )
                 .where(Quote.id == quote_id)
             )
             quote = result.scalar_one_or_none()
+            # Fallback : devis orphelin → commercial = créateur du document.
+            salesperson = quote.salesperson if quote else None
+            if quote is not None and salesperson is None and quote.created_by:
+                from app.core.models.user import User
+
+                salesperson = await session.get(User, quote.created_by)
 
         if quote is None:
             raise ValueError(f"Devis {quote_id} introuvable")
@@ -90,10 +115,12 @@ class ContextBuilder:
             "quote": quote,
             "company": quote.company,
             "partner": quote.partner,
+            "salesperson": salesperson,
             "lines": quote.lines,
-            "currency": getattr(quote.company, "currency_code", "XOF"),
+            "currency": getattr(quote.company, "currency_code", "FCFA"),
             "document_type": "quote",
             "cgv": cgv,
+            **_naming("quote", quote.reference),
         }
 
     async def build_delivery_context(self, delivery_id: int) -> dict[str, Any]:
@@ -137,8 +164,9 @@ class ContextBuilder:
             "partner": partner,
             "lines": lines,
             "order_ref": order_ref,
-            "currency": getattr(company, "currency_code", "XOF") if company else "XOF",
+            "currency": getattr(company, "currency_code", "FCFA") if company else "FCFA",
             "document_type": "delivery",
+            **_naming("delivery", delivery.reference),
         }
 
     async def build_purchase_order_context(self, order_id: int) -> dict[str, Any]:
@@ -168,8 +196,9 @@ class ContextBuilder:
             "company": order.company,
             "supplier": order.supplier,
             "lines": order.lines,
-            "currency": getattr(order.company, "currency_code", "XOF"),
+            "currency": getattr(order.company, "currency_code", "FCFA"),
             "document_type": "purchase_order",
+            **_naming("purchase_order", getattr(order, "reference", None)),
         }
 # ------------------------------------------------------------------ #
     # Builders async (utilisables directement dans les endpoints FastAPI)
@@ -178,7 +207,6 @@ class ContextBuilder:
         """Charge le contexte d'une facture (async, pour endpoints)."""
         from app.core.database import AsyncSessionLocal
         from app.modules.invoicing.models.invoice import Invoice, InvoiceLine
-        from app.modules.invoicing.models.invoice import InvoiceLine
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
 
@@ -188,6 +216,7 @@ class ContextBuilder:
                 .options(
                     selectinload(Invoice.company),
                     selectinload(Invoice.partner),
+                    selectinload(Invoice.salesperson),
                     selectinload(Invoice.lines).selectinload(InvoiceLine.cuts),
                 )
                 .where(Invoice.id == invoice_id)
@@ -195,20 +224,23 @@ class ContextBuilder:
             invoice = result.scalar_one_or_none()
             partner = invoice.partner if invoice else None
             company = invoice.company if invoice else None
+            cgv = await ContextBuilder._load_cgv(session)
 
         if invoice is None:
             raise ValueError(f"Facture {invoice_id} introuvable")
         return {
             "doc": invoice, "invoice": invoice, "company": company,
-            "partner": partner, "lines": invoice.lines,
-            "currency": getattr(company, "currency_code", "XOF") if company else "XOF",
+            "partner": partner, "salesperson": invoice.salesperson, "lines": invoice.lines,
+            "currency": getattr(company, "currency_code", "FCFA") if company else "FCFA",
             "document_type": "invoice",
+            "cgv": cgv,
+            **_naming("invoice", invoice.reference),
         }
 
     async def load_delivery(self, delivery_id: int) -> dict[str, Any]:
         """Charge le contexte d'un bon de livraison (async)."""
         from app.core.database import AsyncSessionLocal
-        from app.modules.delivery.models.delivery import DeliveryLine
+        from app.modules.delivery.models.delivery import DeliveryLine, DeliveryNote
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
 
@@ -232,15 +264,15 @@ class ContextBuilder:
         return {
             "doc": note, "delivery": note, "company": company,
             "partner": partner, "lines": note.lines, "order": note.order,
-            "currency": getattr(company, "currency_code", "XOF") if company else "XOF",
+            "currency": getattr(company, "currency_code", "FCFA") if company else "FCFA",
             "document_type": "delivery",
+            **_naming("delivery", note.reference),
         }
 
     async def load_quote(self, quote_id: int) -> dict[str, Any]:
         """Charge le contexte d'un devis (async)."""
         from app.core.database import AsyncSessionLocal
         from app.modules.sales.models.quote import Quote, QuoteLine
-        from app.modules.sales.models.quote import QuoteLine
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
 
@@ -250,6 +282,7 @@ class ContextBuilder:
                 .options(
                     selectinload(Quote.company),
                     selectinload(Quote.partner),
+                    selectinload(Quote.salesperson),
                     selectinload(Quote.lines).selectinload(QuoteLine.cuts),
                 )
                 .where(Quote.id == quote_id)
@@ -257,14 +290,17 @@ class ContextBuilder:
             quote = result.scalar_one_or_none()
             partner = quote.partner if quote else None
             company = quote.company if quote else None
+            cgv = await ContextBuilder._load_cgv(session)
 
         if quote is None:
             raise ValueError(f"Devis {quote_id} introuvable")
         return {
             "doc": quote, "quote": quote, "company": company,
-            "partner": partner, "lines": quote.lines,
-            "currency": getattr(company, "currency_code", "XOF") if company else "XOF",
+            "partner": partner, "salesperson": quote.salesperson, "lines": quote.lines,
+            "currency": getattr(company, "currency_code", "FCFA") if company else "FCFA",
             "document_type": "quote",
+            "cgv": cgv,
+            **_naming("quote", quote.reference),
         }
 
     async def load_payment(self, payment_id: int) -> dict[str, Any]:
@@ -297,12 +333,24 @@ class ContextBuilder:
         return {
             "doc": payment, "payment": payment, "partner": partner,
             "invoice": invoice, "company": company,
-            "currency": getattr(invoice, "currency_code", "XOF") if invoice else "XOF",
+            "currency": getattr(invoice, "currency_code", "FCFA") if invoice else "FCFA",
             "document_type": "receipt",
+            **_naming("receipt", payment.reference),
             "total": float(payment.amount),
             "acompte": float(invoice.paid_amount - payment.amount) if invoice else 0.0,
             "solde": float(invoice.amount_due) if invoice else 0.0,
         }
+
+    @staticmethod
+    def _pos_qr_payload(order: Any) -> str:
+        """Contenu du QR du ticket POS : numéro de commande + date et heure."""
+        created = getattr(order, "created_at", None)
+        if created is not None:
+            stamp = created.strftime("%d/%m/%Y %H:%M")
+        else:
+            od = getattr(order, "order_date", None)
+            stamp = od.strftime("%d/%m/%Y") if od else ""
+        return f"{order.reference} | {stamp}"
 
     async def load_pos(self, order_id: int) -> dict[str, Any]:
         """Charge le contexte d'une vente comptoir (ticket de caisse)."""
@@ -326,10 +374,37 @@ class ContextBuilder:
             partner = order.partner if order else None
             company = order.company if order else None
 
+            # Dernier reçu de la facture — montant reçu et monnaie rendue.
+            amount_paid = 0.0
+            amount_received = 0.0
+            change_amount = 0.0
+            if order is not None:
+                from app.modules.invoicing.models.invoice import Invoice
+                from app.modules.payments.models.payment import Payment
+
+                inv_res = await session.execute(
+                    select(Invoice)
+                    .where(Invoice.order_id == order.id)
+                    .order_by(Invoice.id.desc())
+                    .limit(1)
+                )
+                invoice = inv_res.scalars().first()
+                if invoice is not None:
+                    pay_res = await session.execute(
+                        select(Payment)
+                        .where(Payment.invoice_id == invoice.id)
+                        .order_by(Payment.id.desc())
+                        .limit(1)
+                    )
+                    payment = pay_res.scalars().first()
+                    if payment is not None:
+                        amount_paid = float(payment.amount or 0)
+                        change_amount = float(payment.change_amount or 0)
+                        amount_received = amount_paid + change_amount
+
         if order is None:
             raise ValueError(f"Vente comptoir {order_id} introuvable")
         pos_url = ""
-        qr_data_uri = ""
         try:
             from app.core.services.setting_service import SettingService
 
@@ -338,28 +413,33 @@ class ContextBuilder:
         except Exception:
             pos_url = ""
 
-        # Génère le QR code (URL du site) → data URI PNG pour insertion dans le PDF
-        if pos_url.strip():
-            try:
-                import base64
-                import io as _io
+        # QR code systématique : numéro de commande + date et heure
+        qr_content = self._pos_qr_payload(order)
+        qr_data_uri = ""
+        try:
+            import base64
+            import io as _io
 
-                import qrcode
+            import qrcode
 
-                img = qrcode.make(pos_url.strip())
-                buf = _io.BytesIO()
-                img.save(buf, format="PNG")
-                b64 = base64.b64encode(buf.getvalue()).decode("ascii")
-                qr_data_uri = f"data:image/png;base64,{b64}"
-            except Exception:  # noqa: BLE001
-                qr_data_uri = ""
+            img = qrcode.make(qr_content)
+            buf = _io.BytesIO()
+            img.save(buf, format="PNG")
+            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+            qr_data_uri = f"data:image/png;base64,{b64}"
+        except Exception:  # noqa: BLE001
+            qr_data_uri = ""
 
         return {
             "doc": order, "order": order, "company": company,
             "partner": partner, "lines": order.lines,
-            "currency": getattr(company, "currency_code", "XOF") if company else "XOF",
+            "currency": getattr(company, "currency_code", "FCFA") if company else "FCFA",
             "document_type": "pos_ticket",
+            **_naming("pos_ticket", order.reference),
             "total": float(order.amount_total or 0),
+            "amount_paid": amount_paid,
+            "amount_received": amount_received,
+            "change_amount": change_amount,
             "pos_url": pos_url,
             "qr_data_uri": qr_data_uri,
         }

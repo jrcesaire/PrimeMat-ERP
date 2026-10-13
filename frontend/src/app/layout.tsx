@@ -24,14 +24,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr">
-      <body className={inter.className}>
+    <html lang="fr" suppressHydrationWarning>
+      <head>
         <script
           id="theme-init"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var m=localStorage.getItem("erp-theme-mode");if(m==="dark"||(!m&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()`,
           }}
         />
+      </head>
+      <body className={inter.className} suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

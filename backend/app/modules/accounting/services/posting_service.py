@@ -206,7 +206,11 @@ class PostingService:
             return None
 
         treasury = TREASURY_ACCOUNTS.get(payment.method, "511")
-        journal = "BAN" if treasury == "511" else "CAI"
+        # Journal explicite porté par le paiement (caisse, banque, mobile
+        # money...) ; à défaut, déduit du mode d'encaissement.
+        journal = (getattr(payment, "journal_code", None) or "").strip() or (
+            "BAN" if treasury == "511" else "CAI"
+        )
 
         if payment.direction == "in":
             lines = [

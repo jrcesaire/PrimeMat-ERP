@@ -1,233 +1,120 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="utf-8"><style>
-@page {
-  size: A4 portrait;
-  margin: 0;
-  @frame footer_frame {
-    -pdf-frame-content: page-footer;
-    left: 0mm; width: 210mm; top: 277mm; height: 20mm;
-  }
-}
-:root { --ink:#111; --sec:#666; --mut:#999; --brd:#e8e8e8; --brand:#0a2a6b; --accent:#e53935; }
-* { box-sizing: border-box; }
-body { margin:0; padding:0; font-family: Helvetica, Arial, sans-serif; color:#111; font-size:10px; }
-.page { width:210mm; min-height:297mm; margin:0 auto; padding:14mm 17mm 24mm; background:#fff; }
-/* Header */
-.header { width:100%; border-collapse:collapse; border-bottom:1px solid #e8e8e8; }
-.header td { vertical-align:top; padding-bottom:12px; }
-.company-name { margin:0 0 4px; font-size:17px; font-weight:bold; letter-spacing:-0.3px; }
-.company-details { color:#666; font-size:10px; line-height:1.6; }
-.logo { height:58px; width:auto; max-width:150px; float:left; margin:0 12px 6px 0; border:1px solid #e8e8e8; border-radius:8px; padding:3px; }
-.hd-doc { text-align:right; }
-.doc-type { margin:0 0 6px; font-size:28px; font-weight:bold; letter-spacing:-1px; color:#0a2a6b; line-height:1; }
-.doc-number { font-size:12px; font-weight:bold; }
-table.doc-meta { margin:8px 0 0 auto; border-collapse:collapse; font-size:9px; }
-table.doc-meta td { padding:1px 0 1px 10px; }
-table.doc-meta td.lbl { color:#999; text-align:right; }
-table.doc-meta td.val { font-weight:bold; text-align:left; }
-.status { display:inline-block; margin-top:8px; padding:4px 9px; border-radius:999px; font-size:8px; font-weight:bold; text-transform:uppercase; }
-.status::before { content:''; }
-.status-paid { color:#218739; background:#edf8ef; }
-.status-pending { color:#b27600; background:#fff7df; }
-.status-partial { color:#1266a3; background:#edf6fd; }
-.status-unpaid { color:#c62828; background:#fff0f0; }
-.status-cancelled { color:#666; background:#f1f1f1; }
-/* Parties */
-table.parties { width:100%; border-collapse:collapse; margin-top:8px; }
-table.parties td { width:50%; vertical-align:top; padding:14px 20px 14px 0; }
-table.parties td.rgt { padding-right:0; padding-left:20px; border-left:1px solid #e8e8e8; }
-.party-label { margin-bottom:6px; color:#999; font-size:8px; font-weight:bold; letter-spacing:0.8px; text-transform:uppercase; }
-.party-name { margin-bottom:4px; font-size:12px; font-weight:bold; }
-.party-details { color:#666; font-size:9px; line-height:1.65; }
-/* Items */
-.items-section { margin-top:6px; }
-table.items { width:100%; border-collapse:collapse; }
-table.items thead td { padding:8px 6px; color:#999; font-size:8px; font-weight:bold; text-transform:uppercase; letter-spacing:0.3px; border-top:1px solid #e8e8e8; border-bottom:1px solid #e8e8e8; }
-table.items td { padding:9px 6px; border-bottom:1px solid #e8e8e8; font-size:9px; vertical-align:top; }
-table.items td.num, table.items thead td.num { text-align:right; }
-table.items td.ctr, table.items thead td.ctr { text-align:center; }
-.product-name { font-weight:bold; }
-.product-desc { margin-top:2px; color:#999; font-size:8px; line-height:1.5; }
-/* Summary */
-table.summary-wrap { width:100%; border-collapse:collapse; margin-top:14px; }
-table.summary-box { width:78mm; border-collapse:collapse; margin-left:auto; }
-table.summary-box td { padding:4px 0; color:#666; font-size:9px; }
-table.summary-box td.num { text-align:right; font-weight:bold; }
-table.summary-box tr.disc td { color:#e53935; }
-table.summary-box tr.grand td { border-top:1px solid #111; border-bottom:2px solid #111; padding:9px 0; color:#111; font-size:13px; font-weight:bold; }
-.amount-words { margin-top:8px; color:#666; font-size:8px; line-height:1.5; text-align:right; }
-/* Payment */
-table.pay-section { width:100%; border-collapse:collapse; margin-top:16px; border-top:1px solid #e8e8e8; }
-table.pay-section td { width:50%; vertical-align:top; padding:14px 25px 0 0; }
-table.pay-section td.rgt { padding-right:0; padding-left:25px; }
-.section-title { margin-bottom:7px; font-size:8px; font-weight:bold; letter-spacing:0.8px; text-transform:uppercase; color:#111; }
-.pay-info { font-size:9px; line-height:1.7; color:#666; }
-.pay-info b { color:#111; }
-table.pay-amt { width:100%; border-collapse:collapse; font-size:9px; }
-table.pay-amt td { padding:3px 0; color:#666; }
-table.pay-amt td.num { text-align:right; font-weight:bold; color:#111; }
-table.pay-amt tr.rem td { border-top:1px solid #e8e8e8; padding-top:6px; font-weight:bold; }
-/* Note */
-.note { margin-top:16px; padding:11px; background:#fafafa; border-radius:6px; }
-.note-title { margin-bottom:4px; font-size:8px; font-weight:bold; text-transform:uppercase; }
-.note-content { color:#666; font-size:8px; line-height:1.6; }
-/* Footer fixe bas de page (toutes pages) */
-#page-footer {
-  position:fixed; bottom:0; left:0; right:0;
-  padding:4mm 17mm 6mm;
-  border-top:1px solid #e8e8e8;
-  background:#fff;
-}
-#page-footer table { width:100%; border-collapse:collapse; }
-#page-footer td { vertical-align:bottom; color:#999; font-size:7px; line-height:1.5; }
-#page-footer .thanks { text-align:right; color:#111; font-size:9px; font-weight:bold; }
-#page-footer .slogan { color:#0a2a6b; font-weight:bold; }
-/* CGV — derniere page */
-.cgv-page { page-break-before:always; padding-top:6mm; }
-.cgv-page h2 { font-size:14px; color:#0a2a6b; margin:0 0 12px; letter-spacing:-0.3px; }
-.cgv-body { font-size:9px; line-height:1.7; color:#444; text-align:justify; }
-.clear { clear:both; }
+<head><meta charset="utf-8"><title>{{ doc_title }}</title><style>
+{% include "_model_base.html" %}
 </style></head>
 <body>
-<div class="page">
-
-  <table class="header"><tr>
-    <td style="width:55%">
-      {% if company and company.logo %}<img src="{{ company.logo }}" class="logo" alt=""/>{% endif %}
-      <div class="company-name">{{ company.name if company }}</div>
-      <div class="company-details">
-        {% if company and company.establishment %}Établissement : {{ company.establishment }}<br>{% endif %}
-        {{ fmt_addr(company) }}<br>
-        {% if company and company.phone %}Tél. : {{ company.phone }}<br>{% endif %}
-        {% if company and company.email %}{{ company.email }}{% endif %}
-      </div>
-      <div class="clear"></div>
-    </td>
-    <td class="hd-doc">
-      <div class="doc-type">FACTURE</div>
-      <div class="doc-number">N° {{ invoice.reference }}</div>
-      <table class="doc-meta">
-        <tr><td class="lbl">Date d&apos;émission</td><td class="val">{{ fmt_date(invoice.invoice_date) or '—' }}</td></tr>
-        <tr><td class="lbl">Échéance</td><td class="val">{{ fmt_date(invoice.due_date) or '—' }}</td></tr>
-        
-      </table>
-      <span class="status {{ status_class(invoice.status) }}">{{ status_label(invoice.status) }}</span>
-    </td>
-  </tr></table>
-
-  <table class="parties"><tr>
-    <td>
-      <div class="party-label">Émetteur</div>
-      <div class="party-name">{{ company.name if company }}</div>
-      <div class="party-details">
-        {{ fmt_addr(company) }}<br>
-        {% if company and company.phone %}Tél. : {{ company.phone }}<br>{% endif %}
-        {% if company and company.email %}Email : {{ company.email }}<br>{% endif %}
-        {% if company and company.rccm %}RCCM : {{ company.rccm }}<br>{% endif %}
-        {% if company and company.ncc %}CC : {{ company.ncc }}{% endif %}
-      </div>
-    </td>
-    <td class="rgt">
-      <div class="party-label">Facturé à</div>
-      <div class="party-name">{{ partner.name if partner }}</div>
-      <div class="party-details">
-        {% if partner and partner.phone %}Tél. : {{ partner.phone }}<br>{% endif %}
-        {% if partner and partner.email %}Email : {{ partner.email }}<br>{% endif %}
-        {% if partner and partner.address %}{{ fmt_addr(partner) }}{% endif %}
-      </div>
-    </td>
-  </tr></table>
-
-  <div class="items-section">
-    <table class="items">
-      <thead><tr>
-        <td style="width:8%" class="ctr">Qté</td>
-        <td>Désignation</td>
-        <td style="width:15%" class="num">PU ({{ currency }})</td>
-        <td style="width:18%" class="num">Montant</td>
-      </tr></thead>
-      <tbody>
-      {% for line in lines %}
-        <tr>
-          <td class="ctr">{{ fmt_num(line.quantity, 2) }}</td>
-          <td>
-            <div class="product-name">{{ line.description or (line.product.name if line.product else 'Produit') }}</div>
-            {% if line.unit %}<div class="product-desc">Unité : {{ line.unit }}</div>{% endif %}
-            {% if line.cuts %}
-              {% for c in line.cuts %}<div class="product-desc">{{ cut_label(c) }}</div>{% endfor %}
-            {% endif %}
-          </td>
-          <td class="num">{{ fmt_num(line.unit_price) }}</td>
-          <td class="num"><b>{{ fmt_num(line.subtotal) }}</b></td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <table class="summary-wrap"><tr><td></td><td>
-    <table class="summary-box">
-      <tr><td>Sous-total HT</td><td class="num">{{ fmt_num(invoice.amount_untaxed) }} {{ currency }}</td></tr>
-      {% if invoice.discount_amount %}<tr class="disc"><td>Remise</td><td class="num">- {{ fmt_num(invoice.discount_amount) }} {{ currency }}</td></tr>{% endif %}
-      {% if invoice.tax_amount %}<tr><td>TVA</td><td class="num">{{ fmt_num(invoice.tax_amount) }} {{ currency }}</td></tr>{% endif %}
-      <tr class="grand"><td>TOTAL TTC</td><td class="num">{{ fmt_num(invoice.amount_total) }} {{ currency }}</td></tr>
-    </table>
-    <div class="amount-words">
-      Arrêté la présente facture à la somme de :<br>
-      <b>{{ amount_in_words(invoice.amount_total, currency) }}</b>
+<div class="model-head">
+  <div class="model-head-top">
+    <div class="model-brand">
+      {% if company and company.logo %}<img src="{{ company.logo }}" alt=""/>{% endif %}
+      <span>{{ company.name if company }}</span>
     </div>
-  </td></tr></table>
-
-  <table class="pay-section"><tr>
-    <td>
-      <div class="section-title">Conditions de paiement</div>
-      <div class="pay-info">
-        {% if invoice.payment_communication %}Communication : <b>{{ invoice.payment_communication }}</b><br>{% endif %}
-        {% if company and company.phone %}Règlement par virement, chèque ou espèces.{% endif %}
+    <div class="model-dots"><span></span><span></span><span></span></div>
+  </div>
+  <div class="model-head-main">
+    <div>
+      <p class="model-title">Facture<br>Matériaux de<br>Construction</p>
+      <div class="model-ref"><b>N° Facture</b> &nbsp; : &nbsp; {{ invoice.reference }}</div>
+      {% if salesperson %}
+      <div class="model-salesperson">
+        <div class="sp-label">Votre contact commercial</div>
+        <div class="sp-name">{{ salesperson.full_name or ((salesperson.first_name or '') ~ ' ' ~ (salesperson.last_name or '')) }}</div>
+        {% if salesperson.phone %}<div class="sp-contact">{{ salesperson.phone }}</div>{% endif %}
+        {% if salesperson.email %}<div class="sp-contact">{{ salesperson.email }}</div>{% endif %}
       </div>
-    </td>
-    <td class="rgt">
-      <div class="section-title">Situation du règlement</div>
-      <table class="pay-amt">
-        <tr><td>Total TTC</td><td class="num">{{ fmt_num(invoice.amount_total) }} {{ currency }}</td></tr>
-        <tr><td>Montant payé</td><td class="num">{{ fmt_num(invoice.paid_amount) }} {{ currency }}</td></tr>
-        <tr class="rem"><td>Reste à payer</td><td class="num">{{ fmt_num(invoice.amount_due) }} {{ currency }}</td></tr>
-      </table>
-    </td>
-  </tr></table>
-
-  {% if invoice.notes %}
-  <div class="note">
-    <div class="note-title">Note</div>
-    <div class="note-content">{{ invoice.notes }}</div>
+      {% endif %}
+    </div>
+    <div class="model-meta">
+      <p class="lbl">Date d'émission :</p>
+      <p class="val">{{ fmt_date(invoice.invoice_date) or '—' }}</p>
+      <p class="lbl">Date d'échéance :</p>
+      <p class="val">{{ invoice.due_date.strftime('%d/%m/%Y') if invoice.due_date else '—' }}</p>
+      <p class="lbl">Facturé à :</p>
+      <p class="val"><b>{{ invoice.partner.name if invoice.partner }}</b><br>
+      {% if invoice.partner and invoice.partner.address %}{{ fmt_addr(invoice.partner) }}<br>{% endif %}
+      {% if invoice.partner and invoice.partner.phone %}Tél. : {{ invoice.partner.phone }}<br>{% endif %}
+      {% if invoice.partner and invoice.partner.email %}{{ invoice.partner.email }}{% endif %}</p>
+    </div>
   </div>
-  {% endif %}
-
-  {% if cgv %}
-  <div class="cgv-page">
-    <h2>CONDITIONS GÉNÉRALES DE VENTE</h2>
-    <div class="cgv-body">{{ cgv | nl2br }}</div>
-  </div>
-  {% endif %}
-
 </div>
 
-<div id="page-footer">
-  <table><tr>
-    <td style="width:70%">
-      {% if company and company.slogan %}<span class="slogan">{{ company.slogan }}</span> — {% endif %}
-      {{ company.name if company }}{% if company and company.address %} · {{ fmt_addr(company) }}{% endif %}{% if company and company.phone %} · {{ company.phone }}{% endif %}{% if company and company.email %} · {{ company.email }}{% endif %}<br>
+<div class="model-card">
+  <p class="model-section-title">Désignation des travaux et fournitures</p>
+  <table class="model-items">
+    <thead><tr>
+      <td style="width:9%" class="ctr">N°</td>
+      <td>Désignation</td>
+      <td style="width:13%" class="ctr">Qté</td>
+      <td style="width:17%" class="num">PU ({{ currency }})</td>
+      <td style="width:17%" class="num">Total</td>
+    </tr></thead>
+    <tbody>
+    {% for line in lines %}
+      <tr class="{% if loop.index0 % 2 == 1 %}alt{% endif %}">
+        <td class="ctr">{{ '%03d' % loop.index }}</td>
+        <td>
+          <div class="product-name">{{ line.description or (line.product.name if line.product else 'Produit') }}{% if line.variant_name %} <span class="variant-tag">{{ line.variant_name }}</span>{% endif %}</div>
+          {% if line.cuts %}
+            {% for c in line.cuts %}<div class="product-desc">{{ cut_label(c) }}</div>{% endfor %}
+          {% endif %}
+        </td>
+        {% set _qty, _unit = line_qty_parts(line) %}
+        <td class="ctr"><div class="qty-val">{{ _qty }}</div>{% if _unit %}<div class="qty-unit">{{ _unit }}</div>{% endif %}</td>
+        <td class="num">{{ fmt_num(line.unit_price) }}</td>
+        <td class="num"><b>{{ fmt_num(line.subtotal) }}</b></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="model-pay-total">
+    <div class="model-pay">
+      <p class="model-section-title">Informations de paiement</p>
+      {% if invoice.payment_communication %}{{ invoice.payment_communication }}<br>{% endif %}
       {% if company %}
-        {% set fparts = [] %}
-        {% if company.rccm %}{% set fparts = fparts + ['N° RCCM : ' ~ company.rccm] %}{% endif %}
-        {% if company.ncc %}{% set fparts = fparts + ['Compte Contribuable N° ' ~ company.ncc] %}{% endif %}
-        {% if company.share_capital %}{% set fparts = fparts + ['Capital social : ' ~ company.share_capital] %}{% endif %}
-        {{ fparts | join(' | ') }} — Document généré automatiquement par ERP Matériaux
+      {% if company.phone %}<span class="k">Tél :</span> {{ company.phone }}<br>{% endif %}
+      {% if company.email %}<span class="k">Email :</span> {{ company.email }}<br>{% endif %}
+      {% if company.ncc %}<span class="k">NCC :</span> {{ company.ncc }}{% endif %}
       {% endif %}
-    </td>
-    <td class="thanks">Merci pour votre confiance.</td>
-  </tr></table>
+      {% if invoice.notes %}<br><br><span class="k">Note :</span> {{ invoice.notes }}{% endif %}
+    </div>
+    <div class="model-totals">
+      <div class="row"><span>Sous-total HT</span><b>{{ fmt_num(invoice.amount_untaxed if invoice.amount_untaxed is not none else invoice.amount_total) }}</b></div>
+      {% if invoice.discount_amount %}<div class="row"><span>Remise</span><b>- {{ fmt_num(invoice.discount_amount) }}</b></div>{% endif %}
+      {% if invoice.tax_amount %}<div class="row"><span>TVA</span><b>{{ fmt_num(invoice.tax_amount) }}</b></div>{% endif %}
+      <div class="grand"><span>Total</span><span style="float:right">{{ fmt_num(invoice.amount_total) }} {{ currency }}</span></div>
+      <div class="amount-words">
+        Arrêtée la présente facture à la somme de :<br>
+        <b>{{ amount_in_words(invoice.amount_total, currency) }}</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="model-terms">
+    <div class="model-terms-cgv">
+      <p class="model-section-title">Conditions Générales de Vente</p>
+      {% if cgv %}<div>{{ cgv | nl2br }}</div>{% endif %}
+    </div>
+    <div class="model-terms-sign">
+      <div>Azaguié, le {{ fmt_date(invoice.invoice_date) or '—' }}</div>
+      <div style="margin-top:16mm"><b>{{ company.name if company }}</b><br>Signature &amp; cachet</div>
+    </div>
+  </div>
+
+  <div class="model-footer">
+    <div class="contact">
+      {% if company %}{{ fmt_addr(company) }}{% if company.phone %} &nbsp; Tél : {{ company.phone }}{% endif %}{% if company.email %} &nbsp; {{ company.email }}{% endif %}{% endif %}
+    </div>
+    <div class="legal">
+      {% if company %}
+      {% set fparts = [] %}
+      {% if company.rccm %}{% set fparts = fparts + ['RCCM : ' ~ company.rccm] %}{% endif %}
+      {% if company.ncc %}{% set fparts = fparts + ['NCC : ' ~ company.ncc] %}{% endif %}
+      {% if company.share_capital %}{% set fparts = fparts + ['Capital : ' ~ company.share_capital] %}{% endif %}
+      {{ fparts | join(' | ') }} &nbsp; {{ invoice.reference }}
+      {% endif %}
+    </div>
+  </div>
 </div>
 </body></html>
-

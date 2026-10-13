@@ -9,6 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.core.api.auth import router as auth_router
+from app.core.api.setup import router as setup_router
 from app.core.api.users import router as users_router
 from app.core.api.companies import router as companies_router
 from app.core.api.roles import router as roles_router
@@ -27,3 +28,5 @@ router.include_router(roles_router, prefix="/roles", tags=["roles"])
 router.include_router(settings_router, prefix="/settings", tags=["settings"])
 # System (préfixe "/system" — /modules, /currencies, /taxes)
 router.include_router(system_router, prefix="/system", tags=["system"])
+# Setup — configuration initiale (premier lancement, endpoints publics)
+router.include_router(setup_router, prefix="/setup", tags=["setup"])

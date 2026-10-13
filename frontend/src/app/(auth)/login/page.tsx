@@ -5,13 +5,15 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { useLogin } from "@/hooks/useAuth";
+import { useSetupStatus } from "@/hooks/useSetup";
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -51,6 +53,15 @@ function BrandLogo({ size = 56 }: { size?: number }) {
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Premier lancement (base vierge) → wizard de configuration initiale
+  const { data: setupStatus } = useSetupStatus();
+  useEffect(() => {
+    if (setupStatus?.needs_admin) {
+      router.replace("/setup");
+    }
+  }, [setupStatus, router]);
 
   const {
     register,

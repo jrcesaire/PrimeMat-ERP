@@ -196,6 +196,8 @@ export interface QuoteLine {
   id: number;
   quote_id: number;
   product_id: number | null;
+  variant_id: number | null;
+  variant_name: string | null;
   description: string | null;
   quantity: number;
   unit: string | null;
@@ -267,6 +269,8 @@ export interface OrderLine {
   id: number;
   order_id: number;
   product_id: number | null;
+  variant_id: number | null;
+  variant_name: string | null;
   description: string | null;
   quantity_ordered: number;
   quantity_reserved: number;
@@ -505,6 +509,7 @@ export interface QuoteCreate {
 
 export interface QuoteLineCreate {
   product_id?: number;
+  variant_id?: number | null;
   description?: string;
   quantity?: number;
   unit?: string;
@@ -560,6 +565,7 @@ export interface SalesOrderCreate {
 
 export interface OrderLineCreate {
   product_id?: number;
+  variant_id?: number | null;
   description?: string;
   quantity_ordered?: number;
   unit?: string;

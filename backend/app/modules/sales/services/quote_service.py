@@ -11,8 +11,10 @@ Logique clé :
 """
 from __future__ import annotations
 
+import calendar
 import logging
 from datetime import date
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,12 +23,89 @@ from sqlalchemy.orm import selectinload
 from app.core.services.sequence_service import SequenceService
 from app.shared.events import event_bus
 from app.modules.catalogue.models.product import Product
+from app.modules.catalogue.models.variant import ProductVariant
 from app.modules.crm.models.partner import Partner
 from app.modules.sales.models.order import OrderLineCut, SalesOrder, SalesOrderLine
 from app.modules.sales.models.quote import Quote, QuoteLine, QuoteLineCut
 from app.modules.sales.schemas import QuoteCreate, QuoteLineCreate, QuoteUpdate
 
 logger = logging.getLogger(__name__)
+
+
+# ------------------------------------------------------------------ #
+# Contact commercial (vendeur)
+# ------------------------------------------------------------------ #
+_COMMERCIAL_ROLE_CODES = {"vendeur", "commercial", "sales", "salesperson"}
+
+
+def _user_role_codes(user: Any) -> set[str]:
+    """Codes des rôles de l'utilisateur (insensible à la casse)."""
+    codes: set[str] = set()
+    for ur in getattr(user, "user_roles", None) or []:
+        role = getattr(ur, "role", None)
+        code = (getattr(role, "code", None) or "").strip().lower()
+        if code:
+            codes.add(code)
+    return codes
+
+
+def _is_privileged_seller_chooser(user: Any) -> bool:
+    """True si l'utilisateur peut choisir le commercial (admin/manager)."""
+    if getattr(user, "is_superuser", False):
+        return True
+    codes = _user_role_codes(user)
+    return bool(codes & {"admin", "manager", "administrateur"})
+
+
+def _is_commercial(user: Any) -> bool:
+    """True si l'utilisateur a des privilèges de commercial."""
+    if getattr(user, "is_superuser", False):
+        return True
+    codes = _user_role_codes(user)
+    if codes & {"admin", "manager", "administrateur"}:
+        return True
+    return bool(codes & _COMMERCIAL_ROLE_CODES)
+
+
+async def _resolve_salesperson_id(
+    session: AsyncSession, requested_id: int | None, current_user: Any | None
+) -> int | None:
+    """Résout le commercial du devis.
+
+    - compte commercial → commercial = créateur (valeur fournie ignorée)
+    - admin/manager → utilise ``requested_id`` si fourni, sinon créateur
+    - le user désigné doit exister, être actif et avoir un rôle commercial
+    """
+    from app.core.models.user import User, UserRole
+
+    if current_user is None:
+        target_id = requested_id
+    elif _is_privileged_seller_chooser(current_user):
+        target_id = requested_id if requested_id is not None else current_user.id
+    else:
+        target_id = current_user.id
+
+    if target_id is None:
+        return None
+    # Eager : _is_commercial() lit user_roles[].role — lazy-load interdit en async.
+    user = await session.get(
+        User,
+        target_id,
+        options=(selectinload(User.user_roles).selectinload(UserRole.role),),
+    )
+    if user is None:
+        raise ValueError(f"Commercial {target_id} introuvable")
+    if not user.is_active:
+        raise ValueError("Le commercial désigné est inactif")
+    if not _is_commercial(user):
+        raise ValueError("L'utilisateur désigné n'a pas de privilèges commerciaux")
+    return user.id
+
+
+def _plus_one_month(d: date) -> date:
+    """Date + 1 mois (jour clampé à la fin du mois cible : 31/01 → 28/02)."""
+    y, m = (d.year + 1, 1) if d.month == 12 else (d.year, d.month + 1)
+    return date(y, m, min(d.day, calendar.monthrange(y, m)[1]))
 
 
 async def prepare_line_data(
@@ -53,6 +132,20 @@ async def prepare_line_data(
     sells_length = bool(product.sell_by_length)
     payload = data.model_dump()
 
+    # Variante (optionnelle) : doit appartenir au produit et être active.
+    variant: ProductVariant | None = None
+    if data.variant_id is not None:
+        variant = await session.get(ProductVariant, data.variant_id)
+        if variant is None or variant.product_id != product.id:
+            raise ValueError(
+                f"La variante {data.variant_id} n'appartient pas au produit "
+                f"« {product.name} »."
+            )
+        if not variant.is_active:
+            raise ValueError(f"La variante « {variant.name_suffix} » est inactive.")
+    # Le libellé de variante est toujours recalculé côté serveur.
+    payload["variant_name"] = variant.name_suffix if variant else None
+
     if data.sell_by_length and not sells_length:
         raise ValueError(
             f"Le produit « {product.name} » ne se vend pas au mètre linéaire."
@@ -75,12 +168,20 @@ async def prepare_line_data(
             {"quantity": float(data.quantity or 1), "length": float(product.unit_length)}
         ]
 
-    # Prix par défaut depuis le produit
+    # Prix par défaut : la variante prime sur le produit de base.
     if not payload.get("unit_price"):
         if payload["sell_by_length"]:
-            payload["unit_price"] = float(product.price_per_meter or 0)
+            payload["unit_price"] = float(
+                (variant.price_per_meter if variant else None)
+                or product.price_per_meter
+                or 0
+            )
         else:
-            payload["unit_price"] = float(product.selling_price or 0)
+            payload["unit_price"] = float(
+                (variant.selling_price if variant else None)
+                or product.selling_price
+                or 0
+            )
 
     # Validations des sous-lignes de coupe
     if payload["sell_by_length"]:
@@ -103,6 +204,8 @@ def build_quote_line(data: QuoteLineCreate) -> QuoteLine:
     """Construit une ligne de devis (standard ou BAC) avec totaux calculés."""
     line = QuoteLine(
         product_id=data.product_id,
+        variant_id=data.variant_id,
+        variant_name=data.variant_name,
         description=data.description,
         quantity=data.quantity,
         unit=data.unit,
@@ -127,6 +230,8 @@ def build_order_line_from_quote(ql: QuoteLine) -> SalesOrderLine:
     """Devis → commande : le détail des longueurs n'est jamais perdu."""
     ol = SalesOrderLine(
         product_id=ql.product_id,
+        variant_id=ql.variant_id,
+        variant_name=ql.variant_name,
         description=ql.description,
         quantity_ordered=float(ql.total_length or ql.quantity),
         unit=ql.unit,
@@ -192,14 +297,24 @@ class QuoteService:
             meta["customer_reference"] = customer_reference
         quote.metadata_json = meta
 
-    async def create_quote(self, data: QuoteCreate) -> Quote:
+    async def create_quote(
+        self, data: QuoteCreate, current_user: Any | None = None
+    ) -> Quote:
         reference = await self.sequences.next_value("quote", "DEV")
+        quote_date = data.quote_date or date.today()
+        valid_until = data.valid_until
+        if valid_until is None:
+            # Validité par défaut : 1 mois après la date d'émission.
+            valid_until = _plus_one_month(quote_date)
         quote = Quote(
             reference=reference,
             partner_id=data.partner_id,
             site_id=data.site_id,
-            quote_date=data.quote_date or date.today(),
-            valid_until=data.valid_until,
+            salesperson_id=await _resolve_salesperson_id(
+                self.session, data.salesperson_id, current_user
+            ),
+            quote_date=quote_date,
+            valid_until=valid_until,
             currency_code=data.currency_code,
             notes=data.notes,
             terms=data.terms,
@@ -240,7 +355,9 @@ class QuoteService:
     async def get_quote(self, quote_id: int) -> Quote | None:
         return await self.session.get(Quote, quote_id)
 
-    async def update_quote(self, quote_id: int, data: QuoteUpdate) -> Quote:
+    async def update_quote(
+        self, quote_id: int, data: QuoteUpdate, current_user: Any | None = None
+    ) -> Quote:
         """Met à jour un devis — autorisé uniquement au statut brouillon.
 
         Si ``data.lines`` est fourni, toutes les lignes existantes sont
@@ -268,6 +385,10 @@ class QuoteService:
             quote.notes = data.notes
         if data.terms is not None:
             quote.terms = data.terms
+        if data.salesperson_id is not None:
+            quote.salesperson_id = await _resolve_salesperson_id(
+                self.session, data.salesperson_id, current_user
+            )
         if data.payment_term is not None or data.customer_reference is not None:
             self._merge_metadata(
                 quote, data.payment_term, data.customer_reference
@@ -314,8 +435,17 @@ class QuoteService:
         )
         return result.scalar_one()
 
-    async def delete_quote(self, quote_id: int) -> None:
-        """Supprime un devis — brouillon uniquement."""
+    async def delete_quote(
+        self, quote_id: int, user_id: int | None = None
+    ) -> None:
+        """Supprime un devis — brouillon uniquement (cascade).
+
+        Garde-fous :
+        - statut ``draft`` (après retour en brouillon du devis confirmé) ;
+        - aucune commande rattachée (FK ``sales_orders.quote_id``) ;
+        - donc, si confirmé, facture annulée/détachée ou supprimée et
+          bons de livraison supprimés avant (vérification active ici).
+        """
         quote = await self.session.get(Quote, quote_id)
         if quote is None:
             raise ValueError(f"Devis {quote_id} introuvable")
@@ -323,6 +453,46 @@ class QuoteService:
             raise ValueError(
                 "Seul un devis au statut « brouillon » peut être supprimé."
             )
+
+        from app.modules.invoicing.models.invoice import Invoice
+
+        orders = list((await self.session.execute(
+            select(SalesOrder).where(SalesOrder.quote_id == quote.id)
+        )).scalars().all())
+        if orders:
+            active = (await self.session.execute(
+                select(Invoice.reference)
+                .where(
+                    Invoice.order_id.in_([o.id for o in orders]),
+                    Invoice.status.notin_(["cancelled", "credit"]),
+                )
+                .limit(5)
+            )).scalars().all()
+            if active:
+                raise ValueError(
+                    "Impossible : une facture active est rattachée à ce "
+                    "devis (" + ", ".join(active) + ") — annulez-la d'abord."
+                )
+            raise ValueError(
+                "Impossible : des commandes sont encore rattachées à ce "
+                "devis — supprimez-les d'abord."
+            )
+
+        from app.core.services.audit_service import AuditService
+
+        await AuditService(self.session).log(
+            "quote.deleted",
+            "quote",
+            quote.id,
+            company_id=quote.company_id,
+            user_id=user_id,
+            old_values={
+                "reference": quote.reference,
+                "status": quote.status,
+                "partner_id": quote.partner_id,
+                "amount_total": float(quote.amount_total or 0),
+            },
+        )
         await self.session.delete(quote)  # cascade lines + cuts
         await self.session.commit()
 
@@ -401,11 +571,35 @@ class QuoteService:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
+    async def _find_order_for_quote(self, quote_id: int) -> SalesOrder | None:
+        """Commande déjà générée par ce devis (la plus récente, hors annulée)."""
+        result = await self.session.execute(
+            select(SalesOrder)
+            .options(
+                selectinload(SalesOrder.lines).selectinload(SalesOrderLine.cuts)
+            )
+            .where(SalesOrder.quote_id == quote_id, SalesOrder.status != "cancelled")
+            .order_by(SalesOrder.id.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
     async def confirm_quote(self, quote_id: int) -> SalesOrder:
-        """Convertit un devis confirmé en commande client."""
+        """Convertit un devis confirmé en commande client.
+
+        **Idempotent** : un devis déjà confirmé conserve sa commande — un
+        second appel renvoie la commande existante au lieu d'en créer une
+        nouvelle.  Le bouton « Confirmer » peut donc être recliqué sans risque
+        et le parcours « Créer facture » réutilise toujours la même commande.
+        """
         quote = await self.session.get(Quote, quote_id)
         if quote is None:
             raise ValueError(f"Devis {quote_id} introuvable")
+
+        if quote.status != "draft":
+            existing = await self._find_order_for_quote(quote.id)
+            if existing is not None:
+                return existing
 
         order = SalesOrder(
             reference=await self.sequences.next_value("order", "COM"),
@@ -413,6 +607,7 @@ class QuoteService:
             site_id=quote.site_id,
             quote_id=quote.id,
             currency_code=quote.currency_code,
+            salesperson_id=quote.salesperson_id,
         )
         for ql in quote.lines:
             order.lines.append(build_order_line_from_quote(ql))

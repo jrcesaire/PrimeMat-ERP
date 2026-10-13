@@ -1,0 +1,32 @@
+# Secrets — NE JAMAIS embarquer dans l'image (fournis via env_file / environment)
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Bases de données locales et de test
+*.db
+*.sqlite
+*.sqlite3
+
+# Caches Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Tests ad-hoc et leurs artefacts
+test_*.py
+test_out.txt
+
+# Documents générés et fichiers déposés par les utilisateurs
+resources/generated/
+
+# Logs et divers
+*.log
+.git/
+.gitignore
+.venv/
+venv/

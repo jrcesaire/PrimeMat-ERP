@@ -52,6 +52,9 @@ body {
 .dark .bg-gray-100 { background-color: #24324a !important; }
 .dark .bg-gray-200 { background-color: #334155 !important; }
 .dark .bg-gray-900 { background-color: #0b1220 !important; }
+/* Ligne sélectionnée du panier POS — bg-blue-50 n'est pas couvert par les
+   surfaces ci-dessus (uniquement les <tr>, pour préserver les badges bleus). */
+.dark tr.bg-blue-50 { background-color: #172554 !important; }
 
 /* Texte */
 .dark .text-gray-900 { color: #f1f5f9 !important; }
@@ -70,9 +73,36 @@ body {
 .dark .hover\:bg-gray-50:hover { background-color: #1e293b !important; }
 .dark .hover\:bg-gray-100:hover { background-color: #24324a !important; }
 .dark .hover\:bg-gray-800:hover { background-color: #1e293b !important; }
+.dark .hover\:bg-red-50:hover { background-color: #3b1d24 !important; }
 .dark .hover\:text-white:hover { color: #f8fafc !important; }
 
 /* Scrollbar */
 .dark ::-webkit-scrollbar-track { background: #0f172a; }
 .dark ::-webkit-scrollbar-thumb { background: #334155; }
 .dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ---------------------------------------------------------------------------
+   Panneau du ProductPicker (rendu dans un portail, hors du tableau)
+   ---------------------------------------------------------------------------
+   Les règles `.dark .bg-white` / `.dark .text-gray-800` ci-dessus sont en
+   `!important` : à l'intérieur d'un `<td>` ou d'un Card en `overflow-hidden`,
+   un menu déroulant en thème sombre devient illisible (texte clair sur fond
+   sombre inversé, rogné par l'overflow de la cellule). Le panneau est donc
+   stylé par des classes dédiées, hors de la portée des overrides `.dark`,
+   pour garantir un texte foncé sur fond clair dans les deux thèmes.
+   --------------------------------------------------------------------------- */
+.picker-panel {
+  background-color: #ffffff;
+  color: #111827;
+  border-color: #e5e7eb;
+}
+.picker-panel .picker-item { color: #111827; background-color: #ffffff; }
+.picker-panel .picker-item:hover,
+.picker-panel .picker-item[data-active="true"] {
+  background-color: #eff6ff;
+  color: #111827;
+}
+.picker-panel .picker-ref { color: #6b7280; }
+.picker-panel .picker-price { color: #4b5563; }
+.picker-panel .picker-empty { color: #6b7280; }
+.picker-panel .picker-footer { border-top-color: #e5e7eb; }

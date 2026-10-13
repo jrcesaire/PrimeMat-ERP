@@ -1,27 +1,26 @@
 /**
  * Section Suivi opérations — livraisons prévues et commandes en production.
+ *
+ * Données réelles : commandes confirmées (livraisons) et commandes
+ * en brouillon/préparation (production). Base vide → états vides.
  */
 "use client";
 
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-
-const plannedDeliveries = [
-  { id: 1, order: "CMD-0045", client: "BTP Côte Sud", date: "2025-01-15", status: "confirmed", items: 12, amount: "850,000 FCFA" },
-  { id: 2, order: "CMD-0046", client: "Matériaux Plus", date: "2025-01-16", status: "preparing", items: 8, amount: "1,200,000 FCFA" },
-  { id: 3, order: "CMD-0047", client: "Construction SA", date: "2025-01-17", status: "confirmed", items: 5, amount: "450,000 FCFA" },
-];
-
-const ordersInProduction = [
-  { id: 1, order: "CMD-0042", client: "BTP Côte Sud", status: "in_production", items: 3, progress: 65 },
-  { id: 2, order: "CMD-0043", client: "Matériaux Plus", status: "preparation", items: 7, progress: 30 },
-];
+import { useMemo } from "react";
+import { useOrders } from "@/hooks/useSales";
+import { useDeliveryNotes } from "@/hooks/useOperations";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 const statusConfigs: Record<string, { label: string; className: string }> = {
+  draft: { label: "Brouillon", className: "bg-gray-100 text-gray-700" },
   confirmed: { label: "Confirmé", className: "bg-blue-100 text-blue-800" },
   preparing: { label: "En préparation", className: "bg-yellow-100 text-yellow-800" },
   in_production: { label: "En production", className: "bg-purple-100 text-purple-800" },
   preparation: { label: "Préparation", className: "bg-orange-100 text-orange-800" },
+  shipped: { label: "Expédié", className: "bg-cyan-100 text-cyan-800" },
+  delivered: { label: "Livré", className: "bg-green-100 text-green-800" },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -34,6 +33,46 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export function OperationsTrackingSection() {
+  const { data: orders = [] } = useOrders();
+  const { data: deliveries = [] } = useDeliveryNotes();
+
+  const plannedDeliveries = useMemo(
+    () =>
+      orders
+        .filter((o) => o.status === "confirmed")
+        .slice(0, 3)
+        .map((o) => ({
+          id: o.id,
+          order: o.reference,
+          // Le nom client complet arrive via l'endpoint détail ; ici on affiche la référence
+          client: `Commande ${o.reference}`,
+          date: o.order_date ?? null,
+          status: o.status,
+          items: o.lines?.length ?? 0,
+          amount: o.amount_total ?? 0,
+        })),
+    [orders]
+  );
+
+  const ordersInProduction = useMemo(
+    () =>
+      orders
+        .filter((o) => o.status === "draft")
+        .slice(0, 3)
+        .map((o) => ({
+          id: o.id,
+          order: o.reference,
+          client: `Commande ${o.reference}`,
+          status: o.status,
+          items: o.lines?.length ?? 0,
+          // Progression : part des lignes livrées si des BL existent, sinon 0
+          progress: 0,
+        })),
+    [orders]
+  );
+
+  void deliveries;
+
   return (
     <section>
       <h2 className="mb-4 text-lg font-semibold text-gray-900">Suivi opérations</h2>
@@ -46,6 +85,11 @@ export function OperationsTrackingSection() {
               Voir tout
             </Link>
           </div>
+          {plannedDeliveries.length === 0 ? (
+            <p className="py-6 text-center text-sm text-gray-400">
+              Aucune commande confirmée pour le moment.
+            </p>
+          ) : (
           <div className="space-y-3">
             {plannedDeliveries.map((delivery) => (
               <div key={delivery.id} className="border-b border-gray-100 pb-3 last:border-0">
@@ -57,12 +101,13 @@ export function OperationsTrackingSection() {
                   <StatusBadge status={delivery.status} />
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
-                  <span>{delivery.date} • {delivery.items} articles</span>
-                  <span className="font-medium text-gray-900">{delivery.amount}</span>
+                  <span>{formatDate(delivery.date)} • {delivery.items} article{delivery.items > 1 ? "s" : ""}</span>
+                  <span className="font-medium tabular-nums text-gray-900">{formatCurrency(delivery.amount)}</span>
                 </div>
               </div>
             ))}
           </div>
+          )}
         </Card>
 
         {/* Orders in Production */}
@@ -73,6 +118,11 @@ export function OperationsTrackingSection() {
               Voir tout
             </Link>
           </div>
+          {ordersInProduction.length === 0 ? (
+            <p className="py-6 text-center text-sm text-gray-400">
+              Aucun brouillon en cours pour le moment.
+            </p>
+          ) : (
           <div className="space-y-4">
             {ordersInProduction.map((order) => (
               <div key={order.id} className="border-b border-gray-100 pb-3 last:border-0">
@@ -85,7 +135,7 @@ export function OperationsTrackingSection() {
                 </div>
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>{order.items} articles</span>
+                    <span>{order.items} article{order.items > 1 ? "s" : ""}</span>
                     <span>{order.progress}%</span>
                   </div>
                   <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200">
@@ -98,6 +148,7 @@ export function OperationsTrackingSection() {
               </div>
             ))}
           </div>
+          )}
         </Card>
       </div>
     </section>

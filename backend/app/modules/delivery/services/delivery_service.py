@@ -134,6 +134,8 @@ class DeliveryService:
         for oline in order.lines:
             line = DeliveryLine(
                 product_id=oline.product_id,
+                variant_id=oline.variant_id,
+                variant_name=oline.variant_name,
                 description=oline.description,
                 quantity=float(oline.quantity_ordered or 0),
                 quantity_ordered=float(oline.quantity_ordered or 0),
@@ -165,3 +167,103 @@ class DeliveryService:
         )
         loaded = result.scalar_one()
         return loaded
+
+    # ------------------------------------------------------------------ #
+    # Reprise du document — retour en brouillon / suppression (cascade)
+    # ------------------------------------------------------------------ #
+    async def back_to_draft(
+        self, delivery_id: int, user_id: int | None = None
+    ) -> DeliveryNote:
+        """Remet un bon de livraison au brouillon (tout statut → draft).
+
+        Étape préalable à la suppression (les BL naissent en ``pending``).
+        Aucun impact stock : le module livraison ne déclenche aucun
+        mouvement — seule l'horodatage ``delivery_date`` est révoqué.
+        """
+        delivery = await self.session.get(DeliveryNote, delivery_id)
+        if delivery is None:
+            raise ValueError(f"Bon de livraison {delivery_id} introuvable")
+        if delivery.status == DeliveryStatus.DRAFT.value:
+            raise ValueError("Ce bon de livraison est déjà en brouillon.")
+
+        old_status = delivery.status
+        delivery.status = DeliveryStatus.DRAFT.value
+        delivery.delivery_date = None
+
+        from app.core.services.audit_service import AuditService
+
+        await AuditService(self.session).log(
+            "delivery.back_to_draft",
+            "delivery",
+            delivery.id,
+            company_id=delivery.company_id,
+            user_id=user_id,
+            old_values={"status": old_status},
+            new_values={"status": DeliveryStatus.DRAFT.value},
+        )
+        await self.session.commit()
+        await self.session.refresh(delivery)
+        logger.info("Bon de livraison %s remis en brouillon", delivery.reference)
+        return delivery
+
+    async def delete_delivery(
+        self, delivery_id: int, user_id: int | None = None
+    ) -> None:
+        """Supprime un bon de livraison — brouillon uniquement (cascade).
+
+        Garde-fous : statut ``draft`` (donc remise au brouillon préalable)
+        et aucun paiement restant sur la facture de sa commande.
+        """
+        result = await self.session.execute(
+            select(DeliveryNote)
+            .where(DeliveryNote.id == delivery_id)
+            .with_for_update()
+        )
+        delivery = result.scalar_one_or_none()
+        if delivery is None:
+            raise ValueError(f"Bon de livraison {delivery_id} introuvable")
+        if delivery.status != DeliveryStatus.DRAFT.value:
+            raise ValueError(
+                "Seul un bon de livraison au statut « brouillon » peut être "
+                "supprimé — remettez-le d'abord au brouillon "
+                f"(statut actuel : {delivery.status})."
+            )
+
+        # Cascade : les paiements de la facture de cette commande doivent
+        # avoir été supprimés avant le BL.
+        if delivery.order_id:
+            from app.modules.invoicing.models.invoice import Invoice
+            from app.modules.payments.models.payment import Payment
+
+            rows = (await self.session.execute(
+                select(Payment.reference)
+                .join(Invoice, Payment.invoice_id == Invoice.id)
+                .where(Invoice.order_id == delivery.order_id)
+                .limit(5)
+            )).scalars().all()
+            if rows:
+                raise ValueError(
+                    "Impossible : des paiements sont encore rattachés à la "
+                    "facture de cette vente ("
+                    + ", ".join(rows)
+                    + ") — supprimez-les d'abord."
+                )
+
+        from app.core.services.audit_service import AuditService
+
+        await AuditService(self.session).log(
+            "delivery.deleted",
+            "delivery",
+            delivery.id,
+            company_id=delivery.company_id,
+            user_id=user_id,
+            old_values={
+                "reference": delivery.reference,
+                "status": delivery.status,
+                "order_id": delivery.order_id,
+                "partner_id": delivery.partner_id,
+            },
+        )
+        await self.session.delete(delivery)  # cascade lines + cuts
+        await self.session.commit()
+        logger.info("Bon de livraison %s supprimé", delivery.reference)

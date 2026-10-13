@@ -11,9 +11,10 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
-from jose import JWTError
+from app.core.security import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.schemas.auth import Token
@@ -44,7 +45,9 @@ class AuthService:
         Retourne ``None`` si l'email ou le mot de passe est incorrect.
         """
         result = await self.session.execute(
-            select(User).where(User.email == email)
+            select(User)
+            .options(selectinload(User.company))
+            .where(User.email == email)
         )
         user: User | None = result.scalar_one_or_none()
 

@@ -38,6 +38,13 @@ class Quote(Base, TenantMixin):
 
     currency_code: Mapped[str] = MappedColumn(String(3), default="XOF")
 
+    # Contact commercial (vendeur) : utilisateur avec privilèges commerciaux.
+    # - choisi à la création du devis (si admin), sinon = créateur (commercial)
+    # - hérité par la commande puis la facture (facture : pas de saisie)
+    salesperson_id: Mapped[int | None] = MappedColumn(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
     amount_untaxed: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
     discount_amount: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
     tax_amount: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
@@ -58,6 +65,9 @@ class Quote(Base, TenantMixin):
 
     partner: Mapped["Partner"] = relationship("Partner")
     company: Mapped["Company"] = relationship("Company")
+    salesperson: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[salesperson_id], lazy="selectin"
+    )
 
     def __repr__(self) -> str:
         return f"<Quote {self.reference} [{self.status}]>"
@@ -77,6 +87,15 @@ class QuoteLine(Base, TenantMixin):
     product_id: Mapped[int | None] = MappedColumn(
         ForeignKey("products.id"), nullable=True
     )
+    # Variante du produit (optionnelle) — ``variant_name`` est un instantané du
+    # libellé, conservé même si la variante est renommée ou supprimée
+    # (réimpression fidèle des documents).
+    variant_id: Mapped[int | None] = MappedColumn(
+        ForeignKey("product_variants.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    variant_name: Mapped[str | None] = MappedColumn(String(300))
 
     description: Mapped[str | None] = MappedColumn(String(500))
     quantity: Mapped[float] = MappedColumn(Numeric(14, 4), default=1)
@@ -91,6 +110,10 @@ class QuoteLine(Base, TenantMixin):
     position: Mapped[int] = MappedColumn(Integer, default=0)
 
     quote: Mapped["Quote"] = relationship("Quote", back_populates="lines")
+    product: Mapped["Product"] = relationship("Product", lazy="selectin")
+    variant: Mapped["ProductVariant | None"] = relationship(
+        "ProductVariant", lazy="selectin"
+    )
     cuts: Mapped[list["QuoteLineCut"]] = relationship(
         "QuoteLineCut", back_populates="line",
         cascade="all, delete-orphan", lazy="selectin",

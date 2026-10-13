@@ -12,7 +12,7 @@ import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-BACKEND = r"D:\Travail\Projets\JR\ERP Matériaux de construction\backend"
+BACKEND = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BACKEND)
 os.chdir(BACKEND)
 

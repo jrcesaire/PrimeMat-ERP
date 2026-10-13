@@ -194,6 +194,18 @@ class Product(Base, TenantMixin):
         lazy="selectin",
     )
 
+    # Variantes (propriétés + valeurs => combinaisons vendables)
+    variants: Mapped[list["ProductVariant"]] = relationship(
+        "ProductVariant",
+        back_populates="product",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    @property
+    def variants_count(self) -> int:
+        return len(self.variants)
+
     def __repr__(self) -> str:
         return f"<Product {self.reference} - {self.name}>"
 

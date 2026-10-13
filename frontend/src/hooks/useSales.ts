@@ -18,6 +18,7 @@ import { STOCK_KEYS } from "@/hooks/useStock";
 export const SALES_KEYS = {
   quotes: "sales-quotes",
   orders: "sales-orders",
+  posSales: "sales-pos",
 };
 
 // --- Quotes ---
@@ -205,6 +206,100 @@ export function useConfirmOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SALES_KEYS.orders] });
+    },
+  });
+}
+
+// --- Point de vente (historique) ---
+export interface PosSaleRow {
+  id: number;
+  reference: string;
+  created_at: string;
+  partner_name: string | null;
+  items_count: number;
+  amount_total: number;
+  currency_code: string;
+  status: string;
+  payment_method: string | null;
+}
+
+export interface PosSalesPage {
+  items: PosSaleRow[];
+  total: number;
+}
+
+/** Historique des ventes comptoir — paginé, plus récent d'abord. */
+export function usePosSales(page = 1, pageSize = 15) {
+  return useQuery({
+    queryKey: [SALES_KEYS.posSales, page],
+    queryFn: async (): Promise<PosSalesPage> => {
+      const skip = (page - 1) * pageSize;
+      const res = await apiClient.get(
+        `/sales/pos/sales?skip=${skip}&limit=${pageSize}`,
+      );
+      return res.data;
+    },
+  });
+}
+
+export interface PosSaleLine {
+  product_id: number | null;
+  description: string | null;
+  variant_name: string | null;
+  quantity: number;
+  unit: string | null;
+  unit_price: number;
+  discount_percent: number;
+  subtotal: number;
+}
+
+/** Détail d'une vente comptoir (consultation seule — sans effet de bord). */
+export interface PosSaleDetail {
+  id: number;
+  reference: string;
+  created_at: string;
+  order_date: string;
+  status: string;
+  currency_code: string;
+  amount_untaxed: number;
+  amount_total: number;
+  archived: boolean;
+  partner: { id: number; name: string } | null;
+  lines: PosSaleLine[];
+  invoice: { id: number; reference: string; status: string } | null;
+  payment: {
+    id: number;
+    reference: string;
+    method: string;
+    amount: number;
+    change_amount: number;
+  } | null;
+}
+
+/** Détail d'une vente comptoir. */
+export function usePosSale(orderId: number | null) {
+  return useQuery({
+    queryKey: [SALES_KEYS.posSales, "detail", orderId],
+    queryFn: async (): Promise<PosSaleDetail> => {
+      const res = await apiClient.get(`/sales/pos/sales/${orderId}`);
+      return res.data;
+    },
+    enabled: orderId != null,
+  });
+}
+
+/** Archive une vente comptoir (masquage d'historique — comptabilité conservée). */
+export function useArchivePosSale() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      orderId: number,
+    ): Promise<{ id: number; reference: string; archived: boolean }> => {
+      const res = await apiClient.post(`/sales/pos/sales/${orderId}/archive`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SALES_KEYS.posSales] });
     },
   });
 }

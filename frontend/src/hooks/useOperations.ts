@@ -20,6 +20,8 @@ export interface InvoiceLine {
   id: number;
   invoice_id: number;
   product_id: number | null;
+  variant_id?: number | null;
+  variant_name?: string | null;
   description: string | null;
   quantity: number;
   sell_by_length: boolean;
@@ -71,6 +73,8 @@ export interface DeliveryNote {
   lines?: {
     id: number;
     product_id: number | null;
+    variant_id?: number | null;
+    variant_name?: string | null;
     description: string | null;
     quantity_ordered: number;
     quantity_delivered: number;
@@ -239,6 +243,20 @@ export function useCancelInvoice() {
   });
 }
 
+/** Supprime une facture (brouillon uniquement — cascade serveur). */
+export function useDeleteInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (invoiceId: number): Promise<void> => {
+      await apiClient.delete(`/invoicing/invoices/${invoiceId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
+    },
+  });
+}
+
 // --- Paiements ---
 export function usePayments(invoiceId?: number) {
   return useQuery({
@@ -276,6 +294,68 @@ export function useCreatePayment() {
           queryKey: [OPERATIONS_KEYS.invoices, payment.invoice_id],
         });
       }
+    },
+  });
+}
+
+/**
+ * Remet un paiement en brouillon — révocation (facture + écriture
+ * comptable), étape préalable à sa suppression.
+ */
+export function useBackToDraftPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (paymentId: number): Promise<Payment> => {
+      const res = await apiClient.post(
+        `/payments/payments/${paymentId}/back-to-draft`
+      );
+      return res.data;
+    },
+    onSuccess: (payment) => {
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.payments] });
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+      if (payment.invoice_id) {
+        queryClient.invalidateQueries({
+          queryKey: [OPERATIONS_KEYS.invoices, payment.invoice_id],
+        });
+      }
+    },
+  });
+}
+
+/**
+ * Re-confirme un paiement en brouillon — symétrique de
+ * ``useBackToDraftPayment`` (recrédite la facture + écriture comptable).
+ */
+export function useConfirmPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (paymentId: number): Promise<Payment> => {
+      const res = await apiClient.post(`/payments/payments/${paymentId}/confirm`);
+      return res.data;
+    },
+    onSuccess: (payment) => {
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.payments] });
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+      if (payment.invoice_id) {
+        queryClient.invalidateQueries({
+          queryKey: [OPERATIONS_KEYS.invoices, payment.invoice_id],
+        });
+      }
+    },
+  });
+}
+
+/** Supprime un paiement (brouillon uniquement — cascade serveur). */
+export function useDeletePayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (paymentId: number): Promise<void> => {
+      await apiClient.delete(`/payments/payments/${paymentId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.payments] });
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
     },
   });
 }
@@ -374,6 +454,37 @@ export function useUpdateDeliveryStatus() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.deliveries] });
+    },
+  });
+}
+
+/** Remet un bon de livraison au brouillon (préalable à la suppression). */
+export function useBackToDraftDelivery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (deliveryId: number): Promise<DeliveryNote> => {
+      const res = await apiClient.post(
+        `/delivery/notes/${deliveryId}/back-to-draft`
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.deliveries] });
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
+    },
+  });
+}
+
+/** Supprime un bon de livraison (brouillon uniquement — cascade serveur). */
+export function useDeleteDelivery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (deliveryId: number): Promise<void> => {
+      await apiClient.delete(`/delivery/notes/${deliveryId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.deliveries] });
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
     },
   });
 }

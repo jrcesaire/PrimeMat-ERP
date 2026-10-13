@@ -63,6 +63,14 @@ class DeliveryLine(Base, TenantMixin):
         ForeignKey("delivery_notes.id", ondelete="CASCADE"), nullable=False, index=True
     )
     product_id: Mapped[int | None] = MappedColumn(ForeignKey("products.id"), nullable=True)
+    # Variante du produit (optionnelle) — ``variant_name`` est un instantané
+    # du libellé (réimpression fidèle des documents).
+    variant_id: Mapped[int | None] = MappedColumn(
+        ForeignKey("product_variants.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    variant_name: Mapped[str | None] = MappedColumn(String(300))
 
     description: Mapped[str | None] = MappedColumn(String(500))
     quantity: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
@@ -73,6 +81,10 @@ class DeliveryLine(Base, TenantMixin):
     total_length: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
 
     delivery: Mapped["DeliveryNote"] = relationship("DeliveryNote", back_populates="lines")
+    product: Mapped["Product"] = relationship("Product", lazy="selectin")
+    variant: Mapped["ProductVariant | None"] = relationship(
+        "ProductVariant", lazy="selectin"
+    )
     cuts: Mapped[list["DeliveryLineCut"]] = relationship(
         "DeliveryLineCut", back_populates="line",
         cascade="all, delete-orphan", lazy="selectin",

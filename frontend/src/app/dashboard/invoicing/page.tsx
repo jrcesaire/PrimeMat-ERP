@@ -8,8 +8,15 @@ import { useRouter } from "next/navigation";
 import { Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useInvoices, useCreateInvoiceFromOrder } from "@/hooks/useOperations";
+import { ExportButton } from "@/components/shared/export-button";
+import { useInvoices, useCreateInvoiceFromOrder, usePostInvoice, useDeleteInvoice } from "@/hooks/useOperations";
 import { useOrders } from "@/hooks/useSales";
+import { usePermission } from "@/hooks/useAuth";
+import { useConfirm } from "@/components/ui/confirm";
+import {
+  confirmDeleteOptions,
+  confirmPostOptions,
+} from "@/components/ui/confirm";
 import { printInvoice } from "@/lib/api/pdf";
 import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
 
@@ -18,13 +25,73 @@ export default function InvoicingPage() {
   const { data: invoices = [], isLoading } = useInvoices();
   const { data: orders = [] } = useOrders();
   const createInvoice = useCreateInvoiceFromOrder();
+  const postInvoice = usePostInvoice();
+  const deleteInvoice = useDeleteInvoice();
+  const can = usePermission();
+  const canPostInvoice = can("invoice:edit");
+  const canDeleteInvoice = can("invoice:delete");
+  const confirm = useConfirm();
 
   const [orderId, setOrderId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Commandes confirmées pas encore facturées
+  const handleDeleteInvoice = async (
+    e: React.MouseEvent,
+    reference: string,
+    invoiceId: number
+  ) => {
+    e.stopPropagation();
+    const { confirmed } = await confirm(
+      confirmDeleteOptions(
+        `la facture ${reference} — Seules les factures en brouillon et sans paiement peuvent être supprimées.`,
+      ),
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deleteInvoice.mutateAsync(invoiceId);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de la suppression");
+    }
+  };
+
+  const handlePostInvoice = async (
+    e: React.MouseEvent,
+    reference: string,
+    invoiceId: number
+  ) => {
+    e.stopPropagation();
+    const { confirmed } = await confirm(
+      confirmPostOptions(
+        `la facture ${reference} — Elle sera comptabilisée et ne pourra plus être modifiée.`,
+      ),
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await postInvoice.mutateAsync(invoiceId);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de la confirmation");
+    }
+  };
+
+  // Commandes confirmées avec un reste à facturer (acomptes inclus)
+  const invoicedByOrder = new Map<number, number>();
+  invoices.forEach((i) => {
+    if (i.order_id && !["cancelled", "credit"].includes(i.status)) {
+      invoicedByOrder.set(i.order_id, (invoicedByOrder.get(i.order_id) ?? 0) + i.amount_total);
+    }
+  });
   const billable = orders.filter(
-    (o) => o.status === "confirmed" && !invoices.some((i) => i.order_id === o.id),
+    (o) =>
+      o.status === "confirmed" &&
+      Math.max(o.amount_total - (invoicedByOrder.get(o.id) ?? 0), 0) > 0.005,
   );
 
   const handleCreate = async () => {
@@ -42,9 +109,15 @@ export default function InvoicingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Facturation</h1>
-        <p className="text-sm text-gray-600">Factures clients</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Facturation</h1>
+          <p className="text-sm text-gray-600">Factures clients</p>
+        </div>
+        <ExportButton
+          endpoint="/invoicing/invoices/export"
+          fallbackName="factures"
+        />
       </div>
 
       {/* Facturer une commande */}
@@ -112,17 +185,45 @@ export default function InvoicingPage() {
                     {formatCurrency(Math.max(inv.amount_total - inv.paid_amount, 0))}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      title={`Imprimer la facture ${inv.reference}`}
-                      aria-label={`Imprimer la facture ${inv.reference}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        printInvoice(inv.id).catch(() => alert("Impossible de générer le PDF."));
-                      }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100"
-                    >
-                      <Printer className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      {inv.status === "draft" && canPostInvoice && (
+                        <button
+                          title={`Confirmer la facture ${inv.reference}`}
+                          aria-label={`Confirmer la facture ${inv.reference}`}
+                          disabled={postInvoice.isPending}
+                          onClick={(e) =>
+                            handlePostInvoice(e, inv.reference, inv.id)
+                          }
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-green-600 hover:bg-green-50 disabled:opacity-50"
+                        >
+                          ✓
+                        </button>
+                      )}
+                      {inv.status === "draft" && canDeleteInvoice && (
+                        <button
+                          title={`Supprimer la facture ${inv.reference}`}
+                          aria-label={`Supprimer la facture ${inv.reference}`}
+                          disabled={deleteInvoice.isPending}
+                          onClick={(e) =>
+                            handleDeleteInvoice(e, inv.reference, inv.id)
+                          }
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          🗑
+                        </button>
+                      )}
+                      <button
+                        title={`Imprimer la facture ${inv.reference}`}
+                        aria-label={`Imprimer la facture ${inv.reference}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          printInvoice(inv.id).catch(() => alert("Impossible de générer le PDF."));
+                        }}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -2,18 +2,28 @@
 
 import { use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   useDeliveryNote,
   useUpdateDeliveryStatus,
+  useBackToDraftDelivery,
+  useDeleteDelivery,
 } from "@/hooks/useOperations";
 import { useClients } from "@/hooks/useCRM";
+import { usePermission } from "@/hooks/useAuth";
+import {
+  useConfirm,
+  confirmBackToDraftOptions,
+  confirmDeleteOptions,
+} from "@/components/ui/confirm";
 import { printDelivery } from "@/lib/api/pdf";
 import { formatDate, StatusBadge } from "@/lib/utils";
 
 const NEXT_STATUS: Record<string, { label: string; value: string }> = {
+  draft: { label: "Confirmer", value: "pending" },
   planned: { label: "Expédier", value: "shipped" },
   shipped: { label: "Livrer", value: "delivered" },
   pending: { label: "Livrer", value: "delivered" },
@@ -26,11 +36,55 @@ export default function DeliveryDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const router = useRouter();
   const { id: idParam } = use(params);
   const id = Number(idParam) || 0;
   const { data: d, isLoading } = useDeliveryNote(id);
   const { data: clients = [] } = useClients();
   const updateStatus = useUpdateDeliveryStatus();
+  const backToDraft = useBackToDraftDelivery();
+  const deleteDelivery = useDeleteDelivery();
+  const can = usePermission();
+  const canEditDelivery = can("delivery:edit");
+  const canDeleteDelivery = can("delivery:delete");
+  const confirm = useConfirm();
+
+  const handleBackToDraft = async (reference: string) => {
+    const { confirmed } = await confirm(
+      confirmBackToDraftOptions(
+        `${reference} — Seul un BL au brouillon peut être supprimé.`,
+      ),
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await backToDraft.mutateAsync(id);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de la remise au brouillon");
+    }
+  };
+
+  const handleDelete = async (reference: string) => {
+    const { confirmed } = await confirm(
+      confirmDeleteOptions(
+        `${reference} — Seuls les BL en brouillon et sans paiement restant peuvent être supprimés.`,
+      ),
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deleteDelivery.mutateAsync(id);
+      router.push("/dashboard/delivery");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de la suppression");
+    }
+  };
 
   if (isLoading)
     return <p className="p-6 text-sm text-gray-500">Chargement…</p>;
@@ -58,7 +112,7 @@ export default function DeliveryDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {next && (
+          {next && canEditDelivery && (
             <Button
               variant="outline"
               disabled={updateStatus.isPending}
@@ -77,6 +131,26 @@ export default function DeliveryDetailPage({
           >
             <Printer className="h-4 w-4" /> Imprimer
           </Button>
+          {d.status !== "draft" && canEditDelivery && (
+            <Button
+              variant="outline"
+              className="text-amber-700 hover:bg-amber-50"
+              disabled={backToDraft.isPending}
+              onClick={() => handleBackToDraft(d.reference)}
+            >
+              {backToDraft.isPending ? "Reprise…" : "Remettre au brouillon"}
+            </Button>
+          )}
+          {d.status === "draft" && canDeleteDelivery && (
+            <Button
+              variant="outline"
+              className="text-red-600 hover:bg-red-50"
+              disabled={deleteDelivery.isPending}
+              onClick={() => handleDelete(d.reference)}
+            >
+              {deleteDelivery.isPending ? "Suppression…" : "Supprimer"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -114,6 +188,11 @@ export default function DeliveryDetailPage({
               <tr key={l.id} className="border-b border-gray-100">
                 <td className="px-4 py-3 font-medium text-gray-900">
                   {l.description ?? `Produit #${l.product_id}`}
+                  {l.variant_name && (
+                    <span className="ml-2 inline-block rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 align-middle text-[11px] font-semibold text-blue-700">
+                      {l.variant_name}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right">{l.quantity_ordered}</td>
                 <td className="px-4 py-3 text-right font-semibold">

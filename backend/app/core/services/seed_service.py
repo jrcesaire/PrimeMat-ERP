@@ -58,10 +58,10 @@ SYSTEM_PERMISSIONS: dict[str, list[str]] = {
     "warehouse": ["view", "create", "edit"],
     "stock_level": ["view", "edit"],
     "stock_movement": ["view", "create"],
-    "invoice": ["view", "create", "edit", "cancel"],
-    "payment": ["view", "create", "edit", "cancel"],
+    "invoice": ["view", "create", "edit", "cancel", "delete"],
+    "payment": ["view", "create", "edit", "cancel", "delete"],
     "purchase": ["view", "create", "edit", "confirm"],
-    "delivery": ["view", "create", "edit", "confirm"],
+    "delivery": ["view", "create", "edit", "confirm", "delete"],
     "expense": ["view", "create", "edit", "delete"],
     "report": ["view"],
     "account": ["view", "create", "edit"],
@@ -86,14 +86,14 @@ ROLES: list[dict] = [
         "permissions": {
             "product": ["view", "create", "edit"],
             "partner": ["view", "create", "edit"],
-            "quote": ["view", "create", "edit", "confirm"],
+            "quote": ["view", "create", "edit", "confirm", "delete"],
             "order": ["view", "create", "edit", "confirm"],
             "stock_level": ["view"],
             "stock_movement": ["view", "create"],
-            "invoice": ["view", "create"],
-            "payment": ["view", "create"],
+            "invoice": ["view", "create", "delete"],
+            "payment": ["view", "create", "delete"],
             "purchase": ["view", "create"],
-            "delivery": ["view", "create", "confirm"],
+            "delivery": ["view", "create", "confirm", "delete"],
             "expense": ["view", "create"],
             "report": ["view"],
         },
@@ -150,12 +150,41 @@ ROLES: list[dict] = [
 # ------------------------------------------------------------------ #
 # Bootstrap
 # ------------------------------------------------------------------ #
-async def bootstrap_defaults(session: AsyncSession) -> dict[str, list[str]]:
-    """Crée les données de démarrage si nécessaire. Retourne les créations."""
+async def bootstrap_defaults(
+    session: AsyncSession,
+    *,
+    company_name: str | None = None,
+    company_code: str | None = None,
+    company_currency: str | None = None,
+    agency_name: str | None = None,
+    agency_code: str | None = None,
+    admin_email: str | None = None,
+    admin_password: str | None = None,
+    admin_first_name: str | None = None,
+    admin_last_name: str | None = None,
+) -> dict[str, list[str]]:
+    """Crée les données de démarrage si nécessaire. Retourne les créations.
+
+    Les valeurs par défaut viennent des variables d'environnement
+    ``FIRST_COMPANY_*`` / ``FIRST_ADMIN_*``. Le wizard de premier
+    lancement (``/setup``) peut passer des valeurs explicites issues
+    du formulaire de configuration initiale.
+    """
     from app.core.models.company import Agency, Company, company_currencies
     from app.core.models.currency import Currency
     from app.core.models.role import Permission, Role, RolePermission
     from app.core.models.user import User, UserRole
+
+    # Résolution des paramètres (overrides > variables d'environnement)
+    company_name = company_name or settings.first_company_name
+    company_code = company_code or settings.first_company_code
+    company_currency = company_currency or settings.first_company_currency
+    agency_name = agency_name or settings.first_agency_name
+    agency_code = agency_code or settings.first_agency_code
+    admin_email = (admin_email or settings.first_admin_email).lower()
+    admin_password = admin_password or settings.first_admin_password
+    admin_first_name = admin_first_name or settings.first_admin_first_name
+    admin_last_name = admin_last_name or settings.first_admin_last_name
 
     created: dict[str, list[str]] = {
         "currencies": [], "companies": [], "agencies": [],
@@ -179,13 +208,13 @@ async def bootstrap_defaults(session: AsyncSession) -> dict[str, list[str]]:
 
     # 2. Entreprise par défaut
     company = (await session.execute(
-        select(Company).where(Company.code == settings.first_company_code)
+        select(Company).where(Company.code == company_code)
     )).scalar_one_or_none()
     if company is None:
         company = Company(
-            name=settings.first_company_name,
-            code=settings.first_company_code,
-            currency_code=settings.first_company_currency,
+            name=company_name,
+            code=company_code,
+            currency_code=company_currency,
             tax_country="CI",
             is_active=True,
         )
@@ -195,7 +224,7 @@ async def bootstrap_defaults(session: AsyncSession) -> dict[str, list[str]]:
         # + devise autorisée
         await session.execute(
             company_currencies.insert().values(
-                company_id=company.id, currency_code=settings.first_company_currency
+                company_id=company.id, currency_code=company_currency
             )
         )
 
@@ -206,8 +235,8 @@ async def bootstrap_defaults(session: AsyncSession) -> dict[str, list[str]]:
     if agency is None:
         agency = Agency(
             company_id=company.id,
-            name=settings.first_agency_name,
-            code=settings.first_agency_code,
+            name=agency_name,
+            code=agency_code,
             is_active=True,
         )
         session.add(agency)
@@ -271,7 +300,6 @@ async def bootstrap_defaults(session: AsyncSession) -> dict[str, list[str]]:
             created["roles"].append(role_def["code"])
         role_map[role_def["code"]] = role
 # 6. Compte super-administrateur initial
-    admin_email = settings.first_admin_email.lower()
     admin_user = (await session.execute(
         select(User).where(User.email == admin_email)
     )).scalar_one_or_none()
@@ -279,9 +307,9 @@ async def bootstrap_defaults(session: AsyncSession) -> dict[str, list[str]]:
     if admin_user is None:
         admin_user = User(
             email=admin_email,
-            first_name=settings.first_admin_first_name,
-            last_name=settings.first_admin_last_name,
-            password_hash=hash_password(settings.first_admin_password),
+            first_name=admin_first_name,
+            last_name=admin_last_name,
+            password_hash=hash_password(admin_password),
             company_id=company.id,
             agency_id=agency.id,
             is_active=True,
@@ -314,6 +342,94 @@ async def bootstrap_defaults(session: AsyncSession) -> dict[str, list[str]]:
 
     await session.commit()
     return created
+
+
+async def _sync_system_permissions(session: AsyncSession) -> list[str]:
+    """Synchronisation *add-only* des permissions et rôles système.
+
+    Le bootstrap ne tourne que sur une base vide : toute permission ajoutée
+    ultérieurement à ``SYSTEM_PERMISSIONS`` (ex. les actions ``delete`` de la
+    cascade de suppression) n'existerait jamais sur une base existante.
+    Idempotent — ne crée ni ne supprime rien d'autre :
+
+    - crée les lignes ``Permission`` manquantes (par entreprise) ;
+    - complète les grants ``RolePermission`` des rôles système existants
+      d'après les définitions de ``ROLES`` (admin → toutes).
+
+    Retourne la liste des ajouts (``["invoice:delete", "manager+=quote:delete", …]``).
+    """
+    from app.core.models.company import Company
+    from app.core.models.role import Permission, Role, RolePermission
+
+    added: list[str] = []
+    companies = (await session.execute(select(Company))).scalars().all()
+
+    for company in companies:
+        # 1. Permissions manquantes pour cette entreprise
+        existing = (await session.execute(
+            select(Permission).where(Permission.company_id == company.id)
+        )).scalars().all()
+        perm_map: dict[str, Permission] = {
+            f"{p.resource}:{p.action}": p for p in existing
+        }
+        for resource, actions in SYSTEM_PERMISSIONS.items():
+            for action in actions:
+                code = f"{resource}:{action}"
+                if code in perm_map:
+                    continue
+                perm = Permission(
+                    resource=resource,
+                    action=action,
+                    description=f"{action} {resource}",
+                    company_id=company.id,
+                )
+                session.add(perm)
+                await session.flush()
+                perm_map[code] = perm
+                added.append(code)
+
+        # 2. Grants des rôles système existants (add-only)
+        role_defs = {r["code"]: r for r in ROLES}
+        roles = (await session.execute(
+            select(Role).where(Role.company_id == company.id, Role.is_system.is_(True))
+        )).scalars().all()
+        for role in roles:
+            role_def = role_defs.get(role.code)
+            if role_def is None:
+                continue
+            granted = set((await session.execute(
+                select(RolePermission.permission_id).where(
+                    RolePermission.role_id == role.id
+                )
+            )).scalars().all())
+            if role_def["permissions"] is None:
+                wanted = list(perm_map.keys())
+            else:
+                wanted = [
+                    f"{res}:{act}"
+                    for res, acts in role_def["permissions"].items()
+                    for act in acts
+                ]
+            for code in wanted:
+                perm = perm_map.get(code)
+                if perm is None or perm.id in granted:
+                    continue
+                session.add(RolePermission(role_id=role.id, permission_id=perm.id))
+                granted.add(perm.id)
+                added.append(f"{role.code}+={code}")
+
+    await session.commit()
+    if added:
+        logger.info("Permissions système synchronisées : %s", ", ".join(added))
+    return added
+
+
+async def sync_system_permissions() -> list[str]:
+    """Point d'entrée — ouvre sa session puis délègue à la synchro add-only."""
+    from app.core.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as session:
+        return await _sync_system_permissions(session)
 
 
 async def run_bootstrap_if_needed() -> dict[str, list[str]] | None:

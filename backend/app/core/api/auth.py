@@ -8,9 +8,12 @@ Endpoints d'authentification.
 """
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.database import AsyncSession, get_session
 from app.core.dependencies.auth import get_current_active_user
 from app.core.models.role import Permission, Role, RolePermission
@@ -20,16 +23,44 @@ from app.core.schemas.auth import LoginRequest, RefreshRequest, Token
 from app.core.schemas.user import UserReadWithRoles
 from app.core.services.auth_service import AuthService
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 # ------------------------------------------------------------------ #
-# Anti brute-force — limiteur en mémoire (IP + email).
-# Suffisant pour un déploiement mono-process ; remplacer par Redis
-# (ex. slowapi) en multi-workers.
+# Anti brute-force — limiteur (IP + email).
+# Redis si disponible (partagé entre workers/processus), sinon
+# repli automatique en mémoire (mono-process, dev).
 # ------------------------------------------------------------------ #
 _MAX_ATTEMPTS = 10          # tentatives
 _WINDOW_SECONDS = 300       # fenêtre glissante de 5 minutes
-_attempts: dict[str, list[float]] = {}
+_attempts: dict[str, list[float]] = {}   # repli mémoire
+_redis: object | None = None
+_redis_tried = False
+
+
+def _get_redis() -> object | None:
+    """Connexion Redis paresseuse (None si indisponible)."""
+    global _redis, _redis_tried
+    if not _redis_tried:
+        _redis_tried = True
+        try:
+            import redis as redis_lib
+
+            client = redis_lib.Redis.from_url(
+                settings.redis_url, socket_connect_timeout=1,
+                socket_timeout=1, decode_responses=True,
+            )
+            client.ping()
+            _redis = client
+            logger.info("Rate-limit : Redis connecté (%s)", settings.redis_url)
+        except Exception:  # noqa: BLE001 — repli mémoire assumé
+            logger.warning(
+                "Rate-limit : Redis indisponible, repli en mémoire "
+                "(mono-process uniquement)"
+            )
+            _redis = None
+    return _redis
 
 
 def _client_ip(request: Request) -> str:
@@ -40,6 +71,25 @@ def _client_ip(request: Request) -> str:
 def _rate_limit_check(key: str) -> None:
     import time
 
+    client = _get_redis()
+    if client is not None:
+        try:
+            # INCR + EXPIRE : compteur glissant par fenêtre fixe
+            redis_key = f"rl:{key}"
+            count = client.incr(redis_key)
+            if count == 1:
+                client.expire(redis_key, _WINDOW_SECONDS)
+            if int(count) > _MAX_ATTEMPTS:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Trop de tentatives. Réessayez dans quelques minutes.",
+                )
+            return
+        except HTTPException:
+            raise
+        except Exception:  # noqa: BLE001 — Redis tombé → repli mémoire
+            logger.warning("Rate-limit : Redis en erreur, repli mémoire")
+    # --- Repli mémoire (fenêtre glissante) ---
     now = time.monotonic()
     stamps = [t for t in _attempts.get(key, []) if now - t < _WINDOW_SECONDS]
     if len(stamps) >= _MAX_ATTEMPTS:
@@ -69,7 +119,9 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if body.company_code and user.company.code != body.company_code:
+    if body.company_code and (
+        user.company is None or user.company.code != body.company_code
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Entreprise invalide pour cet utilisateur",

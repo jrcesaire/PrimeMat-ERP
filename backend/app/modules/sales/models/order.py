@@ -40,6 +40,11 @@ class SalesOrder(Base, TenantMixin):
     quote_id: Mapped[int | None] = MappedColumn(ForeignKey("quotes.id"), nullable=True)
     fulfillment_mode: Mapped[str] = MappedColumn(String(20), default="stock")
 
+    # Contact commercial hérité du devis (pas de saisie sur la commande).
+    salesperson_id: Mapped[int | None] = MappedColumn(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
     status: Mapped[str] = MappedColumn(
         String(20), default=SalesOrderStatus.DRAFT.value, index=True
     )
@@ -57,6 +62,10 @@ class SalesOrder(Base, TenantMixin):
 
     notes: Mapped[str | None] = MappedColumn(String(2000))
 
+    # Archivage caisse : masque la vente de l'historique du Point de Vente
+    # sans toucher à la comptabilité (facture + paiement conservés).
+    archived: Mapped[bool] = MappedColumn(Boolean, default=False, nullable=False)
+
     lines: Mapped[list["SalesOrderLine"]] = relationship(
         "SalesOrderLine", back_populates="order",
         cascade="all, delete-orphan", lazy="selectin",
@@ -64,6 +73,9 @@ class SalesOrder(Base, TenantMixin):
 
     partner: Mapped["Partner"] = relationship("Partner")
     company: Mapped["Company"] = relationship("Company")
+    salesperson: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[salesperson_id], lazy="selectin"
+    )
 
     def __repr__(self) -> str:
         return f"<SalesOrder {self.reference} [{self.status}]>"
@@ -78,6 +90,14 @@ class SalesOrderLine(Base, TenantMixin):
     product_id: Mapped[int | None] = MappedColumn(
         ForeignKey("products.id"), nullable=True
     )
+    # Variante du produit (optionnelle) — ``variant_name`` est un instantané
+    # du libellé (réimpression fidèle des documents).
+    variant_id: Mapped[int | None] = MappedColumn(
+        ForeignKey("product_variants.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    variant_name: Mapped[str | None] = MappedColumn(String(300))
 
     description: Mapped[str | None] = MappedColumn(String(500))
     quantity_ordered: Mapped[float] = MappedColumn(Numeric(14, 4), default=1)
@@ -98,6 +118,10 @@ class SalesOrderLine(Base, TenantMixin):
     position: Mapped[int] = MappedColumn(Integer, default=0)
 
     order: Mapped["SalesOrder"] = relationship("SalesOrder", back_populates="lines")
+    product: Mapped["Product"] = relationship("Product", lazy="selectin")
+    variant: Mapped["ProductVariant | None"] = relationship(
+        "ProductVariant", lazy="selectin"
+    )
     cuts: Mapped[list["OrderLineCut"]] = relationship(
         "OrderLineCut", back_populates="line",
         cascade="all, delete-orphan", lazy="selectin",

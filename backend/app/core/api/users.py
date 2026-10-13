@@ -12,13 +12,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import SessionDep
 from app.core.dependencies.auth import get_current_active_user
 from app.core.dependencies.permissions import require_permission
 from app.core.models.role import Role
 from app.core.models.user import User, UserRole
-from app.core.models.user import User
 from app.core.schemas.common import PaginatedResponse
 from app.core.schemas.role import RoleRead
 from app.core.schemas.user import UserCreate, UserRead, UserUpdate
@@ -64,6 +64,38 @@ async def create_user(
             status_code=status.HTTP_409_CONFLICT, detail=str(exc)
         )
     return user
+
+
+@router.get("/salespersons", response_model=list[UserRead])
+async def list_salespersons(
+    session: SessionDep,
+    current_user: User = Depends(require_permission("quote", "view")),
+):
+    """Liste de choix du contact commercial (utilisateurs actifs aux privilèges commerciaux)."""
+    company_id = None if current_user.is_superuser else current_user.company_id
+    result = await session.execute(
+        select(User)
+        .where(User.is_active.is_(True))
+        # Eager : la lecture des codes de rôles ne doit pas déclencher de
+        # lazy-load async (MissingGreenlet).
+        .options(selectinload(User.user_roles).selectinload(UserRole.role))
+        .order_by(User.first_name, User.last_name)
+    )
+    users = list(result.scalars().unique().all())
+    if company_id is not None:
+        users = [u for u in users if u.company_id == company_id]
+    out: list[User] = []
+    for u in users:
+        if u.is_superuser:
+            out.append(u)
+            continue
+        codes = {
+            (getattr(getattr(ur, "role", None), "code", None) or "").strip().lower()
+            for ur in getattr(u, "user_roles", None) or []
+        }
+        if codes & {"admin", "manager", "administrateur", "vendeur", "commercial", "sales", "salesperson"}:
+            out.append(u)
+    return out
 
 
 @router.get("/{user_id}", response_model=UserRead)

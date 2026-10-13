@@ -46,6 +46,17 @@ async def lifespan(app: FastAPI):
 
         await run_bootstrap_if_needed()
 
+    # Synchronisation add-only des permissions système : le bootstrap ne
+    # tourne que sur une base vide, toute permission ajoutée après coup
+    # (ex. les actions « delete » de la cascade de suppression) serait
+    # absente des bases existantes. Idempotent, sans effet de bord.
+    try:
+        from app.core.services.seed_service import sync_system_permissions
+
+        await sync_system_permissions()
+    except Exception:  # pragma: no cover — défensif (DB indisponible)
+        logger.exception("Synchronisation des permissions système impossible")
+
     # Charge les modules activés
     registry = ModuleRegistry()
     await registry.load_modules()
@@ -74,11 +85,15 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     debug=settings.debug,
-    docs_url="/docs" if settings.docs_enabled else None,
-    redoc_url="/redoc" if settings.docs_enabled else None,
+    # Sécurité : la doc interactive est TOUJOURS désactivée en production,
+    # même si DOCS_ENABLED=true (protection défensive S-2).
+    docs_url="/docs" if (settings.docs_enabled and settings.environment != "production") else None,
+    redoc_url="/redoc" if (settings.docs_enabled and settings.environment != "production") else None,
     # Le schéma OpenAPI n'est pas exposé si la doc est désactivée
     openapi_url=(
-        f"{settings.api_v1_prefix}/openapi.json" if settings.docs_enabled else None
+        f"{settings.api_v1_prefix}/openapi.json"
+        if (settings.docs_enabled and settings.environment != "production")
+        else None
     ),
     lifespan=lifespan,
 )
@@ -90,6 +105,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Le frontend lit le nom du rapport (« Devis - DEV-000019.pdf ») pour
+    # nommer le fichier enregistré : en-tête exposé au JS en cross-origin.
+    expose_headers=["Content-Disposition"],
 )
 
 # Routes

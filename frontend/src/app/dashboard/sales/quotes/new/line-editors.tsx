@@ -18,6 +18,10 @@ export interface CutState {
 export interface LineState {
   key: number;
   product_id: number | null;
+  /** Variante du produit (aucune = produit de base). */
+  variant_id: number | null;
+  /** Libellé de variante (instantané) — affichage en édition. */
+  variant_name: string | null;
   description: string;
   sell_by_length: boolean;
   standard_piece: boolean;

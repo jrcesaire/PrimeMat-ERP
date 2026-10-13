@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     docs_enabled: bool = True
     # Origines autorisées pour le CORS (frontend, site web...). `*` interdit
     # avec credentials — toujours lister explicitement en production.
+    # Variable d'env : CORS_ORIGINS=http://localhost:3000,https://erp.exemple.ci
     cors_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
     )
@@ -92,6 +93,12 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     s3_use_ssl: bool = True
 
+    # Repli sur disque quand aucun credential S3 n'est configuré.
+    # Chemin relatif → résolu depuis la racine du backend ; chemin absolu →
+    # utilisé tel quel (utile pour un volume monté hors du dépôt, ex. Docker).
+    # Variable d'env : LOCAL_STORAGE_PATH=resources/uploads
+    local_storage_path: str = "resources/uploads"
+
     # ------------------------------------------------------------------ #
     # Sentry
     # ------------------------------------------------------------------ #
@@ -138,6 +145,47 @@ class Settings(BaseSettings):
 
                 return json.loads(v)
             return [item.strip() for item in v.split(",") if item.strip()]
+        return v
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, v: object) -> object:
+        """Accepte une liste JSON ou une chaîne séparée par des virgules."""
+        if isinstance(v, str):
+            v = v.strip()
+            if v.startswith("[") and v.endswith("]"):
+                import json
+
+                return json.loads(v)
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
+
+    @field_validator("cors_origins")
+    @classmethod
+    def _check_cors_origins(cls, v: list[str]) -> list[str]:
+        """
+        Sécurité (S-4) : refuse `*` en production.
+
+        Une liste VIDE est autorisée (et même recommandée derrière nginx) :
+        aucun en-tête CORS n'est alors émis, donc seul le même origine peut
+        appeler l'API — c'est la configuration la plus restrictive.
+        Le wildcard est interdit avec allow_credentials=True de toute façon ;
+        on l'interdit explicitement pour éviter une config silencieusement
+        cassée (navigateurs) ou trop permissive.
+        """
+        if settings_env == "production":
+            if "*" in v:
+                raise RuntimeError(
+                    "CORS_ORIGINS='*' interdit en production (allow_credentials). "
+                    "Listez explicitement les origines autorisées, ou laissez "
+                    "vide pour un déploiement même-origine derrière nginx."
+                )
+            for origin in v:
+                if not origin.startswith(("http://", "https://")):
+                    raise RuntimeError(
+                        f"Origine CORS invalide : {origin!r} — attendu une URL "
+                        "complète (ex. https://erp.exemple.ci)."
+                    )
         return v
 
     @field_validator("secret_key")

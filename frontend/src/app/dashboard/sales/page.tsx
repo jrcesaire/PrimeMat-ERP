@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Printer,
   Pencil,
+  ReceiptText,
   Trash2,
   Eye,
   Undo2,
@@ -21,9 +22,19 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Upload,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ImportDialog } from "@/components/shared/import-dialog";
+import { ExportButton } from "@/components/shared/export-button";
+import {
+  useConfirm,
+  confirmBackToDraftOptions,
+  confirmCloseOptions,
+  confirmDeleteOptions,
+  confirmPostOptions,
+} from "@/components/ui/confirm";
 import {
   useQuotes,
   useOrders,
@@ -35,6 +46,12 @@ import {
   SALES_KEYS,
 } from "@/hooks/useSales";
 import { usePartners } from "@/hooks/useCRM";
+import {
+  useInvoices,
+  useCreateInvoiceFromOrder,
+  useCreateInvoiceFromQuote,
+  type Invoice,
+} from "@/hooks/useOperations";
 import type { Partner, Quote, SalesOrder } from "@/lib/types";
 import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
 import { printQuote, printOrder } from "@/lib/api/pdf";
@@ -75,15 +92,66 @@ function filterDocs<T extends ListDoc>(
 export default function SalesPage() {
   const router = useRouter();
   const [tab, setTab] = useState<"quotes" | "orders">("quotes");
+  const [importOpen, setImportOpen] = useState(false);
   const { data: quotes = [], isLoading: loadingQuotes } = useQuotes();
   const { data: orders = [], isLoading: loadingOrders } = useOrders();
+  const { data: invoices = [] } = useInvoices();
   const { data: partners = [] } = usePartners();
   const confirmQuote = useConfirmQuote();
   const deleteQuote = useDeleteQuote();
   const quoteBackToDraft = useQuoteBackToDraft();
   const deleteOrder = useDeleteOrder();
   const orderBackToDraft = useOrderBackToDraft();
+  const createInvoice = useCreateInvoiceFromOrder();
+  const createInvoiceFromQuote = useCreateInvoiceFromQuote();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
+
+  // --- Facturation : reste à facturer par commande ---
+  const [invoiceFor, setInvoiceFor] = useState<SalesOrder | null>(null);
+  const invoicedByOrder = useMemo(() => {
+    const m = new Map<number, number>();
+    invoices.forEach((i) => {
+      if (i.order_id && !["cancelled", "credit"].includes(i.status)) {
+        m.set(i.order_id, (m.get(i.order_id) ?? 0) + i.amount_total);
+      }
+    });
+    return m;
+  }, [invoices]);
+  const remainingFor = (orderId: number, total: number) =>
+    Math.max(total - (invoicedByOrder.get(orderId) ?? 0), 0);
+
+  const handleCreateInvoice = async (p: {
+    mode: "full" | "down_payment_percent" | "down_payment_fixed";
+    value: number | null;
+    dueDays: number;
+  }) => {
+    if (!invoiceFor) return;
+    const inv = await createInvoice.mutateAsync({
+      orderId: invoiceFor.id,
+      dueDays: p.dueDays,
+      mode: p.mode,
+      value: p.value,
+      post: false,
+    });
+    setInvoiceFor(null);
+    router.push(`/dashboard/invoicing/${inv.id}`);
+  };
+
+  /** Parcours de vente : « Créer facture » directement depuis un devis. */
+  const handleQuoteInvoice = async (quoteId: number) => {
+    try {
+      const res = await createInvoiceFromQuote.mutateAsync({ quoteId });
+      queryClient.invalidateQueries({ queryKey: [SALES_KEYS.quotes] });
+      queryClient.invalidateQueries({ queryKey: [SALES_KEYS.orders] });
+      router.push(`/dashboard/invoicing/${res.invoice_id}`);
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data
+          ?.detail;
+      alert(detail || "Erreur lors de la création de la facture");
+    }
+  };
 
   // --- Recherche, filtres, sélection et pagination (façon Odoo) ---
   const [search, setSearch] = useState("");
@@ -141,7 +209,10 @@ export default function SalesPage() {
   };
 
   const handleDelete = async (quoteId: number, reference: string) => {
-    if (!window.confirm(`Supprimer définitivement le devis ${reference} ?`)) return;
+    const { confirmed } = await confirm(
+      confirmDeleteOptions(`le devis ${reference}`),
+    );
+    if (!confirmed) return;
     try {
       await deleteQuote.mutateAsync(quoteId);
     } catch (err: unknown) {
@@ -152,7 +223,10 @@ export default function SalesPage() {
   };
 
   const handleDeleteOrder = async (orderId: number, reference: string) => {
-    if (!window.confirm(`Supprimer définitivement la commande ${reference} ?`)) return;
+    const { confirmed } = await confirm(
+      confirmDeleteOptions(`la commande ${reference}`),
+    );
+    if (!confirmed) return;
     try {
       await deleteOrder.mutateAsync(orderId);
     } catch (err: unknown) {
@@ -163,12 +237,12 @@ export default function SalesPage() {
   };
 
   const handleBackToDraft = async (orderId: number, reference: string) => {
-    if (
-      !window.confirm(
-        `Remettre la commande ${reference} au brouillon ? Les réservations de stock seront libérées.`,
-      )
-    )
-      return;
+    const { confirmed } = await confirm({
+      ...confirmBackToDraftOptions(`la commande ${reference}`),
+      description:
+        "Les réservations de stock seront libérées. Vous pourrez modifier la commande puis la confirmer à nouveau.",
+    });
+    if (!confirmed) return;
     try {
       await orderBackToDraft.mutateAsync(orderId);
     } catch (err: unknown) {
@@ -179,7 +253,10 @@ export default function SalesPage() {
   };
 
   const handleQuoteBackToDraft = async (quoteId: number, reference: string) => {
-    if (!window.confirm(`Remettre le devis ${reference} au brouillon ?`)) return;
+    const { confirmed } = await confirm(
+      confirmBackToDraftOptions(`le devis ${reference}`),
+    );
+    if (!confirmed) return;
     try {
       await quoteBackToDraft.mutateAsync(quoteId);
     } catch (err: unknown) {
@@ -193,12 +270,12 @@ export default function SalesPage() {
   const handleBulkConfirmQuotes = async () => {
     const targets = quotes.filter((q) => selected.has(q.id) && q.status === "draft");
     if (targets.length === 0) return;
-    if (
-      !window.confirm(
-        `Confirmer ${targets.length} devis ? Une commande sera créée pour chacun.`
-      )
-    )
-      return;
+    const { confirmed } = await confirm({
+      ...confirmPostOptions(`${targets.length} devis`),
+      description:
+        "Une commande client sera créée pour chaque devis. Vous pourrez la modifier puis la facturer.",
+    });
+    if (!confirmed) return;
     let ok = 0;
     let fail = 0;
     for (const t of targets) {
@@ -220,7 +297,10 @@ export default function SalesPage() {
       alert("Seuls les devis brouillons peuvent être supprimés.");
       return;
     }
-    if (!window.confirm(`Supprimer définitivement ${targets.length} devis ?`)) return;
+    const { confirmed: confirmedQuotes } = await confirm(
+      confirmDeleteOptions(`${targets.length} devis brouillons`),
+    );
+    if (!confirmedQuotes) return;
     let fail = 0;
     for (const t of targets) {
       try {
@@ -239,10 +319,10 @@ export default function SalesPage() {
       alert("Seules les commandes brouillons peuvent être supprimées.");
       return;
     }
-    if (
-      !window.confirm(`Supprimer définitivement ${targets.length} commande(s) brouillon(s) ?`)
-    )
-      return;
+    const { confirmed: confirmedOrders } = await confirm(
+      confirmDeleteOptions(`${targets.length} commandes brouillons`),
+    );
+    if (!confirmedOrders) return;
     let fail = 0;
     for (const t of targets) {
       try {
@@ -262,13 +342,39 @@ export default function SalesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Ventes</h1>
           <p className="text-sm text-gray-600">Devis et commandes clients</p>
         </div>
-        <Link href="/dashboard/sales/quotes/new">
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Nouveau devis
+        <div className="flex items-center gap-2">
+          <ExportButton
+            key={tab}
+            endpoint={
+              tab === "quotes" ? "/sales/quotes/export" : "/sales/orders/export"
+            }
+            fallbackName={tab === "quotes" ? "devis" : "commandes"}
+          />
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => setImportOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Importer commandes
           </Button>
-        </Link>
+          <Link href="/dashboard/sales/quotes/new">
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Nouveau devis
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        endpoint="/sales/orders/import"
+        title="Importer des commandes"
+        columnsHint="client, produit, quantite, prix_unitaire, remise (%), date (JJ/MM/AAAA), reference_commande (facultative : regroupe les lignes d'une même commande), description, devise"
+        invalidateKeys={[SALES_KEYS.orders]}
+      />
 
       {/* Onglets */}
       <div className="flex gap-4 border-b border-gray-200">
@@ -512,6 +618,25 @@ export default function SalesPage() {
                                 onClick={() => handleConfirm(q.id)}
                               >
                                 <CheckCircle2 className="h-4 w-4" />
+                              </IconAction>
+                              <IconAction
+                                title={
+                                  q.status === "confirmed"
+                                    ? `Créer / voir la facture du devis ${q.reference}`
+                                    : "La facturation nécessite un devis confirmé"
+                                }
+                                disabled={
+                                  q.status !== "confirmed" ||
+                                  createInvoiceFromQuote.isPending
+                                }
+                                className={
+                                  q.status === "confirmed"
+                                    ? "text-emerald-600 hover:bg-emerald-50"
+                                    : "text-gray-300"
+                                }
+                                onClick={() => handleQuoteInvoice(q.id)}
+                              >
+                                <ReceiptText className="h-4 w-4" />
                               </IconAction>
                               <IconAction
                                 title={
@@ -793,6 +918,26 @@ export default function SalesPage() {
                               </IconAction>
                               <IconAction
                                 title={
+                                  isConfirmed
+                                    ? remainingFor(o.id, o.amount_total) > 0
+                                      ? `Créer une facture pour ${o.reference}`
+                                      : `${o.reference} déjà entièrement facturée`
+                                    : "La facturation nécessite une commande confirmée"
+                                }
+                                disabled={
+                                  !isConfirmed || remainingFor(o.id, o.amount_total) <= 0
+                                }
+                                className={
+                                  isConfirmed && remainingFor(o.id, o.amount_total) > 0
+                                    ? "text-emerald-600 hover:bg-emerald-50"
+                                    : "text-gray-300"
+                                }
+                                onClick={() => setInvoiceFor(o)}
+                              >
+                                <ReceiptText className="h-4 w-4" />
+                              </IconAction>
+                              <IconAction
+                                title={
                                   o.fulfillment_mode === "pos"
                                     ? `Imprimer le ticket ${o.reference}`
                                     : `Imprimer la facture de ${o.reference}`
@@ -825,6 +970,183 @@ export default function SalesPage() {
           )}
         </Card>
       )}
+
+      {/* Dialogue « Créer une facture » (façon Odoo) */}
+      {invoiceFor && (
+        <CreateInvoiceDialog
+          order={invoiceFor}
+          remaining={remainingFor(invoiceFor.id, invoiceFor.amount_total)}
+          existing={invoices.filter((i) => i.order_id === invoiceFor.id)}
+          onClose={() => setInvoiceFor(null)}
+          onCreate={handleCreateInvoice}
+          pending={createInvoice.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Dialogue « Créer une facture » façon Odoo : totale, acompte % ou acompte fixe. */
+function CreateInvoiceDialog({
+  order,
+  remaining,
+  existing,
+  onClose,
+  onCreate,
+  pending,
+}: {
+  order: SalesOrder;
+  remaining: number;
+  existing: Invoice[];
+  onClose: () => void;
+  onCreate: (p: {
+    mode: "full" | "down_payment_percent" | "down_payment_fixed";
+    value: number | null;
+    dueDays: number;
+  }) => Promise<unknown>;
+  pending: boolean;
+}) {
+  const [mode, setMode] = useState<
+    "full" | "down_payment_percent" | "down_payment_fixed"
+  >("full");
+  const [value, setValue] = useState("30");
+  const [dueDays, setDueDays] = useState("0");
+  const [error, setError] = useState<string | null>(null);
+
+  const valueNum = parseFloat(value.replace(",", ".")) || 0;
+  const preview =
+    mode === "full"
+      ? remaining
+      : mode === "down_payment_percent"
+        ? Math.min(remaining, (order.amount_total * valueNum) / 100)
+        : Math.min(remaining, valueNum);
+
+  const submit = async () => {
+    setError(null);
+    const v = mode === "full" ? null : valueNum;
+    if (mode !== "full" && (!v || v <= 0)) {
+      return setError("Saisissez une valeur positive.");
+    }
+    if (mode === "down_payment_percent" && v !== null && v > 100) {
+      return setError("Le pourcentage doit être compris entre 0 et 100.");
+    }
+    try {
+      await onCreate({ mode, value: v, dueDays: parseInt(dueDays, 10) || 0 });
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(
+        typeof detail === "string" ? detail : "Erreur lors de la création de la facture",
+      );
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-semibold text-gray-900">
+          Créer facture — {order.reference}
+        </h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Total commande : {formatCurrency(order.amount_total)} · Reste à facturer :{" "}
+          <span className="font-semibold text-gray-800">{formatCurrency(remaining)}</span>
+        </p>
+
+        <div className="mt-4 space-y-2">
+          {(
+            [
+              ["full", "Facture normale", "Facturation du solde restant"],
+              ["down_payment_percent", "Acompte (pourcentage)", "% du total commande"],
+              ["down_payment_fixed", "Acompte (montant fixe)", "Montant en devises"],
+            ] as const
+          ).map(([m, label, hint]) => (
+            <label
+              key={m}
+              className={`flex cursor-pointer items-center gap-3 rounded-md border p-3 ${
+                mode === m ? "border-primary bg-primary/5" : "border-gray-200"
+              }`}
+            >
+              <input
+                type="radio"
+                name="invoice-mode"
+                checked={mode === m}
+                onChange={() => setMode(m)}
+                className="h-4 w-4 accent-primary"
+              />
+              <span>
+                <span className="block text-sm font-medium text-gray-900">{label}</span>
+                <span className="block text-xs text-gray-500">{hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+
+        {mode !== "full" && (
+          <div className="mt-3">
+            <label className="text-xs font-medium text-gray-600">
+              {mode === "down_payment_percent" ? "Pourcentage (%)" : "Montant"}
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+            {valueNum > 0 && (
+              <p className="mt-1 text-xs text-gray-500">
+                Montant de la facture : <strong>{formatCurrency(preview)}</strong>
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="mt-3">
+          <label className="text-xs font-medium text-gray-600">
+            Délai de paiement (jours)
+          </label>
+          <input
+            type="number"
+            min="0"
+            value={dueDays}
+            onChange={(e) => setDueDays(e.target.value)}
+            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          />
+        </div>
+
+        {existing.length > 0 && (
+          <div className="mt-3 rounded-md bg-gray-50 p-3 text-xs text-gray-600">
+            <p className="font-medium text-gray-700">Déjà facturé :</p>
+            <ul className="mt-1 space-y-0.5">
+              {existing.map((i) => (
+                <li key={i.id}>
+                  {i.reference} — {formatCurrency(i.amount_total)} ({i.status})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>
+        )}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button onClick={submit} disabled={pending}>
+            {pending ? "Création…" : "Créer brouillon"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

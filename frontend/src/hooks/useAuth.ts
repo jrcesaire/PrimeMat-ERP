@@ -26,9 +26,24 @@ export function useLogin() {
       const response = await apiClient.post("/core/auth/login", data);
       return response.data;
     },
-    onSuccess: (token) => {
+    onSuccess: async (token) => {
       setTokens(token);
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.user] });
+      // Premier lancement : si l'entreprise n'est pas encore configurée,
+      // on redirige vers l'étape 2 du wizard (profil entreprise).
+      try {
+        const res = await apiClient.get("/core/setup/status");
+        const status = res.data as {
+          needs_company?: boolean;
+          company_code?: string | null;
+        };
+        if (status?.needs_company || !status?.company_code) {
+          router.push("/setup/company");
+          return;
+        }
+      } catch {
+        // Statut indisponible — comportement normal
+      }
       router.push("/");
     },
     onError: (error) => {
@@ -80,6 +95,19 @@ export function useCurrentUser() {
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+}
+
+/**
+ * Vérifie une permission de l'utilisateur courant (code « ressource:action »).
+ *
+ * Masque les boutons sensibles (suppression paiement/facture/BL/devis) —
+ * la sécurité réelle reste serveur (require_permission → 403).
+ */
+export function usePermission() {
+  const { data: currentUser } = useCurrentUser();
+  const permissions = currentUser?.permissions ?? [];
+  const isSuper = currentUser?.is_superuser === true;
+  return (code: string): boolean => isSuper || permissions.includes(code);
 }
 
 /**

@@ -5,23 +5,53 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Phone, Mail } from "lucide-react";
+import { Users, Phone, Mail, Upload } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { usePartners } from "@/hooks/useCRM";
+import { Button } from "@/components/ui/button";
+import { ImportDialog } from "@/components/shared/import-dialog";
+import { ExportButton } from "@/components/shared/export-button";
+import { CRM_KEYS, usePartners } from "@/hooks/useCRM";
 
 export default function ContactsPage() {
   const router = useRouter();
-  const [role, setRole] = useState<"all" | "customer" | "supplier">("all");
+  const [role, setRole] = useState<"all" | "client" | "supplier">("all");
+  const [importOpen, setImportOpen] = useState(false);
   const { data: partners = [], isLoading } = usePartners(
     role === "all" ? undefined : role,
   );
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
-        <p className="text-sm text-gray-600">Clients et fournisseurs</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
+          <p className="text-sm text-gray-600">Clients et fournisseurs</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ExportButton
+            endpoint="/crm/partners/export"
+            fallbackName="contacts"
+            params={role === "all" ? undefined : { role }}
+          />
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => setImportOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Importer
+          </Button>
+        </div>
       </div>
+
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        endpoint="/crm/partners/import"
+        title="Importer des contacts"
+        columnsHint="nom, code, role (client/fournisseur), telephone, email, ville, adresse, type_entite (particulier/entreprise), ncc, limite_credit, delai_paiement"
+        invalidateKeys={[CRM_KEYS.partners]}
+      />
 
       {/* Filtres */}
       <div className="flex gap-4 border-b border-gray-200">

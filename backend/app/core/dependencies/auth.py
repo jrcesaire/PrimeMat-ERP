@@ -13,11 +13,11 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import Depends, HTTPException, Request, status
-from jose import JWTError
+from app.core.security import JWTError
 
 from app.core.config import settings
 from app.core.database import AsyncSession, get_session
-from app.core.models.user import User
+from app.core.models.user import User, UserRole
 from app.core.schemas.auth import TokenPayload
 
 
@@ -60,8 +60,14 @@ async def get_current_user(
         )
 
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
     result = await session.execute(
-        select(User).where(User.id == int(user_id))
+        select(User)
+        .where(User.id == int(user_id))
+        # Eager : les rôles doivent être chargés pour éviter les lazy-loads
+        # async (MissingGreenlet) lors de l'accès à user_roles[].role.
+        .options(selectinload(User.user_roles).selectinload(UserRole.role))
     )
     user: User | None = result.scalar_one_or_none()
 

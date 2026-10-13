@@ -12,12 +12,27 @@ import { Input } from "@/components/ui/input";
 import {
   usePayments,
   useCreatePayment,
+  useBackToDraftPayment,
+  useConfirmPayment,
+  useDeletePayment,
   useInvoices,
   type Payment,
 } from "@/hooks/useOperations";
 import { useClients } from "@/hooks/useCRM";
+import { usePermission } from "@/hooks/useAuth";
+import {
+  useConfirm,
+  confirmBackToDraftOptions,
+  confirmDeleteOptions,
+} from "@/components/ui/confirm";
 import { printReceipt } from "@/lib/api/pdf";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
+
+function apiDetail(err: unknown, fallback: string): string {
+  const detail = (err as { response?: { data?: { detail?: string } } })
+    ?.response?.data?.detail;
+  return typeof detail === "string" ? detail : fallback;
+}
 
 const METHOD_LABELS: Record<string, string> = {
   cash: "Espèces",
@@ -32,11 +47,57 @@ export default function PaymentsPage() {
   const { data: invoices = [] } = useInvoices();
   const { data: clients = [] } = useClients();
   const createPayment = useCreatePayment();
+  const backToDraft = useBackToDraftPayment();
+  const confirmPayment = useConfirmPayment();
+  const deletePayment = useDeletePayment();
+  const can = usePermission();
+  const canEditPayment = can("payment:edit");
+  const canDeletePayment = can("payment:delete");
+  const confirm = useConfirm();
 
   const [invoiceId, setInvoiceId] = useState<number | null>(null);
   const [method, setMethod] = useState("cash");
   const [amount, setAmount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Cascade de suppression : remise au brouillon → suppression
+  const handleBackToDraft = async (p: Payment) => {
+    const { confirmed } = await confirm({
+      ...confirmBackToDraftOptions(p.reference),
+      description:
+        "Le montant sera retiré de la facture liée et son écriture comptable supprimée. Vous pourrez confirmer à nouveau.",
+    });
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await backToDraft.mutateAsync(p.id);
+    } catch (err: unknown) {
+      alert(apiDetail(err, "Erreur lors de la remise au brouillon"));
+    }
+  };
+
+  const handleConfirmPayment = async (p: Payment) => {
+    try {
+      await confirmPayment.mutateAsync(p.id);
+    } catch (err: unknown) {
+      alert(apiDetail(err, "Erreur lors de la confirmation"));
+    }
+  };
+
+  const handleDeletePayment = async (p: Payment) => {
+    const { confirmed } = await confirm(
+      confirmDeleteOptions(p.reference),
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deletePayment.mutateAsync(p.id);
+    } catch (err: unknown) {
+      alert(apiDetail(err, "Erreur lors de la suppression"));
+    }
+  };
 
   // Factures non soldées
   const unpaid = invoices.filter((i) => i.amount_total - i.paid_amount > 1);
@@ -133,6 +194,7 @@ export default function PaymentsPage() {
                 <th className="px-4 py-3">Référence</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Client</th>
+                <th className="px-4 py-3">Statut</th>
                 <th className="px-4 py-3">Mode</th>
                 <th className="px-4 py-3 text-right">Montant</th>
                 <th className="px-4 py-3"></th>
@@ -150,22 +212,70 @@ export default function PaymentsPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-600">{formatDate(p.payment_date)}</td>
                   <td className="px-4 py-3">{partnerName(p)}</td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={p.status} />
+                  </td>
                   <td className="px-4 py-3">{METHOD_LABELS[p.method] ?? p.method}</td>
                   <td className="px-4 py-3 text-right font-semibold text-green-700">
                     {formatCurrency(p.amount)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      title={`Imprimer le reçu ${p.reference}`}
-                      aria-label={`Imprimer le reçu ${p.reference}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        printReceipt(p.id).catch(() => alert("Impossible de générer le reçu."));
-                      }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100"
-                    >
-                      🖨
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      {p.status !== "draft" && canEditPayment && (
+                        <button
+                          title={`Remettre ${p.reference} au brouillon`}
+                          aria-label={`Remettre ${p.reference} au brouillon`}
+                          disabled={backToDraft.isPending}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBackToDraft(p);
+                          }}
+                          className="inline-flex h-8 items-center rounded-md px-2 text-xs text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                        >
+                          Brouillon
+                        </button>
+                      )}
+                      {p.status === "draft" && canEditPayment && (
+                        <button
+                          title={`Confirmer ${p.reference}`}
+                          aria-label={`Confirmer ${p.reference}`}
+                          disabled={confirmPayment.isPending}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleConfirmPayment(p);
+                          }}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-green-600 hover:bg-green-50 disabled:opacity-50"
+                        >
+                          ✓
+                        </button>
+                      )}
+                      {p.status === "draft" && canDeletePayment && (
+                        <button
+                          title={`Supprimer ${p.reference}`}
+                          aria-label={`Supprimer ${p.reference}`}
+                          disabled={deletePayment.isPending}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePayment(p);
+                          }}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          🗑
+                        </button>
+                      )}
+                      <button
+                        title={`Imprimer le reçu ${p.reference}`}
+                        aria-label={`Imprimer le reçu ${p.reference}`}
+                        disabled={p.status === "draft"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          printReceipt(p.id).catch(() => alert("Impossible de générer le reçu."));
+                        }}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                      >
+                        🖨
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

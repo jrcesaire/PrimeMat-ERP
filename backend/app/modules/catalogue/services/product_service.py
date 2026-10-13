@@ -13,11 +13,21 @@ from app.modules.catalogue.models.product import (
     ProductUnit,
     UnitConversion,
 )
+from app.modules.catalogue.models.variant import (
+    ProductProperty,
+    ProductPropertyValue,
+    ProductVariant,
+    ProductVariantProperty,
+)
 from app.modules.catalogue.models.bac import BACSheet, BACCut
 from app.modules.catalogue.schemas import (
     BACSheetCreate,
     ProductCreate,
     ProductUpdate,
+    PropertyCreate,
+    PropertyValueCreate,
+    VariantGenerate,
+    VariantUpdate,
 )
 from app.shared.enums import SaleMode
 
@@ -166,17 +176,44 @@ class CatalogueService:
         category_id = payload.get("category_id")
         payload = await self._derive_sale_attributes(category_id, payload)
 
-        # Référence auto-générée si non fournie
-        if not payload.get("reference"):
-            from uuid import uuid4
-
-            payload["reference"] = f"PRD-{uuid4().hex[:8].upper()}"
+        # Type de produit : stockable (quincaillerie) / on_demand (production)
+        # / hybrid (les deux) / service
+        stype = str(payload.get("storage_type") or "stockable").strip().lower()
+        if stype not in ("stockable", "on_demand", "hybrid", "service"):
+            raise ValueError(f"Type de produit invalide : {stype}")
+        payload["storage_type"] = stype
 
         # Hérite du tenant de sa catégorie
+        company_id = None
         if category_id:
             cat = await self.session.get(ProductCategory, category_id)
             if cat is not None:
                 payload["company_id"] = cat.company_id
+                company_id = cat.company_id
+        if company_id is None:
+            from app.core.tenant import get_current_company
+
+            company_id = get_current_company() or 1
+
+        # Code-barres unique (scan / QR)
+        barcode = payload.get("barcode")
+        if barcode:
+            existing = (await self.session.execute(
+                select(Product).where(Product.barcode == barcode)
+            )).scalars().first()
+            if existing is not None:
+                raise ValueError(
+                    f"Le code-barres « {barcode} » est déjà attribué "
+                    f"au produit {existing.reference} - {existing.name}"
+                )
+
+        # Référence système séquentielle (nomenclature « product »)
+        if not payload.get("reference"):
+            from app.core.services.sequence_service import SequenceService
+
+            payload["reference"] = await SequenceService(self.session).next_value(
+                "product", prefix="PRD", company_id=company_id
+            )
 
         product = Product(**payload)
         self.session.add(product)
@@ -201,6 +238,21 @@ class CatalogueService:
         if product is None:
             return None
         payload = data.model_dump(exclude_unset=True)
+
+        # Code-barres unique (hors produit courant)
+        barcode = payload.get("barcode")
+        if barcode:
+            existing = (await self.session.execute(
+                select(Product).where(
+                    Product.barcode == barcode,
+                    Product.id != product_id,
+                )
+            )).scalars().first()
+            if existing is not None:
+                raise ValueError(
+                    f"Le code-barres « {barcode} » est déjà attribué "
+                    f"au produit {existing.reference} - {existing.name}"
+                )
 
         # Détermine la catégorie effective (nouvelle ou existante)
         category_id = payload.get("category_id", product.category_id)
@@ -266,5 +318,201 @@ class CatalogueService:
         if cut is None:
             return False
         await self.session.delete(cut)
+        await self.session.commit()
+        return True
+
+    # ------------------------------------------------------------------ #
+    # Variantes de produits — propriétés, valeurs, génération
+    # ------------------------------------------------------------------ #
+    async def list_properties(self) -> list[ProductProperty]:
+        """Propriétés de l'entreprise (avec leurs valeurs)."""
+        result = await self.session.execute(
+            select(ProductProperty).order_by(ProductProperty.position, ProductProperty.id)
+        )
+        return list(result.scalars().all())
+
+    async def create_property(
+        self, data: PropertyCreate, company_id: int | None = None
+    ) -> ProductProperty:
+        """Crée une propriété (nom unique par entreprise) avec valeurs initiales."""
+        name = (data.name or "").strip()
+        if not name:
+            raise ValueError("Le nom de la propriété est obligatoire")
+        existing = (await self.session.execute(
+            select(ProductProperty).where(ProductProperty.name == name)
+        )).scalars().first()
+        if existing is not None:
+            raise ValueError(f"La propriété « {name} » existe déjà")
+        prop = ProductProperty(name=name, company_id=company_id)
+        pos = 0
+        for raw in data.values:
+            value = (raw or "").strip()
+            if value:
+                prop.values.append(ProductPropertyValue(value=value, position=pos, company_id=company_id))
+                pos += 1
+        self.session.add(prop)
+        await self.session.commit()
+        await self.session.refresh(prop)
+        return prop
+
+    async def delete_property(self, property_id: int) -> bool:
+        """Supprime une propriété (et détache les variantes qui l'utilisent)."""
+        prop = await self.session.get(ProductProperty, property_id)
+        if prop is None:
+            return False
+        links = (await self.session.execute(
+            select(ProductVariantProperty).where(
+                ProductVariantProperty.property_id == property_id
+            )
+        )).scalars().all()
+        for link in links:
+            await self.session.delete(link)
+        await self.session.delete(prop)
+        await self.session.commit()
+        return True
+
+    async def add_property_value(
+        self, property_id: int, data: PropertyValueCreate
+    ) -> ProductPropertyValue | None:
+        """Ajoute une valeur à une propriété (idempotent)."""
+        prop = await self.session.get(ProductProperty, property_id)
+        if prop is None:
+            return None
+        value = (data.value or "").strip()
+        if not value:
+            raise ValueError("La valeur est obligatoire")
+        for existing in prop.values:
+            if existing.value.lower() == value.lower():
+                return existing
+        link = ProductPropertyValue(
+            property_id=property_id, value=value,
+            position=len(prop.values), company_id=prop.company_id,
+        )
+        self.session.add(link)
+        await self.session.commit()
+        await self.session.refresh(link)
+        return link
+
+    async def delete_property_value(self, value_id: int) -> bool:
+        """Supprime une valeur (et détache les variantes qui l'utilisent)."""
+        val = await self.session.get(ProductPropertyValue, value_id)
+        if val is None:
+            return False
+        links = (await self.session.execute(
+            select(ProductVariantProperty).where(
+                ProductVariantProperty.value_id == value_id
+            )
+        )).scalars().all()
+        for link in links:
+            await self.session.delete(link)
+        await self.session.delete(val)
+        await self.session.commit()
+        return True
+
+    async def list_variants(self, product_id: int) -> list[ProductVariant]:
+        """Variantes d'un produit (défaut en premier)."""
+        result = await self.session.execute(
+            select(ProductVariant)
+            .where(ProductVariant.product_id == product_id)
+            .order_by(ProductVariant.is_default.desc(), ProductVariant.id)
+        )
+        return list(result.scalars().all())
+
+    async def generate_variants(
+        self, product_id: int, data: VariantGenerate
+    ) -> list[ProductVariant]:
+        """Génère le produit cartésien des valeurs choisies (idempotent).
+
+        Ex. Couleur {Rouge, Vert} x Finition {Mat} => 2 variantes.
+        Les combinaisons déjà existantes (même suffixe) sont ignorées.
+        """
+        product = await self.session.get(Product, product_id)
+        if product is None:
+            raise ValueError("Produit introuvable")
+        if not data.values:
+            raise ValueError("Aucune valeur sélectionnée")
+
+        # Propriétés dans l'ordre stable (position, id)
+        prop_ids = sorted(data.values.keys())
+        props = (await self.session.execute(
+            select(ProductProperty).where(ProductProperty.id.in_(prop_ids))
+        )).scalars().all()
+        props.sort(key=lambda p: (p.position, p.id))
+        prop_by_id = {p.id: p for p in props}
+
+        existing = await self.list_variants(product_id)
+        existing_suffixes = {v.name_suffix for v in existing}
+
+        combos: list[list[ProductPropertyValue]] = [[]]
+        for pid in [p.id for p in props]:
+            prop = prop_by_id[pid]
+            chosen_ids = data.values.get(pid) or []
+            chosen = [v for v in prop.values if v.id in chosen_ids]
+            if not chosen:
+                raise ValueError(f"Aucune valeur valide pour « {prop.name} »")
+            combos = [c + [v] for c in combos for v in chosen]
+
+        created: list[ProductVariant] = []
+        counter = len(existing)
+        for combo in combos:
+            suffix = " / ".join(v.value for v in combo)
+            if suffix in existing_suffixes:
+                continue
+            counter += 1
+            variant = ProductVariant(
+                product_id=product_id,
+                company_id=product.company_id,
+                name_suffix=suffix,
+                reference=f"{product.reference}-{counter}" if product.reference else None,
+                selling_price=float(product.selling_price) if data.copy_prices and product.selling_price else None,
+                purchase_price=float(product.purchase_price) if data.copy_prices and product.purchase_price else None,
+                price_per_meter=float(product.price_per_meter) if data.copy_prices and product.price_per_meter else None,
+            )
+            for v in combo:
+                variant.properties.append(
+                    ProductVariantProperty(
+                        property_id=v.property_id, value_id=v.id,
+                        company_id=product.company_id,
+                    )
+                )
+            self.session.add(variant)
+            created.append(variant)
+        await self.session.commit()
+
+        # Première variante par défaut si aucune ne l'est
+        variants = await self.list_variants(product_id)
+        if variants and not any(v.is_default for v in variants):
+            variants[0].is_default = True
+            await self.session.commit()
+        return created
+
+    async def update_variant(
+        self, variant_id: int, data: VariantUpdate
+    ) -> ProductVariant | None:
+        """Met à jour une variante (défaut exclusif)."""
+        variant = await self.session.get(ProductVariant, variant_id)
+        if variant is None:
+            return None
+        payload = data.model_dump(exclude_unset=True)
+        if payload.get("is_default"):
+            others = (await self.session.execute(
+                select(ProductVariant).where(
+                    ProductVariant.product_id == variant.product_id,
+                    ProductVariant.id != variant_id,
+                )
+            )).scalars().all()
+            for other in others:
+                other.is_default = False
+        for field, value in payload.items():
+            setattr(variant, field, value)
+        await self.session.commit()
+        await self.session.refresh(variant)
+        return variant
+
+    async def delete_variant(self, variant_id: int) -> bool:
+        variant = await self.session.get(ProductVariant, variant_id)
+        if variant is None:
+            return False
+        await self.session.delete(variant)
         await self.session.commit()
         return True

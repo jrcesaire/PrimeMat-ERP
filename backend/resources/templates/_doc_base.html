@@ -1,0 +1,89 @@
+/* ==========================================================================
+   Socle commun des documents A4 (devis, facture, bon de livraison, reçu).
+   Transposition du modèle validé — compatible xhtml2pdf :
+   aplats de couleur uniquement (pas de coins arrondis / ombres / dégradés),
+   tableaux de mise en page (pas de flex/grid), Helvetica uniquement.
+
+   Palette : bleu marine #0a2a6b (charte), accent jaune #f5c044 (total),
+   fond secondaire #edf2fb, filets #d7def0, texte #111 / #444 / #8a8fa3.
+   ========================================================================== */
+@page { size: A4 portrait; margin: 0; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: Helvetica, Arial, sans-serif; color: #111; font-size: 10px; }
+.page { width: 210mm; margin: 0 auto; padding: 0 0 8mm; background: #fff; }
+
+/* ---- Bandeau « dossier » (façon Odoo external_layout_folder) ---- */
+table.band { width: 100%; border-collapse: collapse; background: #0a2a6b; color: #fff; }
+table.band td { vertical-align: middle; padding: 5mm 8mm; }
+table.band p, table.band div { margin: 0; padding: 0; }
+table.band .doc-title { font-size: 22px; font-weight: bold; color: #fff; line-height: 1.1; }
+table.band .doc-ref { font-size: 11px; font-weight: bold; color: #f5c044; margin-top: 2px; }
+table.band-meta { border-collapse: collapse; font-size: 9px; }
+table.band-meta td { padding: 1px 0; }
+table.band-meta td.lbl { color: #c9d4f2; padding-right: 8px; text-align: right; }
+table.band-meta td.val { font-weight: bold; color: #fff; }
+img.angle { display: block; margin-left: auto; margin-right: 8mm; }
+
+/* ---- Infos société sous le bandeau (logo + slogan / adresse + NCC) ---- */
+table.co-info { width: 100%; border-collapse: collapse; margin: 0; }
+table.co-info td { vertical-align: top; padding: 3mm 8mm 1mm; }
+table.co-info p, table.co-info div { margin: 0; padding: 0; }
+table.co-info .slogan { font-size: 10px; font-weight: bold; color: #0a2a6b; margin-top: 2px; }
+table.co-info .addr { color: #444; font-size: 9px; line-height: 1.5; text-align: right; }
+table.co-info .ncc { color: #0a2a6b; font-size: 9px; font-weight: bold; text-align: right; margin-top: 2px; }
+.status { display: inline-block; margin: 0; padding: 4px 10px; font-size: 8px; font-weight: bold; text-transform: uppercase; background: #fff; color: #0a2a6b; }
+
+/* ---- Bloc destinataire ---- */
+.billto { width: 100%; border-collapse: collapse; margin: 0; background: #edf2fb; }
+.billto td { vertical-align: top; padding: 3.5mm 8mm; }
+.billto div { margin: 0; padding: 0; }
+.billto .party-label { margin-bottom: 2px; color: #0a2a6b; font-size: 8px; font-weight: bold; letter-spacing: 0.8px; text-transform: uppercase; }
+.billto .party-name { margin: 0 0 2px; font-size: 12px; font-weight: bold; }
+.billto .party-details { color: #444; font-size: 9px; line-height: 1.4; margin-top: 2px; }
+
+/* ---- Tableau des lignes ---- */
+.items-zone { padding: 6mm 8mm 0; }
+.items-title { margin: 0 0 3mm; font-size: 11px; font-weight: bold; color: #0a2a6b; }
+table.items { width: 100%; border-collapse: collapse; }
+table.items thead td { padding: 7px 8px; background: #0a2a6b; color: #fff; font-size: 8.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3px; }
+table.items td { padding: 6px 8px; border-bottom: 1px solid #d7def0; font-size: 9px; vertical-align: top; }
+table.items tbody tr.alt td { background: #f4f6fd; }
+table.items td.num, table.items thead td.num { text-align: right; }
+table.items td.ctr, table.items thead td.ctr { text-align: center; }
+.product-name { font-weight: bold; margin: 0; }
+.product-desc { margin: 0; color: #666; font-size: 7.5px; line-height: 1.3; }
+
+/* ---- Double bloc : infos + totaux ---- */
+table.bottom-wrap { width: 100%; border-collapse: collapse; margin-top: 5mm; }
+table.bottom-wrap > tr > td { vertical-align: top; padding: 0; }
+.pay-box { padding-right: 8mm; }
+.section-title { margin-bottom: 4px; font-size: 10px; font-weight: bold; color: #0a2a6b; }
+table.pay-info { border-collapse: collapse; font-size: 9px; }
+table.pay-info td { padding: 2px 0; color: #444; }
+table.pay-info td.k { padding-right: 6px; color: #8a8fa3; }
+table.summary-box { width: 72mm; border-collapse: collapse; margin-left: auto; }
+table.summary-box td { padding: 3px 2px; color: #444; font-size: 9px; }
+table.summary-box td.num { text-align: right; font-weight: bold; color: #111; }
+table.summary-box tr.disc td { color: #c62828; }
+table.summary-box tr.grand td { background: #f5c044; padding: 7px 6px; color: #111; font-size: 12px; font-weight: bold; }
+.amount-words { margin-top: 4px; color: #666; font-size: 8px; line-height: 1.5; text-align: right; }
+
+/* ---- Notes / CGV texte ---- */
+.note { margin: 5mm 8mm 0; padding: 8px 10px; background: #edf2fb; }
+.note-title { margin-bottom: 3px; font-size: 8px; font-weight: bold; text-transform: uppercase; color: #0a2a6b; }
+.note-content { color: #444; font-size: 8.5px; line-height: 1.6; }
+.cgv-page { margin: 5mm 8mm 0; }
+.cgv-page h2 { font-size: 12px; color: #0a2a6b; margin: 0 0 3mm; }
+.cgv-body { font-size: 8.5px; line-height: 1.7; color: #333; }
+
+/* ---- Cartouche signatures ---- */
+table.sign-zone { width: 100%; border-collapse: collapse; margin: 6mm 8mm 0; width: auto; }
+table.sign-zone td.sig { width: 50%; vertical-align: top; padding-right: 10mm; }
+.sig-title { font-size: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.6px; color: #0a2a6b; margin-bottom: 12mm; }
+.sig-line { border-top: 1px solid #8a8fa3; padding-top: 2px; font-size: 8px; color: #8a8fa3; }
+
+/* ---- Pied de page (façon Odoo : mentions à gauche, doc + pagination à droite) ---- */
+.doc-footer-wrap { margin: 7mm 8mm 0; border-top: 1px solid #8a8fa3; }
+table.doc-footer { width: 100%; border-collapse: collapse; }
+table.doc-footer td { padding: 2mm 0 0; font-size: 8px; color: #666; line-height: 1.6; vertical-align: top; }
+table.doc-footer td.right { text-align: right; color: #8a8fa3; font-weight: bold; }

@@ -11,9 +11,13 @@ class PaymentCreate(BaseModel):
     invoice_id: int | None = None
     method: str = "cash"
     amount: float
+    # Monnaie rendue au client (montant reçu − total) — caisse uniquement.
+    change_amount: float = 0
     payment_date: date | None = None
     direction: str = "in"
     notes: str | None = None
+    # Journal comptable souhaité (CAI, BAN, ...).  Absent = déduit du mode.
+    journal_code: str | None = None
 
 
 class PaymentRead(BaseModel):
@@ -26,6 +30,8 @@ class PaymentRead(BaseModel):
     partner_id: int | None
     invoice_id: int | None
     method: str
+    journal_code: str | None = None
     amount: float
+    change_amount: float = 0
     payment_date: date
     status: str

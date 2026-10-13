@@ -4,10 +4,12 @@
 "use client";
 
 import Link from "next/link";
+import { use } from "react";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useProduct, useCategoryTree } from "@/hooks/useCatalogue";
+import { VariantsSection } from "@/components/catalogue/variants-section";
 import { formatCurrency } from "@/lib/utils";
 
 interface FlatCategory {
@@ -45,8 +47,20 @@ const MODE_LABELS: Record<string, { label: string; cls: string }> = {
   dual: { label: "Unité + mètre", cls: "bg-purple-100 text-purple-700" },
 };
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
-  const id = Number(params.id) || 0;
+const STORAGE_TYPE_BADGES: Record<string, { label: string; cls: string }> = {
+  stockable: { label: "En stock", cls: "bg-emerald-100 text-emerald-700" },
+  on_demand: { label: "Production", cls: "bg-orange-100 text-orange-700" },
+  hybrid: { label: "Stock + Production", cls: "bg-violet-100 text-violet-700" },
+  service: { label: "Service", cls: "bg-gray-100 text-gray-600" },
+};
+
+export default function ProductDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: idParam } = use(params);
+  const id = Number(idParam) || 0;
   const { data: product, isLoading } = useProduct(id);
   const { data: tree = [] } = useCategoryTree();
 
@@ -91,6 +105,17 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </span>
         </div>
         <div>
+          <p className="text-xs text-gray-500">Type</p>
+          {(() => {
+            const b = STORAGE_TYPE_BADGES[product.storage_type] ?? STORAGE_TYPE_BADGES.stockable;
+            return (
+              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${b.cls}`}>
+                {b.label}
+              </span>
+            );
+          })()}
+        </div>
+        <div>
           <p className="text-xs text-gray-500">Statut</p>
           <p className="text-sm font-medium text-gray-900">
             {product.status === "active" ? "Actif" : product.status}
@@ -130,6 +155,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </p>
         </div>
       </Card>
+
+      <VariantsSection
+        productId={product.id}
+        productPrice={product.selling_price ?? null}
+      />
 
       {product.description && (
         <Card className="p-4">

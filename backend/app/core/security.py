@@ -7,9 +7,14 @@ import bcrypt
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from jose import JWTError, jwt
+import jwt  # PyJWT
 
 from app.core.config import settings
+
+# Compatibilité : les appelants attrapent ``JWTError`` (nom historique de
+# python-jose). PyJWT expose la même hiérarchie sous ``PyJWTError``
+# (DecodeError, ExpiredSignatureError... en dérivent tous).
+JWTError = jwt.PyJWTError
 
 
 def hash_password(password: str) -> str:

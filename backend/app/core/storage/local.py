@@ -18,16 +18,29 @@ class LocalStorage(StorageInterface):
     """
     Stockage sur le système de fichiers local.
 
-    Les fichiers sont stockés dans ``BASE_DIR/storage/uploads``.
+    Les fichiers sont stockés dans ``backend/resources/uploads`` par défaut,
+    chemin piloté par le réglage ``LOCAL_STORAGE_PATH`` (voir ``config.py``).
+    Un chemin relatif est résolu depuis la racine du backend ; un chemin
+    absolu est respecté tel quel.
     """
 
     def __init__(self, base_path: str | None = None):
-        self.base_path = base_path or os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            ))),
-            "storage",
-            "uploads",
+        if base_path:
+            resolved = base_path
+        else:
+            from app.core.config import settings
+
+            resolved = settings.local_storage_path
+
+        # ``local.py`` vit dans ``backend/app/core/storage/`` → 4 niveaux
+        # remontent à la racine du backend (et non au-delà du dépôt).
+        backend_root = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
+        self.base_path = (
+            resolved
+            if os.path.isabs(resolved)
+            else os.path.join(backend_root, resolved)
         )
         os.makedirs(self.base_path, exist_ok=True)
 

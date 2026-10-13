@@ -1,27 +1,41 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="utf-8"><style>
-@page { size: 80mm 250mm; margin: 4mm; }
+<head><meta charset="utf-8"><title>{{ doc_title }}</title><style>
+@page { size: 80mm auto; margin: 3mm 4mm 4mm; }
 body { font-family: monospace; font-size: 11px; color:#000; width:72mm; margin:0 auto; }
+/* En-tête centré */
 .tape { text-align:center; }
 .tape img.logo { height:44px; max-width:60px; margin-bottom:2px; }
 .tape h1 { font-size:15px; margin:2px 0; }
 .tape .estab { font-size:10px; font-weight:bold; margin:1px 0; }
 .tape .slogan { font-size:9px; font-style:italic; margin:1px 0; }
 .tape .tax { font-size:10px; margin:1px 0; }
-.tape hr { border:none; border-top:1px dashed #000; margin:4px 0; }
-.big-title { text-align:center; font-size:14px; font-weight:bold; margin:6px 0; }
-row { display:table; width:100%; }
-row::after{content:'';display:block;clear:both;}
-.l { float:left; } .r { float:right; }
-table.items { width:100%; border-collapse:collapse; }
-table.items td, table.items th { padding:2px 0; font-size:11px; text-align:left; }
-table.items td.r, table.items th.r { text-align:right; }
-table.items td.m, table.items th.m { text-align:right; }
-.section { text-align:center; font-weight:bold; margin:6px 0 2px; }
+.tape .addr { font-size:10px; line-height:1.4; }
+/* Filets pointillés homogènes */
+.rule { border:none; border-top:1px dashed #000; margin:5px 0; }
+.big-title { text-align:center; font-size:13px; font-weight:bold; margin:6px 0 4px; letter-spacing:0.3px; }
+.meta { font-size:10px; line-height:1.5; margin:2px 0; }
+.meta .box { display:inline-block; border:1px solid #000; padding:2px 6px; font-size:11px; font-weight:bold; }
+/* Tableau à colonnes fixes : plus d'enchevêtrement */
+table.items { width:100%; border-collapse:collapse; table-layout:fixed; }
+table.items col.c-item { width:42%; }
+table.items col.c-qty { width:16%; }
+table.items col.c-pu { width:20%; }
+table.items col.c-total { width:22%; }
+table.items th, table.items td { padding:2px 1px; font-size:10.5px; line-height:1.35; vertical-align:top; overflow-wrap:break-word; word-break:break-word; }
+table.items thead th { font-size:10px; text-transform:uppercase; border-top:1px dashed #000; border-bottom:1px dashed #000; padding:3px 1px; }
+table.items thead th.r, table.items thead th.c { white-space:nowrap; }
+table.items td.l { text-align:left; }
+table.items td.c { text-align:center; }
+table.items td.r { text-align:right; white-space:nowrap; }
+table.items tr.cut td { font-size:9px; color:#000; padding:0 0 2px 3mm; word-break:break-word; white-space:normal; }
+table.items tr.total td { border-top:1px dashed #000; padding-top:4px; font-weight:bold; font-size:11.5px; }
+table.items tr.total td.r { white-space:nowrap; }
+.section { text-align:center; font-weight:bold; margin:6px 0 2px; font-size:11px; }
 .qr { text-align:center; margin-top:8px; }
 .qr img { width:70px; height:70px; }
-.thanks { text-align:center; font-size:11px; margin-top:6px; }
+.thanks { text-align:center; font-size:11px; margin-top:6px; font-weight:bold; }
+.footer { text-align:center; font-size:9px; border-top:1px dashed #000; margin-top:6px; padding-top:4px; line-height:1.5; }
 </style></head>
 <body>
 <div class="tape">
@@ -30,29 +44,36 @@ table.items td.m, table.items th.m { text-align:right; }
   {% if company and company.establishment %}<div class="estab">{{ company.establishment }}</div>{% endif %}
   {% if company and company.slogan %}<div class="slogan">{{ company.slogan }}</div>{% endif %}
   {% if company and company.ncc %}<div class="tax">N° Compte Contribuable (NCC) : {{ company.ncc }}</div>{% endif %}
-  {% if company %}<div>{{ fmt_addr(company) }}</div>{% if company.phone %}<div>Tel : {{ company.phone }}</div>{% endif %}{% endif %}
-  <hr/>
+  {% if company %}<div class="addr">{{ fmt_addr(company) }}</div>{% if company.phone %}<div class="addr">Tel : {{ company.phone }}</div>{% endif %}{% endif %}
 </div>
-<div class="brief">{{ order.reference }}</div>
-<div class="brief" style="font-size:12px;border:1px solid #000;display:inline-block;padding:2px 6px;">DATE : {{ order.order_date.strftime('%d/%m/%Y %H:%M') if order.order_date }}</div>
+<hr class="rule"/>
+<div class="meta">{{ order.reference }}</div>
+<div class="meta"><span class="box">DATE : {{ order.order_date.strftime('%d/%m/%Y %H:%M') if order.order_date }}</span></div>
 <div class="section">-- VOTRE VENTE COMPTOIR --</div>
 <table class="items">
-  <thead><tr><th>Item</th><th class="r">Qté</th><th class="r">PU</th><th class="r">Montant</th></tr></thead>
+  <colgroup><col class="c-item"/><col class="c-qty"/><col class="c-pu"/><col class="c-total"/></colgroup>
+  <thead><tr><th class="l">Item</th><th class="c">Qté</th><th class="r">PU</th><th class="r">Montant</th></tr></thead>
   <tbody>
   {% for line in lines %}
-  <tr><td>{{ line.description or 'Produit' }}</td><td class="r">{{ '%.2f' % line.quantity_ordered }}</td><td class="r">{{ '%.0f' % line.unit_price }}</td><td class="r">{{ '%.0f' % line.subtotal }}</td></tr>
+  <tr><td class="l">{{ line.description or 'Produit' }}{% if line.variant_name %} — {{ line.variant_name }}{% endif %}</td><td class="c">{{ line_qty(line) }}</td><td class="r">{{ fmt_num(line.unit_price) }}</td><td class="r">{{ fmt_num(line.subtotal) }}</td></tr>
   {% if line.cuts %}{% for c in line.cuts %}
-  <tr><td colspan="4" style="font-size:9px">↳ {{ c.quantity }} × {{ '%.2f' % c.length }} m</td></tr>
+  <tr class="cut"><td colspan="4">↳ {{ cut_label(c) }}</td></tr>
   {% endfor %}{% endif %}
   {% endfor %}
-  <tr><td colspan="3" style="text-align:right;font-weight:bold">TOTAL</td><td class="r" style="font-weight:bold">{{ '%.0f' % total }} {{currency}}</td></tr>
+  <tr class="total"><td colspan="3" style="text-align:right">TOTAL ({{ currency }})</td><td class="r">{{ fmt_num(total) }}</td></tr>
+  {% if change_amount and change_amount > 0 %}
+  <tr><td colspan="3" style="text-align:right">MONTANT REÇU</td><td class="r">{{ fmt_num(amount_received) }}</td></tr>
+  <tr><td colspan="3" style="text-align:right;font-weight:bold">MONNAIE RENDUE</td><td class="r" style="font-weight:bold">{{ fmt_num(change_amount) }}</td></tr>
+  {% endif %}
+  </tbody>
 </table>
+<hr class="rule"/>
 {% if qr_data_uri %}
 <div class="qr"><img src="{{ qr_data_uri }}" alt="QR"/></div>
 {% if pos_url %}<div style="text-align:center;font-size:9px">{{ pos_url }}</div>{% endif %}
 {% endif %}
 <div class="thanks">Merci de votre confiance</div>
-<div class="footer" style="text-align:center;font-size:9px;border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
+<div class="footer">
 {% if company %}
 {% set fparts = [] %}
 {% if company.rccm %}{% set fparts = fparts + ['RCCM : ' ~ company.rccm] %}{% endif %}

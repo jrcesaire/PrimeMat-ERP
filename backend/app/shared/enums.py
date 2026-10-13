@@ -106,6 +106,7 @@ class InvoiceStatus(str, enum.Enum):
 
 
 class PaymentStatus(str, enum.Enum):
+    DRAFT = "draft"
     PENDING = "pending"
     PAID = "paid"
     FAILED = "failed"

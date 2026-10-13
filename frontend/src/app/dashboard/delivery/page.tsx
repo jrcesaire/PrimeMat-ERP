@@ -8,19 +8,32 @@ import { useRouter } from "next/navigation";
 import { Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ExportButton } from "@/components/shared/export-button";
 import {
   useDeliveryNotes,
   useCreateDeliveryFromOrder,
   useUpdateDeliveryStatus,
+  useBackToDraftDelivery,
+  useDeleteDelivery,
 } from "@/hooks/useOperations";
 import { useOrders } from "@/hooks/useSales";
 import { useClients } from "@/hooks/useCRM";
+import { usePermission } from "@/hooks/useAuth";
+import { useConfirm } from "@/components/ui/confirm";
+import {
+  confirmBackToDraftOptions,
+  confirmDeleteOptions,
+} from "@/components/ui/confirm";
 import { printDelivery } from "@/lib/api/pdf";
 import { formatDate, StatusBadge } from "@/lib/utils";
 
 const NEXT_STATUS: Record<string, { label: string; value: string }> = {
+  draft: { label: "Confirmer", value: "pending" },
   planned: { label: "Expédier", value: "shipped" },
   shipped: { label: "Livrer", value: "delivered" },
+  pending: { label: "Livrer", value: "delivered" },
+  in_progress: { label: "Livrer", value: "delivered" },
+  delivered: { label: "Terminer", value: "completed" },
 };
 
 export default function DeliveryPage() {
@@ -30,9 +43,51 @@ export default function DeliveryPage() {
   const { data: clients = [] } = useClients();
   const createDelivery = useCreateDeliveryFromOrder();
   const updateStatus = useUpdateDeliveryStatus();
+  const backToDraft = useBackToDraftDelivery();
+  const deleteDelivery = useDeleteDelivery();
+  const can = usePermission();
+  const canEditDelivery = can("delivery:edit");
+  const canDeleteDelivery = can("delivery:delete");
+  const confirm = useConfirm();
 
   const [orderId, setOrderId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const handleBackToDraft = async (reference: string, deliveryId: number) => {
+    const { confirmed } = await confirm(
+      confirmBackToDraftOptions(
+        `${reference} — Seul un BL au brouillon peut être supprimé.`,
+      ),
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await backToDraft.mutateAsync(deliveryId);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de la remise au brouillon");
+    }
+  };
+
+  const handleDeleteDelivery = async (reference: string, deliveryId: number) => {
+    const { confirmed } = await confirm(
+      confirmDeleteOptions(
+        `${reference} — Seuls les BL en brouillon et sans paiement restant peuvent être supprimés.`,
+      ),
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deleteDelivery.mutateAsync(deliveryId);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de la suppression");
+    }
+  };
 
   const clientName = (id: number) =>
     clients.find((c) => c.id === id)?.name ?? `#${id}`;
@@ -60,9 +115,15 @@ export default function DeliveryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Livraison</h1>
-        <p className="text-sm text-gray-600">Bons de livraison</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Livraison</h1>
+          <p className="text-sm text-gray-600">Bons de livraison</p>
+        </div>
+        <ExportButton
+          endpoint="/delivery/notes/export"
+          fallbackName="livraisons"
+        />
       </div>
 
       {/* Créer depuis commande */}
@@ -129,7 +190,7 @@ export default function DeliveryPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        {next && (
+                        {next && canEditDelivery && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -143,6 +204,34 @@ export default function DeliveryPage() {
                           >
                             {next.label}
                           </Button>
+                        )}
+                        {d.status !== "draft" && canEditDelivery && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-amber-700 hover:bg-amber-50"
+                            disabled={backToDraft.isPending}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBackToDraft(d.reference, d.id);
+                            }}
+                          >
+                            Brouillon
+                          </Button>
+                        )}
+                        {d.status === "draft" && canDeleteDelivery && (
+                          <button
+                            title={`Supprimer ${d.reference}`}
+                            aria-label={`Supprimer ${d.reference}`}
+                            disabled={deleteDelivery.isPending}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteDelivery(d.reference, d.id);
+                            }}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            🗑
+                          </button>
                         )}
                         <button
                           title={`Imprimer le bon ${d.reference}`}

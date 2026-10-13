@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth/auth";
 import { AppLauncher } from "@/components/dashboard/AppLauncher";
@@ -14,14 +14,21 @@ import { useCurrentCompany } from "@/hooks/useAuth";
 export default function HomePage() {
   const router = useRouter();
   const { data: company } = useCurrentCompany();
+  // Attend le montage client avant de lire localStorage : le serveur et le
+  // premier rendu client produisent le même HTML (pas de mismatch).
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isAuthenticated()) {
       router.push("/login");
     }
-  }, [router]);
+  }, [router, mounted]);
 
-  if (!isAuthenticated()) return null;
+  if (!mounted || !isAuthenticated()) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">

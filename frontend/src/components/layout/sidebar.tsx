@@ -47,14 +47,19 @@ const navItems: NavItem[] = [
   { label: "Paramètres", href: "/dashboard/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname();
   const { data: company } = useCurrentCompany();
 
   return (
-    <div className="flex h-screen w-64 flex-col overflow-y-auto bg-gray-900 text-gray-100">
-      <div className="border-b border-gray-800 p-4">
-        <div className="flex items-center gap-3">
+    <div
+      className={cn(
+        "flex h-screen flex-col overflow-y-auto bg-gray-900 text-gray-100 transition-all duration-200",
+        collapsed ? "w-16" : "w-64"
+      )}
+    >
+      <div className={cn("border-b border-gray-800 p-4", collapsed && "flex justify-center px-2")}>
+        <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
           {company?.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -67,7 +72,7 @@ export function Sidebar() {
               {(company?.name ?? "GEA").slice(0, 2).toUpperCase()}
             </div>
           )}
-          <div className="min-w-0">
+          <div className={cn("min-w-0", collapsed && "hidden")}>
             <h1 className="truncate text-sm font-bold leading-tight text-white">
               {company?.name ?? "ERP Matériaux"}
             </h1>
@@ -77,22 +82,25 @@ export function Sidebar() {
           </div>
         </div>
       </div>
-      <nav className="flex-1 space-y-1 px-2 py-4">
+      <nav className={cn("flex-1 space-y-1 py-4", collapsed ? "px-2" : "px-2")}>
         {navItems.map((item) => {
           const isActive = pathname?.startsWith(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
+              title={item.label}
+              aria-label={item.label}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                collapsed && "justify-center px-0",
                 isActive
                   ? "bg-primary text-white"
                   : "text-gray-300 hover:bg-gray-800 hover:text-white",
               )}
             >
-              <item.icon className="h-4 w-4" />
-              <span>{item.label}</span>
+              <item.icon className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>{item.label}</span>}
             </Link>
           );
         })}

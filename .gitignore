@@ -21,6 +21,7 @@ dist/
 
 # Database
 *.db
+*.db.bak_*
 *.sqlite
 *.sqlite3
 
@@ -52,4 +53,10 @@ temp/
 # Documents générés
 resources/generated/
 backend/resources/generated/
+
+# Sorties de tests ad-hoc (scripts backend/test_*.py lancés à la main)
+test_out.txt
+test_*.db
+dbg.db
+*.tsbuildinfo
 

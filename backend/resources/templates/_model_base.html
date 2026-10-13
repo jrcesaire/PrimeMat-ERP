@@ -1,0 +1,128 @@
+/*__OPEN_SANS_FACES__*/
+/* ==========================================================================
+   Socle « modèle » — transposition du modèle validé (facture type).
+   Requiert un moteur Chrome (Playwright/Chromium) : coins arrondis,
+   flex, thead répété ; la pagination « Page X / Y » est estampillée par
+   le moteur dans la bande basse réservée (voir @page ci-dessous).
+
+   Palette (charte GEA — logo Groupe Entreprise AKA) :
+   bleu #1f7fc1 (titres, en-tête tableau, pastilles),
+   orange #f39c12 (titre document, total),
+   fond carte #edf2fb, filets #d7def0, texte #1a1a1a / #444.
+   ========================================================================== */
+/* Bande de pied de page réservée à la pagination « Page X / Y ».
+   Chromium implémente @page et @page :first.
+   On définit une marge haute sur les pages 2+ (16mm) et 0 sur la 1ère page,
+   avec une marge basse de 12 mm alignée sur ``_PAGE_FOOTER_BAND_MM``. */
+@page { size: A4 portrait; margin: 16mm 0 12mm 0; }
+@page :first { margin-top: 0; }
+* { box-sizing: border-box; }
+/* Corps en flex column, hauteur minimale = zone utile A4 (297 − 12 mm de
+   bande basse) : la carte s'étire et ``.model-footer`` est ancré en bas
+   de page (margin-top: auto) au lieu de suivre le contenu. */
+body {
+  margin: 0; padding: 0 0 14mm;
+  font-family: 'Open Sans', Helvetica, Arial, sans-serif; color: #1a1a1a;
+  font-size: 13.5px; background: #fff;
+  display: flex; flex-direction: column; min-height: 285mm;
+}
+
+/* ---- En-tête bleu ----
+   Ligne du haut (logo + nom société) : fond blanc, nom en bleu charte.
+   Le reste de l'en-tête (titre document, références, client) reste bleu. */
+.model-head { background: #1f7fc1; color: #fff; padding: 0 8mm 20mm; }
+.model-head-top { display: flex; justify-content: space-between; align-items: center; margin: 0 -8mm 5mm; padding: 4mm 8mm; background: #ffffff; }
+.model-brand { display: flex; align-items: center; gap: 3mm; font-size: 15px; font-weight: bold; color: #1f7fc1; }
+.model-brand img { height: 20mm; }
+.model-dots { display: flex; gap: 2mm; }
+.model-dots span { width: 3.2mm; height: 3.2mm; border-radius: 50%; background: #f39c12; display: inline-block; }
+.model-head-main { display: flex; justify-content: space-between; gap: 8mm; }
+.model-title { font-size: 30px; line-height: 1.15; font-weight: bold; color: #ffffff; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+.model-ref { margin-top: 3mm; font-size: 13.5px; color: #fff; }
+.model-ref b { font-weight: bold; }
+.model-meta { font-size: 12.5px; line-height: 1.6; min-width: 62mm; }
+/* Contact commercial (devis/facture) — sous le N° de document. */
+.model-salesperson { margin-top: 3mm; padding: 2.5mm 3.5mm; background: rgba(255,255,255,0.12); border-left: 1mm solid #f39c12; font-size: 12.5px; line-height: 1.5; color: #fff; max-width: 80mm; }
+.model-salesperson .sp-label { font-size: 12.5px; color: #fff; }
+.model-salesperson .sp-name { font-size: 13.5px; font-weight: bold; color: #fff; }
+.model-salesperson .sp-contact { font-size: 12px; color: #fff; }
+.model-meta .lbl { color: #f39c12; font-weight: bold; margin: 2mm 0 0; }
+.model-meta .val { color: #fff; margin: 0; }
+/* Dates du document : titres côte à côte, valeurs en dessous de chaque titre. */
+/* Colonnes fixes : titres et valeurs alignés sur les mêmes verticales. */
+.model-dates { display: flex; gap: 5mm; }
+.model-dates .model-date { flex: 0 0 auto; }
+.model-dates .model-date:first-child { width: 31mm; }
+.model-dates .model-date:last-child { width: 24mm; }
+.model-dates .lbl { white-space: nowrap; }
+
+/* ---- Carte blanche chevauchante ----
+   flex-grow : la carte occupe toute la hauteur restante de la page pour
+   repousser le pied de page au ras de la bande basse. */
+.model-card { background: #fff; border-radius: 5mm 5mm 0 0; margin: -14mm 6mm 0; padding: 6mm 7mm 0; flex: 1 0 auto; display: flex; flex-direction: column; }
+.model-section-title { margin: 0 0 3mm; font-size: 14.5px; font-weight: bold; color: #1f7fc1; }
+
+/* ---- Tableau ---- */
+table.model-items { width: 100%; border-collapse: collapse; }
+table.model-items thead { display: table-header-group; }
+table.model-items thead td { padding: 7px 8px; background: #1f7fc1; color: #fff; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3px; }
+table.model-items tbody td { padding: 6px 8px; font-size: 12.5px; vertical-align: top; border-bottom: 1px solid #d7def0; }
+table.model-items tbody tr.alt td { background: #edf2fb; }
+table.model-items tbody tr { page-break-inside: avoid; }
+table.model-items td.num, table.model-items thead td.num { text-align: right; }
+table.model-items td.ctr, table.model-items thead td.ctr { text-align: center; }
+/* Quantité + unité : deux lignes centrées et alignées (colonne Qté). */
+.qty-val { font-weight: bold; white-space: nowrap; }
+.qty-unit { font-size: 11px; color: #1f7fc1; font-weight: 600; white-space: nowrap; }
+.product-name { font-weight: bold; margin: 0; font-size: 12.5px; }
+.product-desc { margin: 0; color: #666; font-size: 11px; line-height: 1.3; }
+
+/* Variante du produit (ex. « Rouleau 25 m ») affichée à côté du libellé. */
+.variant-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: #eaf3fb;
+  border: 1px solid #b8d7f0;
+  border-radius: 3px;
+  color: #1f7fc1;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+/* ---- Double bloc : infos + totaux ---- */
+.model-pay-total { display: flex; justify-content: space-between; gap: 8mm; margin-top: 5mm; }
+.model-pay { flex: 1; font-size: 12.5px; color: #444; line-height: 1.8; }
+.model-pay .k { color: #1f7fc1; font-weight: bold; }
+.model-totals { width: 68mm; font-size: 12.5px; }
+.model-totals .row { display: flex; justify-content: space-between; padding: 2px 0; color: #444; }
+.model-totals .row b { color: #1a1a1a; }
+.model-totals .grand { background: #f39c12; border-radius: 2mm; padding: 3mm 3mm; margin-top: 2mm; font-size: 15.5px; font-weight: bold; color: #ffffff; }
+.model-totals .grand span, .model-totals .grand span:last-child { color: #ffffff; }
+.amount-words { margin-top: 3mm; color: #666; font-size: 11.5px; line-height: 1.5; text-align: right; }
+
+/* ---- Notes / CGV texte ---- */
+.model-note { margin-top: 5mm; padding: 8px 10px; background: #edf2fb; border-radius: 2mm; }
+.model-note-title { margin-bottom: 3px; font-size: 11.5px; font-weight: bold; text-transform: uppercase; color: #1f7fc1; }
+.model-note-content { color: #444; font-size: 12px; line-height: 1.6; }
+
+/* ---- Bande CGV + signature ----
+    Mono-page : marge basse dédiée pour ne jamais toucher le pied de page
+    ancré (margin-top: auto). Multi-pages : bloc insécable. */
+.model-terms { display: flex; align-items: stretch; gap: 6mm; background: #edf2fb; margin: 6mm -7mm 5mm; padding: 5mm 7mm; page-break-inside: avoid; }
+.model-terms-cgv { flex: 1.2; font-size: 12px; color: #444; line-height: 1.6; }
+.model-terms-cgv ol { margin: 2mm 0 0; padding-left: 5mm; }
+.model-terms-sign { flex: 1; border-left: 1px solid #1f7fc1; padding-left: 6mm; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-size: 12.5px; color: #444; min-height: 45mm; }
+.model-terms-sign img { max-height: 14mm; }
+
+/* ---- Signatures seules (sans CGV) ---- */
+.model-sign-only { margin-top: 8mm; font-size: 11.5px; color: #8a8fa3; page-break-inside: avoid; }
+.model-sign-only .sig-title { font-size: 11.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.6px; color: #1f7fc1; margin-bottom: 12mm; }
+.model-sign-only .sig-line { border-top: 1px solid #8a8fa3; padding-top: 2px; }
+
+/* ---- Pied de page : position fixe = bas absolu sur chaque page ----
+   (mono-page comme multipages ; Chromium répète les éléments fixed).
+   Le padding bas du body (14mm) empêche tout recouvrement du contenu. */
+.model-footer { position: fixed; bottom: 0; left: 0; right: 0; margin: 0 7mm; padding-top: 3mm; border-top: 1px solid #d7def0; font-size: 12px; color: #444; background: #fff; display: flex; justify-content: space-between; gap: 4mm; }
+.model-footer .contact { white-space: nowrap; }
+.model-footer .legal { text-align: right; color: #8a8fa3; font-size: 11px; line-height: 1.6; }

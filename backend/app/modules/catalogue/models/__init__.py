@@ -7,6 +7,12 @@ from app.modules.catalogue.models.product import (
     UnitConversion,
 )
 from app.modules.catalogue.models.bac import BACSheet, BACCut
+from app.modules.catalogue.models.variant import (
+    ProductProperty,
+    ProductPropertyValue,
+    ProductVariant,
+    ProductVariantProperty,
+)
 
 __all__ = [
     "Product",
@@ -16,4 +22,8 @@ __all__ = [
     "UnitConversion",
     "BACSheet",
     "BACCut",
+    "ProductProperty",
+    "ProductPropertyValue",
+    "ProductVariant",
+    "ProductVariantProperty",
 ]

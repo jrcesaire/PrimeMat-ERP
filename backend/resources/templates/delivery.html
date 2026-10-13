@@ -1,117 +1,40 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="utf-8"><style>
-@page {
-  size: A4 portrait;
-  margin: 0;
-  @frame footer_frame {
-    -pdf-frame-content: page-footer;
-    left: 0mm; width: 210mm; top: 277mm; height: 20mm;
-  }
-}
-* { box-sizing: border-box; }
-body { margin:0; padding:0; font-family: Helvetica, Arial, sans-serif; color:#111; font-size:10px; }
-.page { width:210mm; min-height:297mm; margin:0 auto; padding:14mm 17mm 24mm; background:#fff; }
-.header { width:100%; border-collapse:collapse; border-bottom:1px solid #e8e8e8; }
-.header td { vertical-align:top; padding-bottom:12px; }
-.company-name { margin:0 0 4px; font-size:17px; font-weight:bold; letter-spacing:-0.3px; }
-.company-details { color:#666; font-size:10px; line-height:1.6; }
-.logo { height:58px; width:auto; max-width:150px; float:left; margin:0 12px 6px 0; border:1px solid #e8e8e8; border-radius:8px; padding:3px; }
-.hd-doc { text-align:right; }
-.doc-type { margin:0 0 6px; font-size:26px; font-weight:bold; letter-spacing:-1px; color:#0a2a6b; line-height:1; }
-.doc-number { font-size:12px; font-weight:bold; }
-table.doc-meta { margin:8px 0 0 auto; border-collapse:collapse; font-size:9px; }
-table.doc-meta td { padding:1px 0 1px 10px; }
-table.doc-meta td.lbl { color:#999; text-align:right; }
-table.doc-meta td.val { font-weight:bold; text-align:left; }
-.status { display:inline-block; margin-top:8px; padding:4px 9px; border-radius:999px; font-size:8px; font-weight:bold; text-transform:uppercase; }
-.status-paid { color:#218739; background:#edf8ef; }
-.status-partial { color:#1266a3; background:#edf6fd; }
-.status-cancelled { color:#666; background:#f1f1f1; }
-table.parties { width:100%; border-collapse:collapse; margin-top:8px; }
-table.parties td { width:50%; vertical-align:top; padding:14px 20px 14px 0; }
-table.parties td.rgt { padding-right:0; padding-left:20px; border-left:1px solid #e8e8e8; }
-.party-label { margin-bottom:6px; color:#999; font-size:8px; font-weight:bold; letter-spacing:0.8px; text-transform:uppercase; }
-.party-name { margin-bottom:4px; font-size:12px; font-weight:bold; }
-.party-details { color:#666; font-size:9px; line-height:1.65; }
-.party-full { width:100% !important; padding:0 !important; border-top:1px solid #e8e8e8; }
-.party-full .inner { padding:12px 0 2px; }
-table.items { width:100%; border-collapse:collapse; }
-table.items thead td { padding:8px 6px; color:#999; font-size:8px; font-weight:bold; text-transform:uppercase; letter-spacing:0.3px; border-top:1px solid #e8e8e8; border-bottom:1px solid #e8e8e8; }
-table.items td { padding:9px 6px; border-bottom:1px solid #e8e8e8; font-size:9px; vertical-align:top; }
-table.items td.num, table.items thead td.num { text-align:right; }
-table.items td.ctr, table.items thead td.ctr { text-align:center; }
-.product-name { font-weight:bold; }
-.product-desc { margin-top:2px; color:#999; font-size:8px; line-height:1.5; }
-.note { margin-top:16px; padding:11px; background:#fafafa; border-radius:6px; }
-.note-title { margin-bottom:4px; font-size:8px; font-weight:bold; text-transform:uppercase; }
-.note-content { color:#666; font-size:8px; line-height:1.6; }
-#page-footer {
-  position:fixed; bottom:0; left:0; right:0;
-  padding:4mm 17mm 6mm;
-  border-top:1px solid #e8e8e8;
-  background:#fff;
-}
-#page-footer table { width:100%; border-collapse:collapse; }
-#page-footer td { vertical-align:bottom; color:#999; font-size:7px; line-height:1.5; }
-#page-footer .thanks { text-align:right; color:#111; font-size:9px; font-weight:bold; }
-#page-footer .slogan { color:#0a2a6b; font-weight:bold; }
-.clear { clear:both; }
+<head><meta charset="utf-8"><title>{{ doc_title }}</title><style>
+{% include "_model_base.html" %}
 </style></head>
 <body>
-<div class="page">
+<div class="model-head">
+  <div class="model-head-top">
+    <div class="model-brand">
+      {% if company and company.logo %}<img src="{{ company.logo }}" alt=""/>{% endif %}
+      <span>{{ company.name if company }}</span>
+    </div>
+    <div class="model-dots"><span></span><span></span><span></span></div>
+  </div>
+  <div class="model-head-main">
+    <div>
+      <p class="model-title">Bon de<br>Livraison</p>
+      <div class="model-ref"><b>N° BL</b> &nbsp; : &nbsp; {{ delivery.reference }}</div>
+    </div>
+    <div class="model-meta">
+      <p class="lbl">Date de livraison :</p>
+      <p class="val">{{ fmt_date(delivery.delivery_date) or '—' }}</p>
+      {% if order and order.reference %}<p class="lbl">Commande :</p><p class="val">{{ order.reference }}</p>{% endif %}
+      <p class="lbl">Livrer à :</p>
+      <p class="val"><b>{{ partner.name if partner }}</b><br>
+      {% if partner and partner.address %}{{ fmt_addr(partner) }}<br>{% endif %}
+      {% if partner and partner.phone %}Tél. : {{ partner.phone }}<br>{% endif %}
+      {% if partner and partner.email %}{{ partner.email }}{% endif %}</p>
+    </div>
+  </div>
+</div>
 
-  <table class="header"><tr>\n    <td style="width:55%">
-      {% if company and company.logo %}<img src="{{ company.logo }}" class="logo" alt=""/>{% endif %}
-      <div class="company-name">{{ company.name if company }}</div>
-      <div class="company-details">
-        {% if company and company.establishment %}Établissement : {{ company.establishment }}<br>{% endif %}
-        {{ fmt_addr(company) }}<br>
-        {% if company and company.phone %}Tél. : {{ company.phone }}<br>{% endif %}
-        {% if company and company.email %}{{ company.email }}{% endif %}
-      </div>
-      <div class="clear"></div>
-    </td>
-    <td class="hd-doc">
-      <div class="doc-type">BON DE LIVRAISON</div>
-      <div class="doc-number">N° {{ delivery.reference }}</div>
-      <table class="doc-meta">
-        <tr><td class="lbl">Date d&apos;expédition</td><td class="val">{{ fmt_date(delivery.expected_date) or '—' }}</td></tr>
-        {% if order_ref %}<tr><td class="lbl">Commande</td><td class="val">{{ order_ref }}</td></tr>{% endif %}
-      </table>
-      <span class="status {{ status_class(delivery.status) }}">{{ status_label(delivery.status) }}</span>
-    </td>
-  </tr></table>
-
-  <table class="parties">
-    <tr>
-      <td>
-        <div class="party-label">Émetteur</div>
-        <div class="party-name">{{ company.name if company }}</div>
-        <div class="party-details">
-          {{ fmt_addr(company) }}<br>
-          {% if company and company.phone %}Tél. : {{ company.phone }}<br>{% endif %}
-          {% if company and company.rccm %}RCCM : {{ company.rccm }}<br>{% endif %}
-          {% if company and company.ncc %}CC : {{ company.ncc }}{% endif %}
-        </div>
-      </td>
-      <td class="rgt">
-        <div class="party-label">Livrer à</div>
-        <div class="party-name">{{ partner.name if partner }}</div>
-        <div class="party-details">
-          {% if partner and partner.address %}{{ fmt_addr(partner) }}<br>{% endif %}
-          {% if partner and partner.phone %}Tél. : {{ partner.phone }}{% endif %}
-        </div>
-      </td>
-    </tr>
-    <tr><td colspan="2" class="party-full"><div class="inner">
-      <div class="party-label">Lieu de livraison</div>
-      <div class="party-details">{{ fmt_addr(partner) if partner }}{% if delivery.notes %} — {{ delivery.notes }}{% endif %}</div>
-    </div></td></tr>
-  </table>
-
-  <table class="items">
+<div class="model-card">
+  <p class="model-section-title">Marchandises livrées</p>
+  <table class="model-items">
     <thead><tr>
+      <td style="width:9%" class="ctr">N°</td>
       <td>Désignation</td>
       <td style="width:13%" class="ctr">Commandé</td>
       <td style="width:13%" class="ctr">Livré</td>
@@ -119,15 +42,16 @@ table.items td.ctr, table.items thead td.ctr { text-align:center; }
     </tr></thead>
     <tbody>
     {% for line in lines %}
-      <tr>
+      <tr class="{% if loop.index0 % 2 == 1 %}alt{% endif %}">
+        <td class="ctr">{{ '%03d' % loop.index }}</td>
         <td>
-          <div class="product-name">{{ line.description or (line.product.name if line.product else 'Produit') }}</div>
+          <div class="product-name">{{ line.description or (line.product.name if line.product else 'Produit') }}{% if line.variant_name %} <span class="variant-tag">{{ line.variant_name }}</span>{% endif %}</div>
           {% if line.cuts %}
             {% for c in line.cuts %}<div class="product-desc">{{ cut_label(c) }}</div>{% endfor %}
           {% endif %}
         </td>
         <td class="ctr">{{ fmt_num(line.quantity_ordered, 2) }}</td>
-        <td class="ctr">{{ fmt_num(line.quantity, 2) }}</td>
+        <td class="ctr">{{ line_qty(line) }}</td>
         <td class="ctr">{{ line.unit or 'Unité' }}</td>
       </tr>
     {% endfor %}
@@ -135,31 +59,35 @@ table.items td.ctr, table.items thead td.ctr { text-align:center; }
   </table>
 
   {% if delivery.notes %}
-  <div class="note">
-    <div class="note-title">Note</div>
-    <div class="note-content">{{ delivery.notes }}</div>
+  <div class="model-note">
+    <div class="model-note-title">Note</div>
+    <div class="model-note-content">{{ delivery.notes }}</div>
   </div>
   {% endif %}
 
-</div>
+  <div class="model-terms">
+    <div class="model-terms-cgv">
+      <p class="model-section-title">Réception client</p>
+      <div>Nom, date et signature</div>
+    </div>
+    <div class="model-terms-sign">
+      <div><b>{{ company.name if company }}</b><br>Nom, fonction et signature</div>
+    </div>
+  </div>
 
-<div id="page-footer">
-  <table><tr>
-    <td style="width:70%">
-      {% if company and company.slogan %}<span class="slogan">{{ company.slogan }}</span> — {% endif %}
-      {{ company.name if company }}{% if company and company.address %} · {{ fmt_addr(company) }}{% endif %}{% if company and company.phone %} · {{ company.phone }}{% endif %}{% if company and company.email %} · {{ company.email }}{% endif %}<br>
+  <div class="model-footer">
+    <div class="contact">
+      {% if company %}{{ fmt_addr(company) }}{% if company.phone %} &nbsp; Tél : {{ company.phone }}{% endif %}{% if company.email %} &nbsp; {{ company.email }}{% endif %}{% endif %}
+    </div>
+    <div class="legal">
       {% if company %}
-        {% set fparts = [] %}
-        {% if company.rccm %}{% set fparts = fparts + ['N° RCCM : ' ~ company.rccm] %}{% endif %}
-        {% if company.ncc %}{% set fparts = fparts + ['Compte Contribuable N° ' ~ company.ncc] %}{% endif %}
-        {% if company.share_capital %}{% set fparts = fparts + ['Capital social : ' ~ company.share_capital] %}{% endif %}
-        {{ fparts | join(' | ') }} — Document généré automatiquement par ERP Matériaux
+      {% set fparts = [] %}
+      {% if company.rccm %}{% set fparts = fparts + ['RCCM : ' ~ company.rccm] %}{% endif %}
+      {% if company.ncc %}{% set fparts = fparts + ['NCC : ' ~ company.ncc] %}{% endif %}
+      {% if company.share_capital %}{% set fparts = fparts + ['Capital : ' ~ company.share_capital] %}{% endif %}
+      {{ fparts | join(' | ') }} &nbsp; {{ delivery.reference }}
       {% endif %}
-    </td>
-    <td class="thanks">Merci pour votre confiance.</td>
-  </tr></table>
+    </div>
+  </div>
 </div>
 </body></html>
-
-
-

@@ -44,6 +44,7 @@ services:
     env_file: [./backend/.env]
     environment:
       - DATABASE_URL=postgresql+psycopg://erp_user:erp_pass@db:5432/erp_db
+      - CORS_ORIGINS=
     depends_on:
       db:
         condition: service_healthy

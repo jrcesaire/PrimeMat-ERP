@@ -4,12 +4,26 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { usePayments, type Payment } from "@/hooks/useOperations";
+import { use } from "react";
+import {
+  usePayments,
+  useBackToDraftPayment,
+  useConfirmPayment,
+  useDeletePayment,
+  type Payment,
+} from "@/hooks/useOperations";
 import { useInvoices } from "@/hooks/useOperations";
 import { useClients } from "@/hooks/useCRM";
+import { usePermission } from "@/hooks/useAuth";
+import {
+  useConfirm,
+  confirmBackToDraftOptions,
+  confirmDeleteOptions,
+} from "@/components/ui/confirm";
 import { printReceipt } from "@/lib/api/pdf";
 import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
 
@@ -20,13 +34,77 @@ const METHOD_LABELS: Record<string, string> = {
   check: "Chèque",
 };
 
-export default function PaymentDetailPage({ params }: { params: { id: string } }) {
-  const id = Number(params.id) || 0;
+export default function PaymentDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const router = useRouter();
+  const { id: idParam } = use(params);
+  const id = Number(idParam) || 0;
   const { data: payments = [], isLoading } = usePayments();
   const { data: invoices = [] } = useInvoices();
   const { data: clients = [] } = useClients();
+  const backToDraft = useBackToDraftPayment();
+  const confirmPayment = useConfirmPayment();
+  const deletePayment = useDeletePayment();
+  const can = usePermission();
+  const canEditPayment = can("payment:edit");
+  const canDeletePayment = can("payment:delete");
+  const confirm = useConfirm();
 
   const payment: Payment | undefined = payments.find((p) => p.id === id);
+
+  const handleConfirm = async () => {
+    if (!payment) return;
+    try {
+      await confirmPayment.mutateAsync(payment.id);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de la confirmation");
+    }
+  };
+
+  const handleBackToDraft = async () => {
+    if (!payment) return;
+    const { confirmed } = await confirm({
+      ...confirmBackToDraftOptions(payment.reference),
+      description:
+        "Le montant sera retiré de la facture liée et son écriture comptable supprimée. Vous pourrez confirmer à nouveau.",
+    });
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await backToDraft.mutateAsync(payment.id);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      alert(
+        typeof detail === "string"
+          ? detail
+          : "Erreur lors de la remise au brouillon"
+      );
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!payment) return;
+    const { confirmed } = await confirm(confirmDeleteOptions(payment.reference));
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deletePayment.mutateAsync(payment.id);
+      router.push("/dashboard/payments");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      alert(typeof detail === "string" ? detail : "Erreur lors de la suppression");
+    }
+  };
+
   if (isLoading)
     return <p className="p-6 text-sm text-gray-500">Chargement…</p>;
   if (!payment)
@@ -52,13 +130,49 @@ export default function PaymentDetailPage({ params }: { params: { id: string } }
             {formatDate(payment.payment_date)}
           </p>
         </div>
-        <Button
-          variant="outline"
-          className="flex items-center gap-2"
-          onClick={() => printReceipt(payment.id)}
-        >
-          <Printer className="h-4 w-4" /> Imprimer le reçu
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {payment.status === "draft" && canEditPayment && (
+            <Button
+              size="sm"
+              onClick={handleConfirm}
+              disabled={confirmPayment.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {confirmPayment.isPending ? "Confirmation…" : "Confirmer"}
+            </Button>
+          )}
+          {payment.status !== "draft" && canEditPayment && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackToDraft}
+              disabled={backToDraft.isPending}
+              className="text-amber-700 hover:bg-amber-50"
+            >
+              {backToDraft.isPending ? "Reprise…" : "Remettre au brouillon"}
+            </Button>
+          )}
+          {payment.status === "draft" && canDeletePayment && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deletePayment.isPending}
+              className="text-red-600 hover:bg-red-50"
+            >
+              {deletePayment.isPending ? "Suppression…" : "Supprimer"}
+            </Button>
+          )}
+          {payment.status !== "draft" && (
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => printReceipt(payment.id)}
+            >
+              <Printer className="h-4 w-4" /> Imprimer le reçu
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-4">

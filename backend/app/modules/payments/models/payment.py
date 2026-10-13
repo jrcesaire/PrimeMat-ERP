@@ -29,7 +29,12 @@ class Payment(Base, TenantMixin):
     method: Mapped[str] = MappedColumn(
         String(20), default=PaymentMethod.CASH.value
     )
+    # Journal comptable explicite (CAI, BAN, ...) — NULL = journal déduit du
+    # mode d'encaissement par le service de comptabilisation.
+    journal_code: Mapped[str | None] = MappedColumn(String(10))
     amount: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
+    # Monnaie rendue au client (encaissement comptoir > total) — 0 sinon.
+    change_amount: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
     payment_date: Mapped[date] = MappedColumn(Date, default=date.today)
     status: Mapped[str] = MappedColumn(
         String(20), default=PaymentStatus.PAID.value

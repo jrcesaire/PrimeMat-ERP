@@ -42,6 +42,11 @@ class Invoice(Base, TenantMixin):
 
     currency_code: Mapped[str] = MappedColumn(String(3), default="XOF")
 
+    # Contact commercial hérité de la commande (pas de saisie sur la facture).
+    salesperson_id: Mapped[int | None] = MappedColumn(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
     amount_untaxed: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
     tax_amount: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
     amount_total: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
@@ -57,6 +62,9 @@ class Invoice(Base, TenantMixin):
 
     partner: Mapped["Partner"] = relationship("Partner")
     company: Mapped["Company"] = relationship("Company")
+    salesperson: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[salesperson_id], lazy="selectin"
+    )
 
     @property
     def amount_due(self) -> float:
@@ -73,6 +81,14 @@ class InvoiceLine(Base, TenantMixin):
         ForeignKey("invoices.id", ondelete="CASCADE"), nullable=False, index=True
     )
     product_id: Mapped[int | None] = MappedColumn(ForeignKey("products.id"), nullable=True)
+    # Variante du produit (optionnelle) — ``variant_name`` est un instantané
+    # du libellé (réimpression fidèle des documents).
+    variant_id: Mapped[int | None] = MappedColumn(
+        ForeignKey("product_variants.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    variant_name: Mapped[str | None] = MappedColumn(String(300))
 
     description: Mapped[str | None] = MappedColumn(String(500))
     quantity: Mapped[float] = MappedColumn(Numeric(14, 4), default=1)
@@ -87,6 +103,10 @@ class InvoiceLine(Base, TenantMixin):
     position: Mapped[int] = MappedColumn(Integer, default=0)
 
     invoice: Mapped["Invoice"] = relationship("Invoice", back_populates="lines")
+    product: Mapped["Product"] = relationship("Product", lazy="selectin")
+    variant: Mapped["ProductVariant | None"] = relationship(
+        "ProductVariant", lazy="selectin"
+    )
     cuts: Mapped[list["InvoiceLineCut"]] = relationship(
         "InvoiceLineCut", back_populates="line",
         cascade="all, delete-orphan", lazy="selectin",

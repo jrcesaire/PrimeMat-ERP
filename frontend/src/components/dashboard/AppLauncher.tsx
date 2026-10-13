@@ -23,10 +23,14 @@ function Tile({
   app: AppTile;
   disabled?: boolean;
 }) {
+  const tooltip = disabled
+    ? `${app.label} — Désactivé`
+    : `${app.label} — ${app.description}`;
   const inner = (
     <Card
+      title={tooltip}
       className={cn(
-        "group flex cursor-pointer flex-col items-center gap-2.5 p-4 transition-all duration-200",
+        "group flex cursor-pointer flex-col items-center gap-2 p-3 transition-all duration-200",
         disabled
           ? "cursor-default opacity-55 grayscale"
           : "hover:-translate-y-0.5 hover:shadow-lg"
@@ -34,24 +38,19 @@ function Tile({
     >
       <div
         className={cn(
-          "flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-sm",
+          "flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-sm",
           app.gradient
         )}
       >
-        <app.icon className="h-7 w-7" />
+        <app.icon className="h-6 w-6" />
       </div>
-      <div className="text-center">
-        <p className="text-sm font-semibold text-gray-900">{app.label}</p>
-        <p className="mt-0.5 text-xs leading-tight text-gray-500">
-          {disabled ? "Désactivé" : app.description}
-        </p>
-      </div>
+      <p className="text-center text-sm font-semibold text-gray-900">{app.label}</p>
     </Card>
   );
 
   if (disabled) return inner;
   return (
-    <Link href={app.href} aria-label={app.label}>
+    <Link href={app.href} aria-label={tooltip} title={tooltip}>
       {inner}
     </Link>
   );

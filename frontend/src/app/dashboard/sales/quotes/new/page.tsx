@@ -46,9 +46,11 @@ import { useCurrentUser } from "@/hooks/useAuth";
 import { useSalespersons } from "@/hooks/useUsers";
 import { ClientAutocomplete } from "@/components/crm/client-autocomplete";
 import { ProductPicker } from "@/components/sales/product-picker";
+import { VariantPicker } from "@/components/sales/variant-picker";
 import { printOrder, printQuote } from "@/lib/api/pdf";
+import { handleApiError } from "@/lib/api/client";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import type { Partner, Product } from "@/lib/types";
+import type { Partner, Product, ProductVariant } from "@/lib/types";
 import {
   CutsEditor,
   type LineState,
@@ -60,6 +62,8 @@ function emptyLine(): LineState {
   return {
     key: lineKey++,
     product_id: null,
+    variant_id: null,
+    variant_name: null,
     description: "",
     sell_by_length: false,
     standard_piece: false,
@@ -94,6 +98,21 @@ function lineTotals(line: LineState, product: Product | null) {
   }
   const totalLength = Number(line.quantity) || 0;
   return { totalLength, subtotal: totalLength * price * (1 - disc) };
+}
+
+/**
+ * Message d'erreur lisible pour l'utilisateur : le `detail` FastAPI quand il
+ * existe, sinon un texte exploitable. Sans cela, un 500 — dont le corps est du
+ * texte brut « Internal Server Error », sans champ `detail` — n'affichait que
+ * « Request failed with status code 500 », sans aucun indice sur la cause.
+ */
+function describeError(err: unknown, fallback: string): string {
+  const { message, status } = handleApiError(err);
+  if (!message) return fallback;
+  if (status && status >= 500) {
+    return `${message} — erreur serveur (HTTP ${status}). ${fallback}`;
+  }
+  return message;
 }
 
 const PAYMENT_TERMS = [
@@ -254,6 +273,8 @@ function NewQuotePageInner() {
         return {
           key: lineKey++,
           product_id: l.product_id,
+          variant_id: l.variant_id ?? null,
+          variant_name: l.variant_name ?? null,
           description: l.description ?? "",
           sell_by_length: l.sell_by_length && !isStandardPiece,
           standard_piece: isStandardPiece,
@@ -293,7 +314,22 @@ function NewQuotePageInner() {
   const updateLine = (key: number, patch: Partial<LineState>) =>
     setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
-  const addLine = () => setLines((ls) => [...ls, emptyLine()]);
+  // Une ligne sans produit produirait une ligne de devis vide (« null » côté
+  // API) : on refuse d'en ajouter une nouvelle tant que la précédente n'est
+  // pas renseignée, plutôt que de laisser une erreur 422 à l'enregistrement.
+  const productlessLineIndex = lines.findIndex((l) => l.product_id == null);
+  const hasProductlessLine = productlessLineIndex >= 0;
+  const addLineDisabledReason = hasProductlessLine
+    ? `Sélectionnez un produit sur la ligne ${productlessLineIndex + 1} avant d'ajouter une nouvelle ligne.`
+    : undefined;
+
+  const addLine = () => {
+    if (hasProductlessLine) {
+      setError(addLineDisabledReason ?? null);
+      return;
+    }
+    setLines((ls) => [...ls, emptyLine()]);
+  };
 
   const removeLine = (key: number) =>
     setLines((ls) => (ls.length > 1 ? ls.filter((l) => l.key !== key) : ls));
@@ -307,6 +343,9 @@ function NewQuotePageInner() {
       provided ?? products.find((p) => p.id === productId) ?? null;
     const patch: Partial<LineState> = {
       product_id: productId,
+      // Changer de produit invalide la variante précédente.
+      variant_id: null,
+      variant_name: null,
       standard_piece: false,
       sell_by_length: false,
     };
@@ -319,6 +358,33 @@ function NewQuotePageInner() {
       } else {
         patch.unit_price = Number(product.selling_price) || 0;
       }
+    }
+    updateLine(key, patch);
+  };
+
+  /**
+   * Sélection d'une variante : mémorise le couple (id, libellé) et applique
+   * le prix de la variante s'il en définit un (miroir de la règle backend).
+   */
+  const handleVariantChange = (
+    key: number,
+    variantId: number | null,
+    variant: ProductVariant | null
+  ) => {
+    const line = lines.find((l) => l.key === key);
+    const product = line ? productOf(line) : null;
+    const patch: Partial<LineState> = {
+      variant_id: variantId,
+      variant_name: variant?.name_suffix ?? null,
+    };
+    if (variant) {
+      const byMeter = Number(variant.price_per_meter) || 0;
+      const byPiece = Number(variant.selling_price) || 0;
+      const useMeter =
+        product != null &&
+        (product.sale_mode === "length" || product.sale_mode === "dual");
+      const price = useMeter ? byMeter || byPiece : byPiece || byMeter;
+      if (price > 0) patch.unit_price = price;
     }
     updateLine(key, patch);
   };
@@ -349,6 +415,7 @@ function NewQuotePageInner() {
         if (isBac) {
           return {
             product_id: l.product_id,
+            variant_id: l.variant_id,
             quantity: 1,
             unit: "ml",
             sell_by_length: true,
@@ -362,6 +429,7 @@ function NewQuotePageInner() {
         const totalLen = lineTotals(l, product).totalLength;
         return {
           product_id: l.product_id,
+          variant_id: l.variant_id,
           ...(editingOrder
             ? { quantity_ordered: totalLen }
             : { quantity: l.quantity }),
@@ -438,10 +506,9 @@ function NewQuotePageInner() {
         printQuote(created.id).catch(() => undefined);
       }
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? (err as Error)?.message;
-      setError(detail || "Erreur lors de l'enregistrement.");
+      setError(
+        describeError(err, "Erreur lors de l'enregistrement du devis.")
+      );
     }
   };
 
@@ -452,10 +519,9 @@ function NewQuotePageInner() {
       const order = await confirmQuote.mutateAsync(editId);
       setJustSaved(`Devis confirmé — commande ${order.reference} créée`);
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail;
-      setError(detail || "Erreur lors de la confirmation du devis.");
+      setError(
+        describeError(err, "Erreur lors de la confirmation du devis.")
+      );
     }
   };
 
@@ -466,10 +532,9 @@ function NewQuotePageInner() {
       const res = await createInvoice.mutateAsync({ quoteId: editId });
       router.push(`/dashboard/invoicing/${res.invoice_id}`);
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail;
-      setError(detail || "Erreur lors de la création de la facture.");
+      setError(
+        describeError(err, "Erreur lors de la création de la facture.")
+      );
     }
   };
 
@@ -795,6 +860,13 @@ function NewQuotePageInner() {
                               handleProductChange(line.key, productId, product)
                             }
                           />
+                          <VariantPicker
+                            productId={line.product_id}
+                            value={line.variant_id}
+                            onChange={(variantId, variant) =>
+                              handleVariantChange(line.key, variantId, variant)
+                            }
+                          />
                         </td>
                         <td className="px-3 py-2">
                           {isBac ? (
@@ -971,12 +1043,21 @@ function NewQuotePageInner() {
             </table>
             <div className="border-t border-gray-100 px-3 py-2">
               <button
+                type="button"
                 onClick={addLine}
-                className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                disabled={hasProductlessLine}
+                title={addLineDisabledReason}
+                aria-disabled={hasProductlessLine}
+                className="flex items-center gap-1 text-sm font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:text-gray-400 disabled:no-underline"
               >
                 <Plus className="h-4 w-4" />
                 Ajouter un produit
               </button>
+              {hasProductlessLine && (
+                <p className="mt-1 text-xs text-gray-500">
+                  {addLineDisabledReason}
+                </p>
+              )}
             </div>
           </Card>
         )}
