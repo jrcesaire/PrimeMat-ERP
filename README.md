@@ -2,7 +2,7 @@
 
 Un ERP modulaire et verticalisé pour la gestion, le négoce et la distribution de matériaux de construction.
 
-> Alternative simple, ciblée et modulaire à un ERP généraliste comme Odoo, adaptée aux réalités du commerce de matériaux de construction.
+> Alternative simple, ciblée et modulaire à un ERP généraliste, adaptée aux réalités du commerce de matériaux de construction.
 
 ## Stack technique
 
