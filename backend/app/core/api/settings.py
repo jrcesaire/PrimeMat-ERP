@@ -14,6 +14,7 @@ Endpoints de gestion des paramètres.
 - GET  /settings/watermark    — métadonnées / aperçu du filigrane
 - DELETE /settings/watermark  — suppression du filigrane
 - PUT  /settings/watermark/opacity — opacité du filigrane (1–100 %)
+- PUT  /settings/watermark/saturation — saturation du filigrane (0–100 %, 0 = N&B)
 """
 from __future__ import annotations
 
@@ -236,9 +237,14 @@ async def watermark_info(
     except (TypeError, ValueError):
         opacity = 10
     opacity = min(max(opacity, 1), 100)
+    try:
+        saturation = int(await SettingService(session).get("watermark_saturation", "100"))
+    except (TypeError, ValueError):
+        saturation = 100
+    saturation = min(max(saturation, 0), 100)
     existing = _watermark_existing(_resources_dir())
     if not existing:
-        return {"exists": False, "opacity": opacity}
+        return {"exists": False, "opacity": opacity, "saturation": saturation}
     st = os.stat(existing)
     with open(existing, "rb") as fh:
         raw = fh.read()
@@ -249,6 +255,7 @@ async def watermark_info(
         "modified": st.st_mtime,
         "path": os.path.relpath(existing, _resources_dir()).replace(os.sep, "/"),
         "opacity": opacity,
+        "saturation": saturation,
         "preview": f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}",
     }
 
@@ -292,6 +299,31 @@ async def set_watermark_opacity(
         "Opacité du filigrane des documents A4, en pourcentage (1–100)",
     )
     return {"status": "ok", "opacity": body.value}
+
+
+class WatermarkSaturationIn(BaseModel):
+    """Corps JSON : saturation du filigrane (pourcentage 0–100)."""
+
+    value: int = Field(..., ge=0, le=100, description="Saturation en % (0 = N&B, 100 = couleur)")
+
+
+@router.put("/watermark/saturation")
+async def set_watermark_saturation(
+    session: SessionDep,
+    body: WatermarkSaturationIn,
+    _: User = Depends(require_permission("setting", "edit")),
+):
+    """Réglage de la saturation du filigrane (appliquée aux prochains PDF)."""
+    from app.core.services.setting_service import SettingService
+
+    await SettingService(session).set(
+        "watermark_saturation",
+        body.value,
+        "integer",
+        True,
+        "Saturation du filigrane des documents A4, en pourcentage (0 = N&B, 100 = couleur)",
+    )
+    return {"status": "ok", "saturation": body.value}
 
 
 @router.get("/{key}")

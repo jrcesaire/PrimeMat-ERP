@@ -728,12 +728,39 @@ class DocumentEngine:
             logger.warning("Opacité du filigrane illisible — repli à 10 pourcent")
         return min(max(pct, 1), 100) / 100.0
 
+    def _watermark_saturation(self) -> float:
+        """Saturation du filigrane, facteur 0.0–1.0 (défaut 1.0 = couleur).
+
+        0.0 = niveaux de gris (N&B), 1.0 = couleur pleine.
+        Lue dans le paramètre ``watermark_saturation`` (entier 0–100).
+        Ne lève jamais : repli sur 1.0 en cas d'erreur.
+        """
+        pct = 100
+        try:
+            import asyncio
+
+            from app.core.services.setting_service import SettingService
+
+            async def _get_saturation() -> Any:
+                from app.core.database import AsyncSessionLocal
+
+                async with AsyncSessionLocal() as session:
+                    return await SettingService(session).get(
+                        "watermark_saturation", "100"
+                    )
+
+            pct = int(str(asyncio.run(_get_saturation())).strip())
+        except Exception:  # noqa: BLE001 — repli silencieux sur 100 %
+            logger.warning("Saturation du filigrane illisible — repli à 100 pourcent")
+        return min(max(pct, 0), 100) / 100.0
+
     def _apply_watermark(self, pdf_path: str) -> int:
         """Appose le filigrane par-dessus chaque page du PDF (translucide).
 
         L'image est dessinée centrée (55 % de la largeur) avec l'opacité
-        paramétrée (``watermark_opacity``, 10 % par défaut) via reportlab,
-        puis fusionnée AU-DESSUS du contenu de chaque page
+        paramétrée (``watermark_opacity``, 10 % par défaut) et la saturation
+        paramétrée (``watermark_saturation``, 100 % = couleur, 0 = N&B) via
+        reportlab, puis fusionnée AU-DESSUS du contenu de chaque page
         (``merge_page(..., over=True)``) via pypdf. Le dessus est requis car
         les pages ont un fond opaque (blanc/bleu du template) qui masquerait
         tout filigrane placé en dessous. La faible opacité garantit que le
@@ -748,6 +775,7 @@ class DocumentEngine:
         if wm_path is None:
             return 0
         opacity = self._watermark_opacity()
+        saturation = self._watermark_saturation()
         try:
             import io
 
@@ -762,8 +790,21 @@ class DocumentEngine:
             pw = float(first.mediabox.width)
             ph = float(first.mediabox.height)
 
-            img = ImageReader(wm_path)
-            iw, ih = img.getSize()
+            # Ajustement de la saturation en mémoire via PIL avant dessin
+            from PIL import Image, ImageEnhance
+
+            img_src = Image.open(wm_path)
+            if img_src.mode not in ("RGB", "RGBA"):
+                img_src = img_src.convert("RGBA")
+            if saturation < 1.0:
+                # Image niveaux de gris puis mélange avec l'original selon la saturation
+                gray = ImageEnhance.Color(img_src).enhance(0.0)
+                img_src = Image.blend(gray, img_src, saturation)
+            buf_img = io.BytesIO()
+            img_src.save(buf_img, format="PNG")
+            buf_img.seek(0)
+
+            iw, ih = img_src.size
             scale = (pw * 0.55) / iw
             target_w = iw * scale
             target_h = ih * scale
@@ -782,7 +823,7 @@ class DocumentEngine:
             except Exception:
                 pass
             c.drawImage(
-                img,
+                ImageReader(buf_img),
                 (pw - target_w) / 2,
                 (ph - target_h) / 2,
                 width=target_w,
@@ -797,7 +838,7 @@ class DocumentEngine:
             writer = PdfWriter()
             # Fusion du filigrane PAR-DESSUS chaque page (pypdf : par défaut
             # ``page.merge_page(other)`` place ``other`` au-dessus).  Le fond
-            # opaque du template (body ``background: #fff``, bandeaux bleus)
+            # opaque du template (body ``background: #fff``, bandeaux bleus),
             # masquerait totalement un filigrane placé en dessous — c'était
             # l'origine du bug « filigrane absent ».
             for page in reader.pages:
@@ -1084,13 +1125,18 @@ class DocumentEngine:
         context = asyncio.run(self.context_builder.build_delivery_context(delivery_id))
         return self.render_to_pdf("delivery.html", context)
 
-    def render_purchase_order(self, order_id: int) -> str:
-        """Génère le PDF d'un bon de commande fournisseur."""
-        import asyncio
-        context = asyncio.run(self.context_builder.build_purchase_order_context(order_id))
-        return self.render_to_pdf("purchase_order.html", context)
 
-    # ------------------------------------------------------------------ #
+    async def arender_purchase_order(self, order_id: int) -> str:
+        """Version async de render_purchase_order (routes FastAPI)."""
+        import asyncio
+
+        context = await self.context_builder.build_purchase_order_context(order_id)
+        return await asyncio.to_thread(
+            self.render_to_pdf, "purchase_order.html", context
+        )
+
+
+
     # Gestion des templates (No-Code designer)
     # ------------------------------------------------------------------ #
     def list_templates(self) -> list[str]:

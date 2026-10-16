@@ -203,11 +203,14 @@ function WatermarkCard() {
     size?: number;
     preview?: string;
     opacity?: number;
+    saturation?: number;
   } | null>(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [opacity, setOpacity] = useState(10);
+  const [saturation, setSaturation] = useState(100);
   const [opacitySaved, setOpacitySaved] = useState(false);
+  const [saturationSaved, setSaturationSaved] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refresh = () => {
@@ -216,8 +219,10 @@ function WatermarkCard() {
       .then((res) => {
         setInfo(res.data);
         if (typeof res.data?.opacity === "number") setOpacity(res.data.opacity);
+        if (typeof res.data?.saturation === "number")
+          setSaturation(res.data.saturation);
       })
-      .catch(() => setInfo({ exists: false }));
+      .catch(() => setInfo({ exists: false, opacity: 10, saturation: 100 }));
   };
 
   /** Sauvegarde différée (500 ms) : pas d'appel API à chaque cran du curseur. */
@@ -231,11 +236,28 @@ function WatermarkCard() {
     }
   };
 
+  const saveSaturation = async (v: number) => {
+    try {
+      await apiClient.put("/core/settings/watermark/saturation", { value: v });
+      setSaturationSaved(true);
+      window.setTimeout(() => setSaturationSaved(false), 2500);
+    } catch {
+      setMsg("Échec de l'enregistrement de la saturation.");
+    }
+  };
+
   const onOpacityChange = (v: number) => {
     setOpacity(v);
     setOpacitySaved(false);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => void saveOpacity(v), 500);
+  };
+
+  const onSaturationChange = (v: number) => {
+    setSaturation(v);
+    setSaturationSaved(false);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => void saveSaturation(v), 500);
   };
 
   useEffect(() => {
@@ -351,6 +373,31 @@ function WatermarkCard() {
           Valeur basse = filigrane très discret (recommandé : 5–15 %), valeur
           haute = plus visible mais gêne la lecture.
           {opacitySaved && (
+            <span className="ml-1 font-medium text-green-600">Enregistré ✓</span>
+          )}
+        </p>
+      </div>
+
+      <div className="mt-4 border-t border-gray-100 pt-4">
+        <div className="mb-1 flex items-center justify-between">
+          <label htmlFor="wm-saturation" className="text-sm font-medium text-gray-700">
+            Saturation du filigrane
+          </label>
+          <span className="text-sm font-semibold text-gray-900">{saturation} %</span>
+        </div>
+        <input
+          id="wm-saturation"
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={saturation}
+          onChange={(e) => onSaturationChange(Number(e.target.value))}
+          className="w-full max-w-md cursor-pointer accent-purple-600"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          100 % = couleur pleine, 0 % = niveaux de gris (N&B).
+          {saturationSaved && (
             <span className="ml-1 font-medium text-green-600">Enregistré ✓</span>
           )}
         </p>

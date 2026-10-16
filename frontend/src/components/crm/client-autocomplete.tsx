@@ -10,7 +10,7 @@
  */
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { UserPlus, PencilLine } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ import type { Partner } from "@/lib/types";
 interface Props {
   value: number | null;
   onChange: (partnerId: number | null) => void;
+  /** Nombre de propositions affichées au clic sur un champ vide. */
+  limit?: number;
 }
 
 interface QuickForm {
@@ -30,7 +32,11 @@ interface QuickForm {
   line_1: string;
 }
 
-export function ClientAutocomplete({ value, onChange }: Props) {
+export function ClientAutocomplete({
+  value,
+  onChange,
+  limit = 5,
+}: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Partner[]>([]);
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -41,28 +47,59 @@ export function ClientAutocomplete({ value, onChange }: Props) {
     name: "", phone: "", email: "", city: "", line_1: "",
   });
   const boxRef = useRef<HTMLDivElement>(null);
+  const [initialized, setInitialized] = useState(false);
 
-  useEffect(() => {
-    if (value && selectedName && query === selectedName) return;
-    const q = query.trim();
-    if (q.length < 2) {
+  /** Charge les premiers clients (propositions par défaut au clic). */
+  const loadProposals = useCallback(async () => {
+    try {
+      const res = await apiClient.get(
+        `/crm/partners?role=client&limit=${limit}`
+      );
+      setResults(res.data ?? []);
+      setOpen(true);
+    } catch {
       setResults([]);
-      setOpen(false);
-      return;
     }
+  }, [limit]);
+
+  /** Recherche full-text dès que l'utilisateur tape. Retourne une fonction d'annulation. */
+  const search = useCallback((q: string) => {
+    let cancelled = false;
     const t = setTimeout(async () => {
+      if (cancelled) return;
       try {
         const res = await apiClient.get(
-          `/crm/partners?role=client&search=${encodeURIComponent(q)}`
+          `/crm/partners?role=client&search=${encodeURIComponent(q)}&limit=${limit}`
         );
+        if (cancelled) return;
         setResults(res.data ?? []);
         setOpen(true);
       } catch {
-        setResults([]);
+        if (!cancelled) setResults([]);
       }
     }, 300);
-    return () => clearTimeout(t);
-  }, [query, value, selectedName]);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [limit]);
+
+  useEffect(() => {
+    // Réinitialise la sélection quand la valeur externe change.
+    if (value && selectedName && query === selectedName) return;
+    if (!value) {
+      setSelectedName(null);
+    }
+  }, [value, selectedName, query]);
+
+  useEffect(() => {
+    // Saisie utilisateur : recherche si ≥ 2 car., sinon vide.
+    if (query.trim().length >= 2) {
+      const cancel = search(query.trim());
+      return () => cancel();
+    }
+    setResults([]);
+  }, [query, search]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -135,45 +172,62 @@ export function ClientAutocomplete({ value, onChange }: Props) {
       <Input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => { if (query.trim().length >= 2) setOpen(true); }}
+        onFocus={() => {
+          if (query.trim().length >= 2) {
+            setOpen(true);
+            return;
+          }
+          if (!initialized) {
+            loadProposals();
+            setInitialized(true);
+          } else {
+            setOpen(true);
+          }
+        }}
         placeholder="Tapez le nom du client…"
       />
       {open && (
         <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
-          {results.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => select(p)}
-              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50"
-            >
-              <span className="font-medium text-gray-800">{p.name}</span>
-              <span className="text-xs text-gray-500">{p.phone ?? ""}</span>
-            </button>
-          ))}
-          {query.trim().length >= 2 && (
-            <div className="border-t border-gray-100 p-2">
-              <Button
-                size="sm"
-                className="flex w-full items-center gap-2"
-                disabled={busy}
-                onClick={() => createPartner(false)}
+          {results.length > 0 ? (
+            results.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => select(p)}
+                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50"
               >
-                <UserPlus className="h-4 w-4" />
-                Créer « {query.trim()} » et continuer le devis
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-2 flex w-full items-center gap-2"
-                disabled={busy}
-                onClick={() => createPartner(true)}
-              >
-                <PencilLine className="h-4 w-4" />
-                Créer et compléter le contact
-              </Button>
+                <span className="font-medium text-gray-800">{p.name}</span>
+                <span className="text-xs text-gray-500">{p.phone ?? ""}</span>
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-2 text-xs text-gray-400">
+              Aucun client trouvé
             </div>
           )}
+          <div className="border-t border-gray-100 p-2">
+            <Button
+              size="sm"
+              className="flex w-full items-center gap-2"
+              disabled={busy}
+              onClick={() => createPartner(false)}
+            >
+              <UserPlus className="h-4 w-4" />
+              {query.trim()
+                ? `Créer « ${query.trim()} » et continuer le devis`
+                : "Créer un client et continuer le devis"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2 flex w-full items-center gap-2"
+              disabled={busy}
+              onClick={() => createPartner(true)}
+            >
+              <PencilLine className="h-4 w-4" />
+              Créer et compléter le contact
+            </Button>
+          </div>
         </div>
       )}
 
