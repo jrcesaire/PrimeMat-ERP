@@ -9,6 +9,8 @@ from app.modules.accounting.models.journal_entry import (
     JournalEntry,
     JournalEntryLine,
 )
+from app.modules.accounting.models.exchange_rate import ExchangeRate
+from app.modules.accounting.models.ohada import OHADAParameter
 
 __all__ = [
     "Account",
@@ -16,4 +18,6 @@ __all__ = [
     "Journal",
     "JournalEntry",
     "JournalEntryLine",
+    "ExchangeRate",
+    "OHADAParameter",
 ]

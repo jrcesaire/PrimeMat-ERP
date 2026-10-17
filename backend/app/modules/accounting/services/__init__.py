@@ -11,12 +11,14 @@ from app.modules.accounting.services.posting_service import (
     TREASURY_ACCOUNTS,
     EXPENSE_ACCOUNTS,
 )
+from app.modules.accounting.services.ohada import OHADAService
 
 __all__ = [
     "AccountService",
     "LedgerService",
     "FinancialService",
     "PostingService",
+    "OHADAService",
     "account_type_for",
     "DEFAULT_JOURNALS",
     "TREASURY_ACCOUNTS",
