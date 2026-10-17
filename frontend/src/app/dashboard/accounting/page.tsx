@@ -47,15 +47,25 @@ export default function AccountingPage() {
             États financiers SYSCOHADA (référentiel OHADA)
           </p>
         </div>
-        <Button
-          onClick={() => backfill.mutate()}
-          disabled={backfill.isPending}
-          className="bg-gray-900 text-white hover:bg-gray-700"
-        >
-          {backfill.isPending
-            ? "Comptabilisation…"
-            : "Rattrapage des flux non comptabilisés"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              window.location.href = "/dashboard/accounting/setup";
+            }}
+          >
+            Assistant de configuration
+          </Button>
+          <Button
+            onClick={() => backfill.mutate()}
+            disabled={backfill.isPending}
+            className="bg-gray-900 text-white hover:bg-gray-700"
+          >
+            {backfill.isPending
+              ? "Comptabilisation…"
+              : "Rattrapage des flux non comptabilisés"}
+          </Button>
+        </div>
       </div>
 
       {backfill.isSuccess && (
