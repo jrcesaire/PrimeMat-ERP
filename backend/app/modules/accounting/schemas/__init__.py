@@ -7,6 +7,37 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 # ------------------------------------------------------------------ #
+# Lettrage tiers (InvoiceAllocation)
+# ------------------------------------------------------------------ #
+class InvoiceAllocationCreate(BaseModel):
+    invoice_id: int = Field(gt=0)
+    payment_id: int = Field(gt=0)
+    allocated_amount: float = Field(gt=0)
+    allocation_date: date
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class InvoiceAllocationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    company_id: int
+    invoice_id: int
+    payment_id: int
+    allocated_amount: float
+    allocation_date: date
+    notes: str | None
+
+
+class InvoiceAllocationSummary(BaseModel):
+    invoice_id: int
+    invoice_reference: str
+    amount_total: float
+    allocated_amount: float
+    remaining_amount: float
+
+
+# ------------------------------------------------------------------ #
 # Comptes
 # ------------------------------------------------------------------ #
 class AccountRead(BaseModel):
@@ -123,4 +154,7 @@ __all__ = [
     "JournalEntryLineCreate",
     "JournalEntryRead",
     "JournalEntryLineRead",
+    "InvoiceAllocationCreate",
+    "InvoiceAllocationRead",
+    "InvoiceAllocationSummary",
 ]

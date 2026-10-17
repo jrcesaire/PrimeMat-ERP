@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.services.sequence_service import SequenceService
+from app.modules.accounting.models.invoice_allocation import InvoiceAllocation
 from app.modules.accounting.models.journal_entry import (
     JournalEntry,
     JournalEntryLine,
@@ -276,6 +277,101 @@ class LedgerService:
         total_credit = sum(m["credit"] for m in movements)
         closing = opening + total_debit - total_credit
         return movements, opening, closing, total_debit, total_credit
+
+
+    # ------------------------------------------------------------------ #
+    # Lettrage tiers — rapprochement paiement ↔ facture
+    # ------------------------------------------------------------------ #
+    async def allocate_payment(
+        self,
+        company_id: int,
+        invoice_id: int,
+        payment_id: int,
+        allocated_amount: float,
+        allocation_date: date,
+        notes: str | None = None,
+    ) -> InvoiceAllocation:
+        """Alloue un paiement à une facture (lettrage tiers).
+
+        Vérifie que le montant alloué ne dépasse ni le solde restant de la
+        facture, ni le solde disponible du paiement. L'écriture comptable
+        sous-jacente (D 511 / C 411 ou D 401 / C 511) a déjà été créée lors
+        de la comptabilisation du paiement ; ce lettrage est un marquage
+        analytique qui lie les deux documents.
+        """
+        from app.modules.invoicing.models.invoice import Invoice
+        from app.modules.payments.models.payment import Payment
+
+        invoice = await self.session.get(Invoice, invoice_id)
+        if invoice is None or invoice.company_id != company_id:
+            raise ValueError(f"Facture {invoice_id} introuvable pour cette entreprise")
+
+        payment = await self.session.get(Payment, payment_id)
+        if payment is None or payment.company_id != company_id:
+            raise ValueError(f"Paiement {payment_id} introuvable pour cette entreprise")
+
+        # Solde restant de la facture (montant total - déjà alloué)
+        existing_alloc = await self.session.execute(
+            select(func.coalesce(func.sum(InvoiceAllocation.allocated_amount), 0)).where(
+                InvoiceAllocation.invoice_id == invoice_id
+            )
+        )
+        allocated_so_far = float(existing_alloc.scalar() or 0)
+        invoice_remaining = float(invoice.amount_total) - allocated_so_far
+
+        # Solde disponible du paiement (montant - déjà alloué sur ce paiement)
+        existing_pay_alloc = await self.session.execute(
+            select(func.coalesce(func.sum(InvoiceAllocation.allocated_amount), 0)).where(
+                InvoiceAllocation.payment_id == payment_id
+            )
+        )
+        payment_allocated = float(existing_pay_alloc.scalar() or 0)
+        payment_remaining = float(payment.amount) - payment_allocated
+
+        if allocated_amount <= 0:
+            raise ValueError("Le montant alloué doit être positif")
+        if allocated_amount > invoice_remaining:
+            raise ValueError(
+                f"Montant alloué {allocated_amount} dépasse le solde restant de la facture ({invoice_remaining})"
+            )
+        if allocated_amount > payment_remaining:
+            raise ValueError(
+                f"Montant alloué {allocated_amount} dépasse le solde disponible du paiement ({payment_remaining})"
+            )
+
+        allocation = InvoiceAllocation(
+            invoice_id=invoice_id,
+            payment_id=payment_id,
+            allocated_amount=allocated_amount,
+            allocation_date=allocation_date,
+            notes=notes,
+            company_id=company_id,
+        )
+        self.session.add(allocation)
+        await self.session.flush()
+        return allocation
+
+    async def get_allocations_for_invoice(
+        self, company_id: int, invoice_id: int
+    ) -> list[InvoiceAllocation]:
+        """Retourne tous les lettrages d'une facture."""
+        stmt = select(InvoiceAllocation).where(
+            InvoiceAllocation.company_id == company_id,
+            InvoiceAllocation.invoice_id == invoice_id,
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_allocations_for_payment(
+        self, company_id: int, payment_id: int
+    ) -> list[InvoiceAllocation]:
+        """Retourne tous les lettrages d'un paiement."""
+        stmt = select(InvoiceAllocation).where(
+            InvoiceAllocation.company_id == company_id,
+            InvoiceAllocation.payment_id == payment_id,
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
 
 
 __all__ = ["LedgerService"]
