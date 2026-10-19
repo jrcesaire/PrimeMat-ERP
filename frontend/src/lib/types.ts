@@ -146,6 +146,7 @@ export interface ProductCategory {
   code: string | null;
   description: string | null;
   parent_id: number | null;
+  sale_mode: string;
   is_active: boolean;
   company_id: number;
 }
@@ -629,3 +630,340 @@ export interface ProductVariant {
   is_active: boolean;
   properties: VariantPropertyInfo[];
 }
+
+// ---------------------------------------------------------------------------
+// Module Achats
+// ---------------------------------------------------------------------------
+export interface Supplier {
+  id: number;
+  company_id: number;
+  name: string;
+  code: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  tax_number: string | null;
+  registration_number: string | null;
+  payment_terms_days: number | null;
+  is_active: boolean;
+  role: string;
+  rating: number | null;
+  delivery_days: number | null;
+  category_ids: number[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupplierCreate {
+  name: string;
+  code?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  tax_number?: string | null;
+  registration_number?: string | null;
+  payment_terms_days?: number | null;
+  is_active?: boolean;
+  rating?: number | null;
+  delivery_days?: number | null;
+  category_ids?: number[];
+}
+
+export type SupplierUpdate = Partial<SupplierCreate>;
+
+export interface SupplierSuggest {
+  id: number;
+  name: string;
+  rating: number | null;
+  delivery_days: number | null;
+  last_price: number | null;
+}
+
+export interface PurchaseRequestLine {
+  id: number;
+  request_id: number;
+  product_id: number | null;
+  description: string | null;
+  quantity: number;
+  unit: string | null;
+  estimated_unit_price: number;
+  subtotal: number;
+}
+
+export interface PurchaseRequest {
+  id: number;
+  company_id: number;
+  number: string;
+  requester_id: number | null;
+  validator_id: number | null;
+  supplier_id: number | null;
+  status: string;
+  priority: string;
+  request_date: string;
+  needed_by: string | null;
+  submitted_at: string | null;
+  validated_at: string | null;
+  rejection_reason: string | null;
+  estimated_total: number;
+  notes: string | null;
+  lines: PurchaseRequestLine[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseRequestLineCreate {
+  product_id?: number | null;
+  description?: string | null;
+  quantity?: number;
+  unit?: string | null;
+  estimated_unit_price?: number;
+}
+
+export interface PurchaseRequestCreate {
+  supplier_id?: number | null;
+  priority?: string;
+  request_date?: string | null;
+  needed_by?: string | null;
+  notes?: string | null;
+  lines?: PurchaseRequestLineCreate[];
+}
+
+export interface PurchaseRequestUpdate {
+  supplier_id?: number | null;
+  priority?: string;
+  needed_by?: string | null;
+  notes?: string | null;
+  lines?: PurchaseRequestLineCreate[];
+}
+
+export interface PurchaseOrderLine {
+  id: number;
+  order_id: number;
+  product_id: number | null;
+  description: string | null;
+  quantity: number;
+  quantity_received: number;
+  unit: string | null;
+  unit_price: number;
+  tax_rate: number;
+  discount_percent: number;
+  subtotal: number;
+  tax_amount: number;
+  total: number;
+  quantity_remaining: number;
+}
+
+export interface PurchaseOrder {
+  id: number;
+  company_id: number;
+  number: string;
+  supplier_id: number;
+  origin_request_id: number | null;
+  status: string;
+  order_date: string;
+  expected_date: string | null;
+  currency_code: string;
+  amount_untaxed: number;
+  tax_amount: number;
+  amount_total: number;
+  payment_terms_days: number | null;
+  notes: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  lines: PurchaseOrderLine[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrderLineCreate {
+  product_id?: number | null;
+  description?: string | null;
+  quantity?: number;
+  unit?: string | null;
+  unit_price?: number;
+  tax_rate?: number;
+  discount_percent?: number;
+}
+
+export interface PurchaseOrderCreate {
+  supplier_id: number;
+  origin_request_id?: number | null;
+  order_date?: string | null;
+  expected_date?: string | null;
+  currency_code?: string;
+  payment_terms_days?: number | null;
+  tax_percent?: number;
+  notes?: string | null;
+  lines?: PurchaseOrderLineCreate[];
+}
+
+export interface PurchaseReceptionLine {
+  id: number;
+  reception_id: number;
+  order_line_id: number | null;
+  product_id: number | null;
+  description: string | null;
+  quantity: number;
+  unit_cost: number | null;
+}
+
+export interface PurchaseReception {
+  id: number;
+  company_id: number;
+  number: string;
+  order_id: number;
+  warehouse_id: number;
+  status: string;
+  reception_date: string;
+  validated_at: string | null;
+  received_by: number | null;
+  notes: string | null;
+  lines: PurchaseReceptionLine[];
+  created_at: string;
+  updated_at: string;
+}
+
+
+export interface PurchaseReceptionLineCreate {
+  order_line_id?: number | null;
+  product_id?: number | null;
+  description?: string | null;
+  quantity?: number;
+  unit_cost?: number | null;
+}
+
+export interface PurchaseReceptionCreate {
+  order_id: number;
+  warehouse_id: number;
+  reception_date?: string | null;
+  notes?: string | null;
+  lines?: PurchaseReceptionLineCreate[];
+}
+
+export interface SupplierInvoiceLine {
+  id: number;
+  invoice_id: number;
+  order_line_id: number | null;
+  product_id: number | null;
+  description: string | null;
+  quantity: number;
+  unit_price: number;
+  tax_rate: number;
+  subtotal: number;
+  tax_amount: number;
+}
+
+export interface SupplierInvoice {
+  id: number;
+  company_id: number;
+  reference: string;
+  supplier_invoice_number: string | null;
+  supplier_id: number;
+  order_id: number | null;
+  reception_id: number | null;
+  status: string;
+  invoice_date: string;
+  due_date: string | null;
+  currency_code: string;
+  amount_untaxed: number;
+  tax_amount: number;
+  amount_total: number;
+  paid_amount: number;
+  amount_due: number;
+  matching_status: string | null;
+  matching_details: Record<string, unknown> | null;
+  posted_at: string | null;
+  notes: string | null;
+  lines: SupplierInvoiceLine[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupplierInvoiceLineCreate {
+  order_line_id?: number | null;
+  product_id?: number | null;
+  description?: string | null;
+  quantity?: number;
+  unit_price?: number;
+  tax_rate?: number;
+}
+
+export interface SupplierInvoiceCreate {
+  supplier_id: number;
+  supplier_invoice_number?: string | null;
+  order_id?: number | null;
+  reception_id?: number | null;
+  invoice_date?: string | null;
+  due_date?: string | null;
+  currency_code?: string;
+  notes?: string | null;
+  lines?: SupplierInvoiceLineCreate[];
+}
+
+export interface SupplierInvoicePay {
+  amount: number;
+  payment_date?: string | null;
+  method?: string;
+}
+
+export interface MatchingLineDetail {
+  product_id?: number | null;
+  description?: string | null;
+  ordered_qty?: number;
+  received_qty?: number;
+  invoiced_qty?: number;
+  po_unit_price?: number | null;
+  invoice_unit_price?: number | null;
+  issues?: string[];
+}
+
+export interface MatchingResult {
+  status: string;
+  lines?: MatchingLineDetail[];
+  ordered_total?: number | null;
+  invoiced_total?: number | null;
+}
+
+// --- Avoirs / notes de crédit (comptabilité) ---
+export interface CreditNote {
+  id: number;
+  company_id: number;
+  reference: string;
+  original_invoice_id: number | null;
+  partner_id: number | null;
+  type: "customer" | "supplier";
+  amount_untaxed: number;
+  tax_amount: number;
+  amount_total: number;
+  currency_code: string;
+  status: "draft" | "issued" | "applied";
+  credit_date: string;
+  reason: string | null;
+  notes: string | null;
+  journal_entry_id: number | null;
+  amount_due: number;
+}
+
+export interface CreditNoteCreate {
+  original_invoice_id?: number | null;
+  partner_id?: number | null;
+  type: "customer" | "supplier";
+  amount_untaxed?: number;
+  tax_amount?: number;
+  amount_total?: number;
+  currency_code?: string;
+  credit_date?: string | null;
+  reason?: string | null;
+  notes?: string | null;
+}
+
+export interface CreditNoteIssue {
+  credit_date?: string | null;
+  notes?: string | null;
+}
+
+export interface CreditNoteApply {
+  invoice_id: number;
+  amount_to_apply?: number | null;
+}
+

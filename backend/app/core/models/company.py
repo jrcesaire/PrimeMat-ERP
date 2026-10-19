@@ -4,10 +4,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String, Table, Text
+from enum import Enum as PyEnum
+
+from sqlalchemy import JSON, Boolean, Column, Enum, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.orm import Mapped, MappedColumn, relationship
 
 from app.core.database import Base
+from app.shared.enums import TaxRegime
 
 
 # Table d'association Entreprise <-> Devise autorisée
@@ -61,6 +64,16 @@ class Company(Base):
         String(3), ForeignKey("currencies.code"), nullable=False, default="XOF"
     )
     tax_country: Mapped[str | None] = MappedColumn(String(2))
+
+    # Régime fiscal OHADA Côte d'Ivoire — pas de basculement automatique,
+    # pas de blocage : alerte uniquement en cas de dépassement de seuil CA.
+    tax_regime: Mapped[TaxRegime | None] = MappedColumn(
+        Enum(TaxRegime), nullable=True, default=None
+    )
+    suggested_tax_regime: Mapped[TaxRegime | None] = MappedColumn(
+        Enum(TaxRegime), nullable=True, default=None
+    )
+
     is_active: Mapped[bool] = MappedColumn(Boolean, default=True)
 
     created_at: Mapped[datetime] = MappedColumn(default=datetime.utcnow, nullable=False)

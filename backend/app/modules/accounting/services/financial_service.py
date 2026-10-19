@@ -20,11 +20,16 @@ from __future__ import annotations
 import logging
 from datetime import date
 
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.accounting.models.account import Account
+from app.modules.accounting.models.journal_entry import JournalEntry, JournalEntryLine
 from app.modules.accounting.services.account_service import AccountService
 from app.modules.accounting.services.journal_service import LedgerService
+from app.modules.crm.models.partner import Partner
+from app.modules.invoicing.models.invoice import Invoice
+from app.modules.purchases.models import SupplierInvoice
 
 logger = logging.getLogger(__name__)
 
@@ -389,6 +394,194 @@ class FinancialService:
             "total_assets": total_assets,
             "total_liabilities": total_liabilities,
             "net_income": closing_result,
+        }
+
+    # ------------------------------------------------------------------ #
+    # Balance âgée (aging clients / fournisseurs)
+    # ------------------------------------------------------------------ #
+    async def aged_balance(
+        self,
+        company_id: int,
+        partner_type: str = "customer",
+        as_of: date | None = None,
+    ) -> dict:
+        """Balance âgée par tiers : créances (clients) ou dettes (fournisseurs).
+
+        Tranches d'échéance : ``not_due`` (non échues), ``d0_30``, ``d31_60``,
+        ``d61_90``, ``d90_plus`` jours de retard. L'ancienneté se calcule
+        depuis ``due_date`` (à défaut ``invoice_date``).
+
+        Seules les factures non soldées émises au plus tard ``as_of`` sont
+        retenues — brouillons, proformas, annulations et avoirs exclus.
+        """
+        as_of = as_of or date.today()
+        excluded = ("draft", "proforma", "cancelled", "credit")
+
+        if partner_type == "supplier":
+            residual = SupplierInvoice.amount_total - SupplierInvoice.paid_amount
+            stmt = (
+                select(SupplierInvoice, Partner.name.label("partner_name"))
+                .join(Partner, Partner.id == SupplierInvoice.supplier_id)
+                .where(
+                    SupplierInvoice.company_id == company_id,
+                    ~SupplierInvoice.status.in_(excluded),
+                    residual > 0.005,
+                    SupplierInvoice.invoice_date <= as_of,
+                )
+            )
+        else:
+            partner_type = "customer"
+            residual = Invoice.amount_total - Invoice.paid_amount
+            stmt = (
+                select(Invoice, Partner.name.label("partner_name"))
+                .join(Partner, Partner.id == Invoice.partner_id)
+                .where(
+                    Invoice.company_id == company_id,
+                    ~Invoice.status.in_(excluded),
+                    residual > 0.005,
+                    Invoice.invoice_date <= as_of,
+                )
+            )
+
+        rows = (await self.session.execute(stmt)).all()
+
+        grouped: dict[int, dict] = {}
+        for obj, partner_name in rows:
+            due = obj.due_date or obj.invoice_date
+            late_days = (as_of - due).days
+            if late_days < 0:
+                key = "not_due"
+            elif late_days <= 30:
+                key = "d0_30"
+            elif late_days <= 60:
+                key = "d31_60"
+            elif late_days <= 90:
+                key = "d61_90"
+            else:
+                key = "d90_plus"
+
+            pid = obj.partner_id if partner_type == "customer" else obj.supplier_id
+            entry = grouped.get(pid)
+            if entry is None:
+                entry = grouped[pid] = {
+                    "partner_id": pid,
+                    "partner_name": partner_name,
+                    "invoice_count": 0,
+                    "total_due": 0.0,
+                    "not_due": 0.0,
+                    "d0_30": 0.0,
+                    "d31_60": 0.0,
+                    "d61_90": 0.0,
+                    "d90_plus": 0.0,
+                }
+            amount = max(float(obj.amount_total) - float(obj.paid_amount), 0.0)
+            entry["invoice_count"] += 1
+            entry["total_due"] += amount
+            entry[key] += amount
+
+        keys = ("total_due", "not_due", "d0_30", "d31_60", "d61_90", "d90_plus")
+        lines = sorted(grouped.values(), key=lambda x: -x["total_due"])
+        totals = {k: 0.0 for k in keys}
+        for line in lines:
+            for k in keys:
+                line[k] = round(line[k], 2)
+                totals[k] += line[k]
+        totals = {k: round(v, 2) for k, v in totals.items()}
+
+        return {
+            "company_id": company_id,
+            "partner_type": partner_type,
+            "as_of": as_of,
+            "lines": lines,
+            "totals": totals,
+            "total_due": totals["total_due"],
+        }
+
+    # ------------------------------------------------------------------ #
+    # Cash-flow (flux de trésorerie)
+    # ------------------------------------------------------------------ #
+    async def cash_flow(
+        self,
+        company_id: int,
+        date_from: date | None = None,
+        date_to: date | None = None,
+    ) -> dict:
+        """Flux de trésorerie : soldes d'ouverture/fin et mouvements par compte.
+
+        Ne retient que les comptes de trésorerie (51x-53x, 54x, 55x, 57x,
+        58x) des écritures ``posted``. ``inflows`` = débits (encaissements),
+        ``outflows`` = crédits (décaissements), valeurs positives.
+        """
+        prefixes = ("51", "52", "53", "54", "55", "57", "58")
+        is_treasury = or_(
+            *[JournalEntryLine.account_code.like(f"{p}%") for p in prefixes]
+        )
+        account_map = await self._account_map(company_id)
+
+        async def _movements(
+            before: date | None = None,
+            start: date | None = None,
+            end: date | None = None,
+        ) -> dict[str, tuple[float, float]]:
+            stmt = (
+                select(
+                    JournalEntryLine.account_code,
+                    func.coalesce(func.sum(JournalEntryLine.debit), 0.0).label("d"),
+                    func.coalesce(func.sum(JournalEntryLine.credit), 0.0).label("c"),
+                )
+                .join(JournalEntry, JournalEntry.id == JournalEntryLine.entry_id)
+                .where(
+                    JournalEntry.company_id == company_id,
+                    JournalEntry.status == "posted",
+                    is_treasury,
+                )
+                .group_by(JournalEntryLine.account_code)
+            )
+            if before is not None:
+                stmt = stmt.where(JournalEntry.entry_date < before)
+            if start is not None:
+                stmt = stmt.where(JournalEntry.entry_date >= start)
+            if end is not None:
+                stmt = stmt.where(JournalEntry.entry_date <= end)
+            rows = (await self.session.execute(stmt)).all()
+            return {code: (float(d), float(c)) for code, d, c in rows}
+
+        opening_map = await _movements(before=date_from) if date_from else {}
+        period_map = await _movements(start=date_from, end=date_to)
+
+        by_account: list[dict] = []
+        opening_balance = inflows = outflows = 0.0
+        for code in sorted(set(opening_map) | set(period_map)):
+            od, oc = opening_map.get(code, (0.0, 0.0))
+            d, c = period_map.get(code, (0.0, 0.0))
+            open_bal = od - oc
+            close_bal = open_bal + d - c
+            account = account_map.get(code)
+            by_account.append(
+                {
+                    "account_code": code,
+                    "account_name": account.name if account else code,
+                    "opening_balance": round(open_bal, 2),
+                    "inflows": round(d, 2),
+                    "outflows": round(c, 2),
+                    "net_flow": round(d - c, 2),
+                    "closing_balance": round(close_bal, 2),
+                }
+            )
+            opening_balance += open_bal
+            inflows += d
+            outflows += c
+
+        return {
+            "company_id": company_id,
+            "date_from": date_from,
+            "date_to": date_to,
+            "opening_balance": round(opening_balance, 2),
+            "inflows": round(inflows, 2),
+            "outflows": round(outflows, 2),
+            "net_flow": round(inflows - outflows, 2),
+            "closing_balance": round(opening_balance + inflows - outflows, 2),
+            "by_account": by_account,
         }
 
 

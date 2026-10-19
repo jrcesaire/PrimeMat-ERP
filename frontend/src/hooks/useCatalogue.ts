@@ -105,14 +105,52 @@ export function useCreateCategory() {
   return useMutation({
     mutationFn: async (data: {
       name: string;
-      code?: string;
-      parent_id?: number;
+      code?: string | null;
+      description?: string | null;
+      parent_id?: number | null;
       sale_mode?: string;
     }): Promise<ProductCategory> => {
       const res = await apiClient.post("/catalogue/categories", data);
       queryClient.invalidateQueries({ queryKey: [CATALOGUE_KEYS.categories] });
       queryClient.invalidateQueries({ queryKey: ["catalogue-category-tree"] });
       return res.data;
+    },
+  });
+}
+
+/** Modifie une catégorie existante. */
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: {
+        name?: string;
+        code?: string | null;
+        description?: string | null;
+        parent_id?: number | null;
+        sale_mode?: string;
+      };
+    }): Promise<ProductCategory> => {
+      const res = await apiClient.put(`/catalogue/categories/${id}`, data);
+      queryClient.invalidateQueries({ queryKey: [CATALOGUE_KEYS.categories] });
+      queryClient.invalidateQueries({ queryKey: ["catalogue-category-tree"] });
+      return res.data;
+    },
+  });
+}
+
+/** Supprime une catégorie (204 attendu). */
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number): Promise<void> => {
+      await apiClient.delete(`/catalogue/categories/${id}`);
+      queryClient.invalidateQueries({ queryKey: [CATALOGUE_KEYS.categories] });
+      queryClient.invalidateQueries({ queryKey: ["catalogue-category-tree"] });
     },
   });
 }

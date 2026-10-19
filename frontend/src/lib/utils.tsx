@@ -42,6 +42,21 @@ export const STATUS_LABELS: Record<string, { label: string; className: string }>
   completed: { label: "Terminé", className: "bg-green-100 text-green-800" },
   cancelled: { label: "Annulé", className: "bg-red-100 text-red-700" },
   converted: { label: "Converti", className: "bg-purple-100 text-purple-800" },
+  // --- Achats ---
+  submitted: { label: "Soumis", className: "bg-blue-100 text-blue-800" },
+  approved: { label: "Approuvé", className: "bg-green-100 text-green-800" },
+  rejected: { label: "Rejeté", className: "bg-red-100 text-red-700" },
+  partially_received: {
+    label: "Partiellement reçu",
+    className: "bg-amber-100 text-amber-800",
+  },
+  received: { label: "Reçu", className: "bg-green-100 text-green-800" },
+  done: { label: "Terminé", className: "bg-green-100 text-green-800" },
+  validated: { label: "Validé", className: "bg-green-100 text-green-800" },
+  match_ok: { label: "Rapproché", className: "bg-green-100 text-green-800" },
+  qty_diff: { label: "Écart quantité", className: "bg-amber-100 text-amber-800" },
+  price_diff: { label: "Écart prix", className: "bg-amber-100 text-amber-800" },
+  no_reference: { label: "Sans référence", className: "bg-red-100 text-red-700" },
 };
 
 export function StatusBadge({ status }: { status: string }) {

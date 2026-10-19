@@ -1,6 +1,6 @@
 """Routeurs API du module Finance."""
-from app.modules.finance.api import expenses
+from app.modules.finance.api import expenses, routes_treasury
 
-routers = [expenses.router]
+routers = [expenses.router, routes_treasury.router]
 
-__all__ = ["expenses", "routers"]
+__all__ = ["expenses", "routes_treasury", "routers"]

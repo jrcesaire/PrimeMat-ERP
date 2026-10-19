@@ -28,6 +28,14 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "entries", label: "Écritures" },
 ];
 
+const QUICK_LINKS: { label: string; href: string }[] = [
+  { label: "Lettrage", href: "/dashboard/accounting/allocations" },
+  { label: "Avoirs", href: "/dashboard/accounting/credit-notes" },
+  { label: "Régime fiscal", href: "/dashboard/accounting/fiscal-regime" },
+  { label: "Balance âgée", href: "/dashboard/accounting/aged-balance" },
+  { label: "Cash-flow", href: "/dashboard/accounting/cash-flow" },
+];
+
 export default function AccountingPage() {
   const [tab, setTab] = useState<Tab>("balance");
   const trial = useTrialBalance();
@@ -66,6 +74,18 @@ export default function AccountingPage() {
               : "Rattrapage des flux non comptabilisés"}
           </Button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {QUICK_LINKS.map((l) => (
+          <a
+            key={l.href}
+            href={l.href}
+            className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          >
+            {l.label}
+          </a>
+        ))}
       </div>
 
       {backfill.isSuccess && (

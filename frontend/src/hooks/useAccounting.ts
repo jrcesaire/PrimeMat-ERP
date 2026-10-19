@@ -8,12 +8,20 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
+import {
+  CreditNote,
+  CreditNoteApply,
+  CreditNoteCreate,
+  CreditNoteIssue,
+} from "@/lib/types";
 
 export const ACCOUNTING_KEYS = {
   trialBalance: "accounting-trial-balance",
   incomeStatement: "accounting-income-statement",
   balanceSheet: "accounting-balance-sheet",
   journalEntries: "accounting-journal-entries",
+  agedBalance: "accounting-aged-balance",
+  cashFlow: "accounting-cash-flow",
 };
 
 // --- Types (réponses API) ---
@@ -49,6 +57,58 @@ export interface IncomeStatement {
 export interface BalanceSheetLine {
   label: string;
   amount: number;
+}
+
+// --- Balance âgée ---
+export interface AgedBalanceLine {
+  partner_id: number;
+  partner_name: string;
+  invoice_count: number;
+  total_due: number;
+  not_due: number;
+  d0_30: number;
+  d31_60: number;
+  d61_90: number;
+  d90_plus: number;
+}
+
+export interface AgedBalanceTotals {
+  total_due: number;
+  not_due: number;
+  d0_30: number;
+  d31_60: number;
+  d61_90: number;
+  d90_plus: number;
+}
+
+export interface AgedBalance {
+  partner_type: "customer" | "supplier";
+  as_of: string;
+  lines: AgedBalanceLine[];
+  totals: AgedBalanceTotals;
+  total_due: number;
+}
+
+// --- Cash-flow ---
+export interface CashFlowAccount {
+  account_code: string;
+  account_name: string;
+  opening_balance: number;
+  inflows: number;
+  outflows: number;
+  net_flow: number;
+  closing_balance: number;
+}
+
+export interface CashFlow {
+  date_from: string | null;
+  date_to: string | null;
+  opening_balance: number;
+  inflows: number;
+  outflows: number;
+  net_flow: number;
+  closing_balance: number;
+  by_account: CashFlowAccount[];
 }
 
 export interface BalanceSheet {
@@ -115,6 +175,44 @@ export function useBalanceSheet() {
   });
 }
 
+// --- Balance âgée ---
+export function useAgedBalance(
+  params?: { partner_type?: "customer" | "supplier"; as_of?: string }
+) {
+  const partnerType = params?.partner_type ?? "customer";
+  const asOf = params?.as_of;
+  return useQuery({
+    queryKey: [ACCOUNTING_KEYS.agedBalance, partnerType, asOf ?? null],
+    queryFn: async (): Promise<AgedBalance> => {
+      const res = await apiClient.get("/accounting/financial/aged-balance", {
+        params: {
+          partner_type: partnerType,
+          ...(asOf ? { as_of: asOf } : {}),
+        },
+      });
+      return res.data;
+    },
+  });
+}
+
+// --- Cash-flow ---
+export function useCashFlow(params?: { date_from?: string; date_to?: string }) {
+  const dateFrom = params?.date_from;
+  const dateTo = params?.date_to;
+  return useQuery({
+    queryKey: [ACCOUNTING_KEYS.cashFlow, dateFrom ?? null, dateTo ?? null],
+    queryFn: async (): Promise<CashFlow> => {
+      const res = await apiClient.get("/accounting/financial/cash-flow", {
+        params: {
+          ...(dateFrom ? { date_from: dateFrom } : {}),
+          ...(dateTo ? { date_to: dateTo } : {}),
+        },
+      });
+      return res.data;
+    },
+  });
+}
+
 // --- Écritures du journal ---
 export function useJournalEntries(limit = 50) {
   return useQuery({
@@ -150,9 +248,91 @@ export function useBackfill() {
       queryClient.invalidateQueries({
         queryKey: [ACCOUNTING_KEYS.balanceSheet],
       });
-      queryClient.invalidateQueries({
-        queryKey: [ACCOUNTING_KEYS.journalEntries],
-      });
+    },
+  });
+}
+
+// --------------------------------------------------------------------------- //
+// Avoirs / notes de crédit
+// --------------------------------------------------------------------------- //
+export const CREDIT_NOTE_KEYS = {
+  list: "accounting-credit-notes",
+};
+
+/**
+ * Liste des avoirs de l'entreprise.
+ * Params optionnels : status, partner_id, type (customer|supplier).
+ */
+export function useCreditNotes(params?: {
+  status?: string;
+  partner_id?: number;
+  type?: string;
+}) {
+  return useQuery({
+    queryKey: [CREDIT_NOTE_KEYS.list, params ?? {}],
+    queryFn: async (): Promise<CreditNote[]> => {
+      const res = await apiClient.get("/accounting/credit-notes", { params });
+      return Array.isArray(res.data) ? res.data : [];
+    },
+  });
+}
+
+/** Créer un avoir (brouillon). */
+export function useCreateCreditNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: CreditNoteCreate): Promise<CreditNote> => {
+      const res = await apiClient.post("/accounting/credit-notes", data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CREDIT_NOTE_KEYS.list] });
+    },
+  });
+}
+
+/** Émettre (comptabiliser) un avoir : draft → issued. */
+export function useIssueCreditNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: CreditNoteIssue;
+    }): Promise<CreditNote> => {
+      const res = await apiClient.post(
+        `/accounting/credit-notes/${id}/issue`,
+        data
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CREDIT_NOTE_KEYS.list] });
+    },
+  });
+}
+
+/** Imputer un avoir sur une facture : issued → applied. */
+export function useApplyCreditNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: CreditNoteApply;
+    }): Promise<CreditNote> => {
+      const res = await apiClient.post(
+        `/accounting/credit-notes/${id}/apply`,
+        data
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CREDIT_NOTE_KEYS.list] });
     },
   });
 }

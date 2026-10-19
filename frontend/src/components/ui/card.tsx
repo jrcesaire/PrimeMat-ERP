@@ -42,3 +42,32 @@ export const CardTitle = forwardRef<
   />
 ));
 CardTitle.displayName = "CardTitle";
+
+export const CardDescription = forwardRef<HTMLParagraphElement, CardProps>(
+  ({ className, ...props }, ref) => (
+    <p
+      ref={ref}
+      className={cn("text-sm text-gray-500", className)}
+      {...props}
+    />
+  ),
+);
+CardDescription.displayName = "CardDescription";
+
+export const CardContent = forwardRef<HTMLDivElement, CardProps>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("", className)} {...props} />
+  ),
+);
+CardContent.displayName = "CardContent";
+
+export const CardFooter = forwardRef<HTMLDivElement, CardProps>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn("mt-4 flex items-center gap-2", className)}
+      {...props}
+    />
+  ),
+);
+CardFooter.displayName = "CardFooter";

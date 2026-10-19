@@ -69,7 +69,6 @@ async def trial_balance(
 ):
     """Balance de vérification : soldes résiduels non nuls."""
     service = FinancialService(session)
-    service = FinancialService(session)
     return await service.trial_balance(company_id)
 
 
@@ -153,4 +152,48 @@ async def journal_report(
         date_to=await _parse_date(date_to),
     )
 
-    return await service.trial_balance(company_id)
+
+# ------------------------------------------------------------------ #
+# Balance âgée
+# ------------------------------------------------------------------ #
+@router.get("/financial/aged-balance")
+async def aged_balance(
+    session: SessionDep,
+    company_id: int = Depends(get_current_company_id),
+    partner_type: str = Query(
+        default="customer", description="'customer' ou 'supplier'"
+    ),
+    as_of: str | None = Query(default=None, description="Situation au (YYYY-MM-DD)"),
+    _: User = Depends(require_permission("account", "view")),
+):
+    """Balance âgée par tiers : créances/dettes par tranches d'échéance."""
+    if partner_type not in ("customer", "supplier"):
+        raise HTTPException(
+            status_code=400, detail="partner_type doit être customer ou supplier"
+        )
+    service = FinancialService(session)
+    return await service.aged_balance(
+        company_id,
+        partner_type=partner_type,
+        as_of=await _parse_date(as_of),
+    )
+
+
+# ------------------------------------------------------------------ #
+# Cash-flow
+# ------------------------------------------------------------------ #
+@router.get("/financial/cash-flow")
+async def cash_flow(
+    session: SessionDep,
+    company_id: int = Depends(get_current_company_id),
+    date_from: str | None = Query(default=None, description="Début (YYYY-MM-DD)"),
+    date_to: str | None = Query(default=None, description="Fin (YYYY-MM-DD)"),
+    _: User = Depends(require_permission("account", "view")),
+):
+    """Flux de trésorerie : soldes d'ouverture/fin et mouvements par compte."""
+    service = FinancialService(session)
+    return await service.cash_flow(
+        company_id,
+        date_from=await _parse_date(date_from),
+        date_to=await _parse_date(date_to),
+    )

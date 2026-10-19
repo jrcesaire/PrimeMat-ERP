@@ -26,6 +26,13 @@ DEFAULT_SETTINGS: dict[str, dict[str, Any]] = {
     "tax_enabled": {"value": "true", "type": "boolean", "is_public": True},
     "discount_enabled": {"value": "true", "type": "boolean", "is_public": True},
     "payment_terms_days": {"value": "30", "type": "integer", "is_public": True},
+    # Seuil de validation hiérarchique des demandes d'achat
+    "purchase_approval_threshold": {
+        "value": "500000",
+        "type": "integer",
+        "is_public": True,
+        "description": "Seuil de validation hiérarchique des demandes d'achat (FCFA)",
+    },
     # Conditions generales de vente (derniere page des devis et factures)
     "cgv_content": {
         "value": "",

@@ -13,11 +13,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, Date, Float, ForeignKey, Integer, Numeric, String
+from sqlalchemy import JSON, Boolean, Date, Float, ForeignKey, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, MappedColumn, relationship
 
 from app.core.database import Base, TenantMixin
 from app.shared.enums import AddressType, EntityType, Gender
+from app.modules.catalogue.models.product import ProductCategory
 
 
 class Partner(Base, TenantMixin):
@@ -50,6 +51,10 @@ class Partner(Base, TenantMixin):
     price_list_id: Mapped[int | None] = MappedColumn(Integer)
     default_discount: Mapped[float | None] = MappedColumn(Numeric(6, 2))
 
+    # Fournisseurs — évaluation (1-5) et délai d'approvisionnement moyen
+    rating: Mapped[float | None] = MappedColumn(Numeric(3, 2))
+    delivery_days: Mapped[int | None] = MappedColumn(Integer)
+
     # Statut
     is_active: Mapped[bool] = MappedColumn(Boolean, default=True)
 
@@ -64,6 +69,11 @@ class Partner(Base, TenantMixin):
     )
     sites: Mapped[list["Site"]] = relationship(
         "Site", back_populates="partner",
+        cascade="all, delete-orphan", lazy="selectin",
+    )
+    # Classification fournisseur : catégories de produits approvisionnées
+    category_links: Mapped[list["PartnerCategory"]] = relationship(
+        "PartnerCategory", back_populates="partner",
         cascade="all, delete-orphan", lazy="selectin",
     )
 
@@ -121,3 +131,31 @@ class PartnerAddress(Base, TenantMixin):
 
     def __repr__(self) -> str:
         return f"<PartnerAddress {self.address_type} - {self.city}>"
+
+
+class PartnerCategory(Base, TenantMixin):
+    """
+    Classification fournisseur <-> catégories de produits.
+
+    Un fournisseur est rattaché aux catégories de produits qu'il
+    approvisionne — base du suggesteur de fournisseurs par produit (BC).
+    """
+
+    partner_id: Mapped[int] = MappedColumn(
+        ForeignKey("partners.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    category_id: Mapped[int] = MappedColumn(
+        ForeignKey("product_categories.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    partner: Mapped["Partner"] = relationship("Partner", back_populates="category_links")
+    category: Mapped["ProductCategory"] = relationship(ProductCategory, lazy="selectin")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "partner_id", "category_id", name="uq_partner_category"
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return f"<PartnerCategory partner={self.partner_id} cat={self.category_id}>"

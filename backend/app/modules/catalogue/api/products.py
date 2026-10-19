@@ -221,13 +221,50 @@ async def get_category_tree(
 async def create_category(
     session: SessionDep,
     body: ProductCategoryCreate,
-    _: User = Depends(require_permission("category", "create")),
+    user: User = Depends(require_permission("category", "create")),
 ):
-    category = ProductCategory(**body.model_dump())
+    category = ProductCategory(**body.model_dump(), company_id=user.company_id)
     session.add(category)
     await session.commit()
     await session.refresh(category)
     return category
+
+
+@router.put(
+    "/categories/{category_id}",
+    response_model=ProductCategoryRead,
+)
+async def update_category(
+    session: SessionDep,
+    category_id: int,
+    body: ProductCategoryCreate,
+    _: User = Depends(require_permission("category", "edit")),
+):
+    category = await session.get(ProductCategory, category_id)
+    if category is None:
+        raise HTTPException(status_code=404, detail="Catégorie introuvable")
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(category, field, value)
+    await session.commit()
+    await session.refresh(category)
+    return category
+
+
+@router.delete(
+    "/categories/{category_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_category(
+    session: SessionDep,
+    category_id: int,
+    _: User = Depends(require_permission("category", "delete")),
+):
+    category = await session.get(ProductCategory, category_id)
+    if category is None:
+        raise HTTPException(status_code=404, detail="Catégorie introuvable")
+    await session.delete(category)
+    await session.commit()
+    return None
 
 
 # ------------------------------------------------------------------ #

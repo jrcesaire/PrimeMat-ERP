@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>{{ doc_title }}</title><style>
+{% include "_model_base.html" %}
+</style></head>
+<body>
+<div class="model-head">
+  <div class="model-head-top">
+    <div class="model-brand">
+      {% if company and company.logo %}<img src="{{ company.logo }}" alt=""/>{% endif %}
+      <span>{{ company.name if company }}</span>
+    </div>
+    <div class="model-dots"><span></span><span></span><span></span></div>
+  </div>
+  <div class="model-head-main">
+    <div>
+      <p class="model-title">Bon de<br>Commande</p>
+      <div class="model-ref"><b>N° BC</b> &nbsp; : &nbsp; {{ order.number }}</div>
+    </div>
+    <div class="model-meta">
+      <p class="lbl">Date :</p>
+      <p class="val">{{ fmt_date(order.order_date) or '—' }}</p>
+      {% if order.expected_date %}<p class="lbl">Livraison prévue :</p><p class="val">{{ fmt_date(order.expected_date) }}</p>{% endif %}
+      <p class="lbl">Fournisseur :</p>
+      <p class="val"><b>{{ supplier.name if supplier }}</b><br>
+      {% if supplier.address %}{{ fmt_addr(supplier) }}<br>{% endif %}
+      {% if supplier.phone %}Tél. : {{ supplier.phone }}<br>{% endif %}
+      {% if supplier.email %}{{ supplier.email }}{% endif %}</p>
+    </div>
+  </div>
+</div>
+
+<div class="model-card">
+  <p class="model-section-title">Liste des articles</p>
+  <table class="model-items">
+    <thead><tr>
+      <td style="width:8%" class="ctr">N°</td>
+      <td>Désignation</td>
+      <td style="width:11%" class="ctr">Qté</td>
+      <td style="width:9%" class="ctr">Unité</td>
+      <td style="width:16%" class="num">P.U. HT</td>
+      <td style="width:18%" class="num">Total HT</td>
+    </tr></thead>
+    <tbody>
+    {% for line in lines %}
+      <tr class="{% if loop.index0 % 2 == 1 %}alt{% endif %}">
+        <td class="ctr">{{ '%03d' % loop.index }}</td>
+        <td>{{ line.description or 'Produit' }}</td>
+        <td class="ctr">{{ fmt_num(line.quantity, 2) }}</td>
+        <td class="ctr">{{ line.unit or 'Unité' }}</td>
+        <td class="num">{{ fmt_num(line.unit_price, 2) }}</td>
+        <td class="num"><b>{{ fmt_num(line.subtotal, 2) }}</b></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="model-totals">
+    <div class="row"><span>Sous-total HT</span><b>{{ fmt_num(order.amount_untaxed) }}</b></div>
+    {% if order.tax_amount %}<div class="row"><span>TVA</span><b>{{ fmt_num(order.tax_amount) }}</b></div>{% endif %}
+    <div class="grand"><span>Total</span><span style="float:right">{{ fmt_num(order.amount_total) }} {{ currency }}</span></div>
+    <div class="amount-words">
+      Arrêté au fournisseur à la somme de :<br>
+      <b>{{ amount_in_words(order.amount_total, currency) }}</b>
+    </div>
+  </div>
+
+  {% if order.payment_terms_days %}
+  <div class="model-note">
+    <div class="model-note-title">Conditions de paiement</div>
+    <div class="model-note-content">Paiement à {{ order.payment_terms_days }} jours.</div>
+  </div>
+  {% endif %}
+
+  {% if order.notes %}
+  <div class="model-note">
+    <div class="model-note-title">Note</div>
+    <div class="model-note-content">{{ order.notes }}</div>
+  </div>
+  {% endif %}
+
+  <div class="model-terms">
+    <div class="model-terms-cgv">
+      <p class="model-section-title">Bon de commande fournisseur</p>
+      <div>Merci de confirmer la réception de ce bon de commande et de mentionner sa référence sur tout document associé (facture, livraison).</div>
+    </div>
+    <div class="model-terms-sign">
+      <div>Le {{ fmt_date(order.order_date) or '—' }}</div>
+      <div style="margin-top:16mm"><b>{{ company.name if company }}</b><br>Nom, fonction et signature</div>
+    </div>
+  </div>
+
+  <div class="model-footer">
+    <div class="contact">
+      {% if company %}{{ fmt_addr(company) }}{% if company.phone %} &nbsp; Tél : {{ company.phone }}{% endif %}{% if company.email %} &nbsp; {{ company.email }}{% endif %}{% endif %}
+    </div>
+    <div class="legal">
+      {% if company %}
+      {% set fparts = [] %}
+      {% if company.rccm %}{% set fparts = fparts + ['RCCM : ' ~ company.rccm] %}{% endif %}
+      {% if company.ncc %}{% set fparts = fparts + ['NCC : ' ~ company.ncc] %}{% endif %}
+      {% if company.share_capital %}{% set fparts = fparts + ['Capital : ' ~ company.share_capital] %}{% endif %}
+      {{ fparts | join(' | ') }} &nbsp; {{ order.number }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+</body></html>

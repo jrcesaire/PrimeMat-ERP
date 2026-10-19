@@ -30,8 +30,15 @@ import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api/client";
 import { COMPANY_KEY, useCurrentCompany, useCurrentUser } from "@/hooks/useAuth";
 import { useModules, useModuleActions } from "@/hooks/useModules";
+import {
+  useCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+} from "@/hooks/useCatalogue";
 import type { Company, ModuleInfo } from "@/lib/types";
 import { DocumentsTab } from "@/components/settings/documents-tab";
+import CategoriesTab from "@/components/settings/categories-tab";
 import {
   useConfirm,
   confirmDeleteOptions,
@@ -93,6 +100,10 @@ export default function SettingsPage() {
     currentUser?.is_superuser === true || permissions.includes("user:edit");
   const canDeleteUsers =
     currentUser?.is_superuser === true || permissions.includes("user:delete");
+
+  const canManageCategories =
+    currentUser?.is_superuser === true ||
+    permissions.includes("category:view");
 
   const { data: appInfo } = useQuery({
     queryKey: ["core", "system", "info"],
@@ -486,6 +497,7 @@ export default function SettingsPage() {
       <div className="flex gap-4 border-b border-gray-200">
         {tabBtn("Général", "general", true)}
         {tabBtn("Documents", "documents", true)}
+        {tabBtn("Catégories", "categories", canManageCategories)}
         {tabBtn("Modules", "modules", canManageModules)}
         {tabBtn("Utilisateurs", "users", canManageUsers)}
       </div>
@@ -771,6 +783,7 @@ export default function SettingsPage() {
 
       {activeTab === "documents" && <DocumentsTab />}
 
+      {activeTab === "categories" && canManageCategories && <CategoriesTab />}
       {activeTab === "modules" && canManageModules && (
         <ModuleManager
           modules={modules}

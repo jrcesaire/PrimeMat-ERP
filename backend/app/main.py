@@ -17,7 +17,7 @@ import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.api import api_router
+from app.api.api import api_router, include_module_routers
 from app.core.config import settings
 from app.core.database import close_db, init_db
 from app.core.modules import ModuleRegistry
@@ -62,6 +62,9 @@ async def lifespan(app: FastAPI):
     await registry.load_modules()
     app.state.module_registry = registry
     logger.info("Modules chargés : %s", registry.list_active_modules())
+
+    # Inclusion des routeurs des modules (purchases)
+    include_module_routers(registry.list_active_modules())
 
     yield
 

@@ -198,7 +198,7 @@ class ContextBuilder:
             "lines": order.lines,
             "currency": getattr(order.company, "currency_code", "FCFA"),
             "document_type": "purchase_order",
-            **_naming("purchase_order", getattr(order, "reference", None)),
+            **_naming("purchase_order", order.number),
         }
 # ------------------------------------------------------------------ #
     # Builders async (utilisables directement dans les endpoints FastAPI)

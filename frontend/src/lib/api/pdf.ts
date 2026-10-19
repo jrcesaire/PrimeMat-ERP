@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Télécharge un document PDF protégé par JWT et l'ouvre dans un nouvel
  * onglet (aperçu + impression navigateur).
  *
@@ -53,6 +53,11 @@ export function printReceipt(paymentId: number | string): Promise<void> {
 
 export function printPosTicket(orderId: number | string): Promise<void> {
   return printPosHtml(orderId);
+}
+
+/** PDF du bon de commande fournisseur (serveur WeasyPrint + téléchargement). */
+export function printPurchaseOrder(orderId: number | string): Promise<void> {
+  return openPdf(`/purchases/orders/${orderId}/pdf`);
 }
 
 /**

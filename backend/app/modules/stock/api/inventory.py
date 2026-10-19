@@ -40,9 +40,10 @@ async def list_warehouses(
 async def create_warehouse(
     body: WarehouseCreate,
     session: SessionDep,
-    _: User = Depends(require_permission("warehouse", "create")),
+    user: User = Depends(require_permission("warehouse", "create")),
 ):
-    warehouse = Warehouse(**body.model_dump())
+    # company_id est NOT NULL (TenantMixin) et doit venir de l'utilisateur.
+    warehouse = Warehouse(**body.model_dump(), company_id=user.company_id)
     session.add(warehouse)
     await session.commit()
     await session.refresh(warehouse)

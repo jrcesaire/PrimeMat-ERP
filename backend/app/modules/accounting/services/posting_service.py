@@ -3,6 +3,7 @@
 Génère les écritures comptables OHADA à partir des flux métier :
 
 - **Facture client**  → débit 411 (Client) / crédit 701 (Ventes) + 4431 (TVA facturée)
+- **Facture fournisseur** → débit 601 (Achats) + 4452 (TVA déductible) / crédit 401 (Fournisseur)
 - **Paiement reçu**   → débit 511/531 (Banque/Caisse) / crédit 411
 - **Paiement émis**   → débit 401 (Fournisseur) / crédit 511/531
 - **Dépense**         → débit compte de charge (selon catégorie) / crédit 511/531
@@ -25,6 +26,7 @@ from app.modules.accounting.schemas import (
     JournalEntryCreate,
     JournalEntryLineCreate,
 )
+from app.modules.accounting.services.account_service import AccountService
 from app.modules.accounting.services.journal_service import LedgerService
 
 logger = logging.getLogger(__name__)
@@ -189,6 +191,111 @@ class PostingService:
         )
         return await self._post(invoice.company_id, "invoice", invoice.id, data)
 
+    # ------------------------------------------------------------------
+    # Facture fournisseur (module Achats)
+    # ------------------------------------------------------------------
+    async def post_supplier_invoice(self, invoice) -> tuple[JournalEntry, bool] | None:
+        """Facture fournisseur : D 601 + D 4452 / C 401 (journal ACH).
+
+        L'idempotence est assurée par ``_post`` via
+        ``source_type="supplier_invoice"`` / ``source_id``.
+        """
+        number = getattr(invoice, "reference", None) or getattr(invoice, "number", "") or ""
+        total = Decimal(str(invoice.amount_total or 0))
+        if total <= 0:
+            return None
+        untaxed = Decimal(str(invoice.amount_untaxed or 0))
+        tax = Decimal(str(invoice.tax_amount or 0))
+        if untaxed <= 0:
+            untaxed = total - tax
+        if untaxed <= 0:
+            untaxed = total
+            tax = Decimal("0")
+
+        await AccountService(self.session).ensure_seeded(invoice.company_id)
+
+        lines = [
+            JournalEntryLineCreate(
+                account_code="601",
+                label=f"Achats marchandises - {number}",
+                debit=float(untaxed),
+                credit=0,
+                partner_id=invoice.supplier_id,
+            ),
+        ]
+        if tax > 0:
+            lines.append(
+                JournalEntryLineCreate(
+                    account_code="4452",
+                    label=f"TVA deductible - {number}",
+                    debit=float(tax),
+                    credit=0,
+                    partner_id=invoice.supplier_id,
+                )
+            )
+        lines.append(
+            JournalEntryLineCreate(
+                account_code="401",
+                label=f"Fournisseur - {number}",
+                debit=0,
+                credit=float(total),
+                partner_id=invoice.supplier_id,
+            )
+        )
+
+        data = JournalEntryCreate(
+            entry_date=invoice.invoice_date or date.today(),
+            journal_code="ACH",
+            source_type="supplier_invoice",
+            source_id=invoice.id,
+            description=f"Facture fournisseur - {number}",
+            lines=lines,
+        )
+        return await self._post(invoice.company_id, "supplier_invoice", invoice.id, data)
+
+    async def post_supplier_payment(
+        self, invoice, amount: float, payment_date: date | None = None
+    ) -> tuple[JournalEntry, bool] | None:
+        """Règlement fournisseur : D 401 / C 511 (journal BAN).
+
+        Idempotence via ``source_type="supplier_payment"`` /
+        ``source_id=invoice.id`` (un règlement cumulé par facture).
+        """
+        total = Decimal(str(amount or 0))
+        if total <= 0:
+            return None
+
+        await AccountService(self.session).ensure_seeded(invoice.company_id)
+
+        number = getattr(invoice, "reference", None) or getattr(invoice, "number", "") or ""
+        lines = [
+            JournalEntryLineCreate(
+                account_code="401",
+                label=f"Fournisseur - reglement {number}",
+                debit=float(total),
+                credit=0,
+                partner_id=invoice.supplier_id,
+            ),
+            JournalEntryLineCreate(
+                account_code="511",
+                label=f"Decaissement {number}",
+                debit=0,
+                credit=float(total),
+            ),
+        ]
+
+        data = JournalEntryCreate(
+            entry_date=payment_date or date.today(),
+            journal_code="BAN",
+            source_type="supplier_payment",
+            source_id=invoice.id,
+            description=f"Paiement fournisseur - {number}",
+            lines=lines,
+        )
+        return await self._post(
+            invoice.company_id, "supplier_payment", invoice.id, data
+        )
+
     # ------------------------------------------------------------------ #
     # Paiement (encaissement / décaissement)
     # ------------------------------------------------------------------ #
@@ -295,6 +402,90 @@ class PostingService:
             lines=lines,
         )
         return await self._post(expense.company_id, "expense", expense.id, data)
+
+    # ------------------------------------------------------------------ #
+    # Avoir / note de crédit
+    # ------------------------------------------------------------------ #
+    async def post_credit_note(self, credit_note) -> tuple[JournalEntry, bool] | None:
+        """Avoir : comptabilisation OHADA selon le sens (client / fournisseur).
+
+        - Avoir client   : D 709 (ventes retournées) + 4431 (TVA collectée) / C 411 (client)
+        - Avoir fournisseur : D 401 (fournisseur) / C 609 (achats retournés) + 4452 (TVA déductible)
+        """
+        total = Decimal(str(credit_note.amount_total or 0))
+        tax = Decimal(str(credit_note.tax_amount or 0))
+        if total <= 0:
+            return None
+
+        untaxed = Decimal(str(credit_note.amount_untaxed or 0))
+        if untaxed <= 0:
+            untaxed = total - tax
+        if untaxed <= 0:
+            untaxed = total
+            tax = Decimal("0")
+
+        credit_date = getattr(credit_note, "credit_date", None) or date.today()
+        description = f"Avoir {credit_note.type} — {credit_note.reference}"
+        source_type = "credit_note"
+        source_id = credit_note.id
+        partner_id = getattr(credit_note, "partner_id", None)
+
+        if credit_note.type == "customer":
+            # Avoir client : D 709 (ventes retournées HT) + D 4431 (TVA à répercuter) / C 411 (client)
+            lines = [
+                JournalEntryLineCreate(
+                    account_code="709",
+                    label=f"Ventes retournées — {credit_note.reference}",
+                    debit=float(untaxed),
+                    credit=0,
+                ),
+                JournalEntryLineCreate(
+                    account_code="4431",
+                    label=f"TVA à répercuter — {credit_note.reference}",
+                    debit=float(tax),
+                    credit=0,
+                ),
+                JournalEntryLineCreate(
+                    account_code="411",
+                    label=f"Client — avoir {credit_note.reference}",
+                    debit=0,
+                    credit=float(total),
+                    partner_id=partner_id,
+                ),
+            ]
+        else:
+            # Avoir fournisseur : D 401 (fournisseur) / C 609 (achats retournés HT) + C 4452 (TVA déductible)
+            lines = [
+                JournalEntryLineCreate(
+                    account_code="401",
+                    label=f"Fournisseur — avoir {credit_note.reference}",
+                    debit=float(total),
+                    credit=0,
+                    partner_id=partner_id,
+                ),
+                JournalEntryLineCreate(
+                    account_code="609",
+                    label=f"Achats retournés — {credit_note.reference}",
+                    debit=0,
+                    credit=float(untaxed),
+                ),
+                JournalEntryLineCreate(
+                    account_code="4452",
+                    label=f"TVA déductible — {credit_note.reference}",
+                    debit=0,
+                    credit=float(tax),
+                ),
+            ]
+
+        data = JournalEntryCreate(
+            entry_date=credit_date,
+            journal_code="ODM",
+            source_type=source_type,
+            source_id=source_id,
+            description=description,
+            lines=lines,
+        )
+        return await self._post(credit_note.company_id, source_type, source_id, data)
 
 
 __all__ = ["PostingService", "TREASURY_ACCOUNTS", "EXPENSE_ACCOUNTS"]

@@ -38,7 +38,6 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { apiClient } from "@/lib/api/client";
 import {
   useAllocationSummary,
@@ -134,7 +133,7 @@ export default function AllocationsPage() {
         </Button>
       </div>
 
-      <Separator />
+      <hr className="border-gray-200" />
 
       {/* Section 1 : Factures avec solde restant */}
       <Card>

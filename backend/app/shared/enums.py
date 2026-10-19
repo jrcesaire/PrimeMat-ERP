@@ -66,13 +66,42 @@ class UnitOfMeasureCategory(str, enum.Enum):
     AREA = "area"
 
 
+class PurchaseRequestStatus(str, enum.Enum):
+    """Workflow de la Demande d'Achat (DA)."""
+
+    DRAFT = "draft"
+    SUBMITTED = "submitted"    # soumise — en attente de validation
+    APPROVED = "approved"      # validée → convertible en BC
+    REJECTED = "rejected"
+    CONVERTED = "converted"    # convertie en bon de commande
+    CANCELLED = "cancelled"
+
+
 class PurchaseOrderStatus(str, enum.Enum):
     DRAFT = "draft"
     PENDING = "pending"
     CONFIRMED = "confirmed"
+    PARTIALLY_RECEIVED = "partially_received"
     RECEIVED = "received"
     CANCELLED = "cancelled"
     DONE = "done"
+
+
+class PurchaseReceptionStatus(str, enum.Enum):
+    """Bon de réception fournisseur."""
+
+    DRAFT = "draft"
+    VALIDATED = "validated"
+    CANCELLED = "cancelled"
+
+
+class SupplierInvoiceStatus(str, enum.Enum):
+    """Facture fournisseur (rapprochée avec BC / BR)."""
+
+    DRAFT = "draft"
+    POSTED = "posted"          # enregistrée + comptabilisée
+    PAID = "paid"
+    CANCELLED = "cancelled"
 
 
 class SalesOrderStatus(str, enum.Enum):
@@ -168,3 +197,27 @@ class ModuleStatus(str, enum.Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     NOT_INSTALLED = "not_installed"
+
+
+class TaxRegime(str, enum.Enum):
+    """Régimes d'imposition fiscale Côte d'Ivoire (OHADA).
+
+    - TEE : Taxe d'État de l'Entreprenant (CA ≤ 50 000 000 FCFA) — TVA bloquée
+    - RME : Régime de la Micro-Entreprise (50 M < CA ≤ 200 M) — TVA bloquée
+    - RSI : Réel Simplifié (200 M < CA ≤ 500 M) — TVA autorisée
+    - RNI : Réel Normal (CA > 500 M) — TVA autorisée
+    """
+
+    TEE = "TEE"
+    RME = "RME"
+    RSI = "RSI"
+    RNI = "RNI"
+
+
+# Seuils de CA annuel TTC (en FCFA) par régime — utilisé pour la détection de dépassement
+TAX_REGIME_THRESHOLDS: dict[TaxRegime, int] = {
+    TaxRegime.TEE: 50_000_000,
+    TaxRegime.RME: 200_000_000,
+    TaxRegime.RSI: 500_000_000,
+    TaxRegime.RNI: 0,  # pas de plafond supérieur
+}

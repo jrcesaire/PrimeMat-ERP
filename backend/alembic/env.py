@@ -28,6 +28,7 @@ from app.modules.payments import models as payments_models  # noqa: F401
 from app.modules.delivery import models as delivery_models  # noqa: F401
 from app.modules.finance import models as finance_models  # noqa: F401
 from app.modules.accounting import models as accounting_models  # noqa: F401
+from app.modules.purchases import models as purchases_models  # noqa: F401
 
 # Métadonnées pour autogénération
 target_metadata = Base.metadata
