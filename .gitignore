@@ -60,3 +60,7 @@ test_*.db
 dbg.db
 *.tsbuildinfo
 
+
+# artefacts
+frontend/_build_out.txt
+backend/test_fiscal.py
