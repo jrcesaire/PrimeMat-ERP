@@ -80,11 +80,19 @@ export default function LoginPage() {
       await loginMutation.mutateAsync(data);
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
-      setError(
-        typeof detail === "string"
-          ? detail
-          : "Identifiants incorrects ou serveur injoignable",
-      );
+      let message: string;
+      if (typeof detail === "string" && detail.trim()) {
+        // Le backend a répondu (401/400…) : on affiche son message.
+        message = detail;
+      } else if (!err?.response) {
+        // Aucune réponse : le backend est arrêté ou l'URL de l'API est fausse.
+        message =
+          "Serveur injoignable. Vérifiez que le backend est démarré sur " +
+          "http://localhost:8000 (voir frontend/.env.local).";
+      } else {
+        message = "Identifiants incorrects ou serveur injoignable";
+      }
+      setError(message);
       // Vide les champs sensibles après une erreur
       resetField("password");
       resetField("company_code");
