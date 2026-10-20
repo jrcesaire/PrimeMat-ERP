@@ -75,10 +75,10 @@ export default function AllocationsPage() {
   const createAllocation = useCreateAllocation();
   const isCreating = createAllocation.isPending;
 
-  const allocations =
-    selectedInvoiceId
-      ? (useAllocationsForInvoice(selectedInvoiceId).data ?? [])
-      : [];
+  // Hooks toujours appelés inconditionnellement (Rules of Hooks) :
+  // le hook gère lui-même le cas invoiceId === null via enabled: !!invoiceId.
+  const allocationsQuery = useAllocationsForInvoice(selectedInvoiceId);
+  const allocations = allocationsQuery.data ?? [];
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
