@@ -138,7 +138,7 @@ function NewProductPageInner() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
           {isEdit ? "Modifier le produit" : "Nouveau produit"}
@@ -150,7 +150,7 @@ function NewProductPageInner() {
 
       <Card className="space-y-4 p-4">
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Nom *</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex : Tôle BAC Alu 0,30" />

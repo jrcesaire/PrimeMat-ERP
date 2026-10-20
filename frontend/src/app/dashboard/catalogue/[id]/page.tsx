@@ -78,7 +78,7 @@ export default function ProductDetailPage({
   const mode = MODE_LABELS[product.sale_mode] ?? MODE_LABELS.unit;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link href="/dashboard/catalogue" className="text-sm text-gray-500 hover:text-primary">
@@ -97,7 +97,7 @@ export default function ProductDetailPage({
         </Link>
       </div>
 
-      <Card className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3">
+      <Card className="grid grid-cols-2 gap-6 p-4 sm:grid-cols-3">
         <div>
           <p className="text-xs text-gray-500">Mode de vente</p>
           <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${mode.cls}`}>
@@ -129,7 +129,7 @@ export default function ProductDetailPage({
         </div>
       </Card>
 
-      <Card className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
+      <Card className="grid grid-cols-1 gap-6 p-4 sm:grid-cols-3">
         <div>
           <p className="text-xs text-gray-500">Prix de vente unitaire</p>
           <p className="text-lg font-bold text-gray-900">

@@ -118,7 +118,7 @@ export default function PaymentDetailPage({
   const invoice = invoices.find((i) => i.id === payment.invoice_id);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link href="/dashboard/payments" className="text-sm text-gray-500 hover:text-primary">
@@ -175,7 +175,7 @@ export default function PaymentDetailPage({
         </div>
       </div>
 
-      <Card className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-4">
+      <Card className="grid grid-cols-2 gap-6 p-4 sm:grid-cols-4">
         <div>
           <p className="text-xs text-gray-500">Statut</p>
           <StatusBadge status={payment.status} />

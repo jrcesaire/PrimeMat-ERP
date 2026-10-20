@@ -99,7 +99,7 @@ export default function DeliveryDetailPage({
   const next = NEXT_STATUS[d.status];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link href="/dashboard/delivery" className="text-sm text-gray-500 hover:text-primary">
@@ -154,7 +154,7 @@ export default function DeliveryDetailPage({
         </div>
       </div>
 
-      <Card className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3">
+      <Card className="grid grid-cols-2 gap-6 p-4 sm:grid-cols-3">
         <div>
           <p className="text-xs text-gray-500">Statut</p>
           <StatusBadge status={d.status} />

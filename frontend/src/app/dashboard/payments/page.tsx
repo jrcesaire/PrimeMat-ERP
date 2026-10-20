@@ -127,7 +127,7 @@ export default function PaymentsPage() {
     clients.find((c) => c.id === p.partner_id)?.name ?? `#${p.partner_id ?? "?"}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Paiements</h1>
         <p className="text-sm text-gray-600">Encaissements clients</p>

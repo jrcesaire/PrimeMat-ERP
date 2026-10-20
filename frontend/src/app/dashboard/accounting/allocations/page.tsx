@@ -113,7 +113,7 @@ export default function AllocationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* En-tête */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -229,7 +229,7 @@ export default function AllocationsPage() {
               Facture sélectionnée : #{selectedInvoiceId}
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label>ID du paiement</Label>
               <Input

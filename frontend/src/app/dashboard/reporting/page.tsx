@@ -104,7 +104,7 @@ export default function ReportingPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Reporting</h1>
         <p className="text-sm text-gray-600">
@@ -113,7 +113,7 @@ export default function ReportingPage() {
       </div>
 
       {/* ---------- Cartes KPI ---------- */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard label="Chiffre d'affaires facturé" value={kpis?.total_invoiced ?? 0} />
         <KpiCard label="Encaissements" value={kpis?.total_collected ?? 0} cls="text-green-700" />
         <KpiCard label="Dépenses" value={kpis?.total_expenses ?? 0} cls="text-red-600" />
@@ -157,7 +157,7 @@ export default function ReportingPage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* ---------- Top produits ---------- */}
         <Card className="p-4">
           <h2 className="mb-4 text-sm font-semibold text-gray-800">
@@ -231,7 +231,7 @@ export default function ReportingPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* ---------- Statuts de factures ---------- */}
         <Card className="p-4">
           <h2 className="mb-4 text-sm font-semibold text-gray-800">

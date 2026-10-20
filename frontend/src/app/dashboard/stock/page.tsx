@@ -69,7 +69,7 @@ export default function StockPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Stock</h1>
         <p className="text-sm text-gray-600">Entrepôts, niveaux et mouvements</p>

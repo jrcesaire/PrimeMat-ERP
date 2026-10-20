@@ -242,7 +242,7 @@ export default function InvoiceDetailPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="rounded-md p-2 hover:bg-gray-100">
@@ -354,7 +354,7 @@ export default function InvoiceDetailPage() {
         </div>
       )}
 
-      <Card className="grid grid-cols-2 gap-4 p-4 text-sm md:grid-cols-3">
+      <Card className="grid grid-cols-2 gap-6 p-4 text-sm md:grid-cols-3">
         <div>
           <p className="text-xs text-gray-500">Client</p>
           <p className="font-medium text-gray-900">{client?.name ?? "—"}</p>

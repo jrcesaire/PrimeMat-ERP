@@ -86,7 +86,7 @@ export default function FiscalRegimePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Configuration fiscale</h1>
@@ -115,7 +115,7 @@ export default function FiscalRegimePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {regime && (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-lg border p-4">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Régime actuel

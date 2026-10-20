@@ -47,7 +47,7 @@ export default function AccountingPage() {
   const loading = trial.isLoading || income.isLoading || sheet.isLoading;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Comptabilité</h1>
@@ -161,7 +161,7 @@ export default function AccountingPage() {
           )}
 
           {tab === "income" && income.data && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Card className="p-4">
                 <h2 className="mb-3 font-semibold text-green-700">Produits</h2>
                 <ul className="divide-y divide-gray-50">
@@ -219,7 +219,7 @@ export default function AccountingPage() {
           )}
 
           {tab === "sheet" && sheet.data && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Card className="p-4">
                 <h2 className="mb-3 font-semibold text-gray-900">Actif</h2>
                 <ul className="divide-y divide-gray-50">

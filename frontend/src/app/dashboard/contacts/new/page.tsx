@@ -83,7 +83,7 @@ function NewContactPageInner() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
           {isEdit ? "Modifier le contact" : "Nouveau contact"}
@@ -97,7 +97,7 @@ function NewContactPageInner() {
           <label className="mb-1 block text-sm font-medium text-gray-700">Nom *</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex : Boutique Chez Fatou" />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Téléphone</label>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+225 …" />
@@ -107,7 +107,7 @@ function NewContactPageInner() {
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Ville</label>
             <Input value={city} onChange={(e) => setCity(e.target.value)} />

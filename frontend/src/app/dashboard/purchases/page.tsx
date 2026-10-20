@@ -179,7 +179,7 @@ export default function PurchasesPage() {
   const [tab, setTab] = useState<Tab>("demandes");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Achats</h1>
         <p className="text-sm text-gray-600">

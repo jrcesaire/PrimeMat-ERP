@@ -24,7 +24,7 @@ export default function AgedBalancePage() {
   const data = query.data;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Balance âgée</h1>
@@ -58,7 +58,7 @@ export default function AgedBalancePage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-3">
         <Card>
           <CardDescription>Encours total</CardDescription>
           <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">

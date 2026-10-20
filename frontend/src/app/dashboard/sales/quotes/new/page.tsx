@@ -736,7 +736,7 @@ function NewQuotePageInner() {
             )}
           </div>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500">
                   {editingOrder ? "Date de commande" : "Date du devis"}

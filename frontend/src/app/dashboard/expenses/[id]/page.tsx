@@ -45,7 +45,7 @@ export default function ExpenseDetailPage({
     );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <Link href="/dashboard/expenses" className="text-sm text-gray-500 hover:text-primary">
           <ArrowLeft className="mr-1 inline h-4 w-4" /> Retour aux dépenses
@@ -58,7 +58,7 @@ export default function ExpenseDetailPage({
         </p>
       </div>
 
-      <Card className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-4">
+      <Card className="grid grid-cols-2 gap-6 p-4 sm:grid-cols-4">
         <div>
           <p className="text-xs text-gray-500">Catégorie</p>
           <p className="text-sm font-medium text-gray-900">

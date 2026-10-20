@@ -27,7 +27,7 @@ export default function CashFlowPage() {
   const data = query.data;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Cash-flow</h1>
@@ -52,7 +52,7 @@ export default function CashFlowPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Solde d'ouverture" value={Number(data?.opening_balance ?? 0)} />
         <Kpi label="Encaissements" value={Number(data?.inflows ?? 0)} tone="text-green-600" />
         <Kpi label="Décaissements" value={Number(data?.outflows ?? 0)} tone="text-red-600" />

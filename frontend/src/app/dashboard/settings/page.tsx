@@ -488,7 +488,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Paramètres</h1>
         <p className="text-gray-600">Configuration de l'application et de l'entreprise</p>
@@ -503,7 +503,7 @@ export default function SettingsPage() {
       </div>
 
       {activeTab === "general" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <Card className="p-6">
             <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
               <Building2 className="h-5 w-5 text-blue-600" />
@@ -573,7 +573,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Champs */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">
                       Nom de l'entreprise *
@@ -706,7 +706,7 @@ export default function SettingsPage() {
                   <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
                     Informations fiscales &amp; légales
                   </h3>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                     <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
                         N° Compte Contribuable (NCC)
@@ -797,7 +797,7 @@ export default function SettingsPage() {
         <Card className="p-6"><p className="text-gray-500">Accès réservé au superadministrateur.</p></Card>
       )}
 {activeTab === "users" && canManageUsers && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Création d'un compte */}
           <Card className="p-6">
             <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
@@ -808,7 +808,7 @@ export default function SettingsPage() {
               Crée un compte avec un niveau d'autorisation précis (rôle).
             </p>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
                 <Input
@@ -1006,7 +1006,7 @@ export default function SettingsPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
                     <Input

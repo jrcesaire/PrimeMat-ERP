@@ -127,7 +127,7 @@ export default function CreditNotesPage() {
     .filter((n) => n.status === "issued")
     .reduce((s, n) => s + (n.amount_total ?? 0), 0);
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Avoirs / notes de crédit</h1>
@@ -187,7 +187,7 @@ export default function CreditNotesPage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="p-4">
           <p className="text-xs text-gray-500">Total avoirs</p>
           <p className="text-lg font-semibold text-gray-900">
