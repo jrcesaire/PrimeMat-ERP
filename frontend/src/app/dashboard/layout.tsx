@@ -59,7 +59,7 @@ export default function DashboardLayout({
           className={
             posFocus
               ? "min-h-0 flex-1 overflow-hidden p-4"
-              : "flex-1 overflow-y-auto p-8 lg:p-[200px]"
+              : "flex-1 overflow-y-auto px-[150px] py-[32px]"
           }
         >
           {children}
