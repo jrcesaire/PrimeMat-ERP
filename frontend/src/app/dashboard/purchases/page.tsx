@@ -11,10 +11,21 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { useConfirm, confirmDeleteOptions } from "@/components/ui/confirm";
 import { usePermission } from "@/hooks/useAuth";
 import { useOrders } from "@/hooks/useSales";
 import { useProducts } from "@/hooks/useCatalogue";
+import { ProductPicker } from "@/components/sales/product-picker";
+import { Edit, Trash2, Printer, CheckCircle2, X, ChevronRight } from "lucide-react";
 import {
   useSuppliers,
   useCreateSupplier,
@@ -48,7 +59,7 @@ import {
 import { printPurchaseOrder } from "@/lib/api/pdf";
 import { useWarehouses } from "@/hooks/useStock";
 import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
-import type { MatchingResult } from "@/lib/types";
+import type { MatchingResult, Product } from "@/lib/types";
 
 type Tab =
   | "demandes"
@@ -77,6 +88,8 @@ const PRIORITY_LABELS: Record<string, { label: string; className: string }> = {
 };
 
 type LineDraft = {
+  product_id: number | null;
+  product_name: string | null;
   description: string;
   quantity: string;
   unit: string;
@@ -84,6 +97,8 @@ type LineDraft = {
 };
 
 const EMPTY_LINE: LineDraft = {
+  product_id: null,
+  product_name: null,
   description: "",
   quantity: "1",
   unit: "u",
@@ -108,23 +123,34 @@ function LineEditor({
   lines,
   setLines,
   priceLabel,
+  products,
 }: {
   lines: LineDraft[];
   setLines: (lines: LineDraft[]) => void;
   priceLabel: string;
+  products?: Product[];
 }) {
   const update = (i: number, patch: Partial<LineDraft>) => {
     setLines(lines.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   };
+
+  const pickProduct = (i: number, product: Product | null) => {
+    update(i, {
+      product_id: product?.id ?? null,
+      product_name: product?.name ?? null,
+      description: product?.name ?? "",
+    });
+  };
+
   return (
     <div className="space-y-2">
       {lines.map((l, i) => (
         <div key={i} className="flex flex-wrap items-center gap-2">
-          <input
-            className="min-w-52 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Désignation"
-            value={l.description}
-            onChange={(e) => update(i, { description: e.target.value })}
+          <ProductPicker
+            value={l.product_id}
+            products={products ?? []}
+            onChange={(productId, product) => pickProduct(i, product)}
+            allowCreate
           />
           <input
             className="w-20 rounded-md border border-gray-300 px-2 py-2 text-right text-sm"
@@ -236,6 +262,7 @@ async function runAction(
 function RequestsTab({ onConverted }: { onConverted: () => void }) {
   const { data: requests = [], isLoading } = usePurchaseRequests();
   const { data: suppliers = [] } = useSuppliers();
+  const { data: products = [] } = useProducts();
   const create = useCreatePurchaseRequest();
   const submit = useSubmitPurchaseRequest();
   const approve = useApprovePurchaseRequest();
@@ -246,11 +273,12 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
   const confirm = useConfirm();
 
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [supplierId, setSupplierId] = useState("");
   const [priority, setPriority] = useState("normal");
   const [neededBy, setNeededBy] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([{ ...EMPTY_LINE }]);
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -286,7 +314,7 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
           lines: payloadLines,
         });
         resetForm();
-        setShowForm(false);
+        setFormOpen(false);
       },
       "Création de la demande impossible",
       setError,
@@ -321,6 +349,8 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
     );
   };
 
+  const detail = requests.find((r) => r.id === detailId);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -328,8 +358,8 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
           {requests.length} demande(s) — workflow soumission / approbation
         </p>
         {can("purchase_request:edit") && (
-          <Button onClick={() => setShowForm((v) => !v)} variant="outline">
-            {showForm ? "Fermer" : "+ Nouvelle demande"}
+          <Button onClick={() => setFormOpen(true)} variant="outline">
+            + Nouvelle demande
           </Button>
         )}
       </div>
@@ -338,52 +368,79 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>
       )}
 
-      {showForm && (
-        <Card className="space-y-3 p-4">
-          <h2 className="font-semibold text-gray-800">Nouvelle demande d&apos;achat</h2>
-          <div className="flex flex-wrap gap-2">
-            <select
-              className="min-w-56 rounded-md border border-gray-300 px-3 py-2 text-sm"
-              value={supplierId}
-              onChange={(e) => setSupplierId(e.target.value)}
-            >
-              <option value="">— Fournisseur (recommandé) —</option>
-              {suppliers
-                .filter((s) => s.is_active)
-                .map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-            </select>
-            <select
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-            >
-              <option value="low">Priorité basse</option>
-              <option value="normal">Priorité normale</option>
-              <option value="high">Priorité haute</option>
-              <option value="urgent">Urgente</option>
-            </select>
-            <input
-              type="date"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-              title="Besoin avant le"
-              value={neededBy}
-              onChange={(e) => setNeededBy(e.target.value)}
+      {/* Formulaire de création — popup (pas de liste en dessous) */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="sm:max-w-[640px]">
+          <DialogHeader>
+            <DialogTitle>Nouvelle demande d&#39;achat</DialogTitle>
+            <DialogDescription>
+              Sélectionnez un fournisseur, une priorité et les articles
+              souhaités.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 p-4">
+            <div className="flex flex-wrap gap-2">
+              <select
+                className="min-w-56 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                value={supplierId}
+                onChange={(e) => setSupplierId(e.target.value)}
+              >
+                <option value="">— Fournisseur (recommandé) —</option>
+                {suppliers
+                  .filter((s) => s.is_active)
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+              </select>
+              <select
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+              >
+                <option value="low">Priorité basse</option>
+                <option value="normal">Priorité normale</option>
+                <option value="high">Priorité haute</option>
+                <option value="urgent">Urgente</option>
+              </select>
+              <input
+                type="date"
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                title="Besoin avant le"
+                value={neededBy}
+                onChange={(e) => setNeededBy(e.target.value)}
+              />
+            </div>
+            <LineEditor
+              lines={lines}
+              setLines={setLines}
+              priceLabel="Prix estimé"
+              products={products}
             />
           </div>
-          <LineEditor
-            lines={lines}
-            setLines={setLines}
-            priceLabel="Prix estimé"
-          />
-          <Button onClick={handleCreate} disabled={create.isPending}>
-            {create.isPending ? "Création…" : "Créer la demande"}
-          </Button>
-        </Card>
-      )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setFormOpen(false);
+                resetForm();
+              }}
+              disabled={create.isPending}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={create.isPending}
+            >
+              {create.isPending ? "Création…" : "Créer la demande"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+        <DialogClose />
+      </Dialog>
 
       <Card className="overflow-x-auto p-0">
         {isLoading ? (
@@ -413,9 +470,22 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
                   className: "bg-gray-100 text-gray-600",
                 };
                 return (
-                  <tr key={r.id} className="align-top hover:bg-gray-50">
+                  <tr
+                    key={r.id}
+                    className="align-top hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setDetailId(r.id)}
+                  >
                     <td className="px-4 py-2.5 font-medium text-gray-900">
-                      {r.number}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDetailId(r.id);
+                        }}
+                        className="font-medium text-blue-600 hover:underline hover:text-blue-800"
+                      >
+                        {r.number}
+                      </button>
                       {r.status === "rejected" && r.rejection_reason && (
                         <p className="text-xs font-normal text-red-500">
                           {r.rejection_reason}
@@ -438,51 +508,87 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap items-center justify-end gap-1">
+                        {/* Imprimer (tous statuts) */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Imprimer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.print();
+                          }}
+                        >
+                          <Printer className="h-5 w-5" />
+                        </Button>
                         {r.status === "draft" && can("purchase_request:edit") && (
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              runAction(
-                                () => submit.mutateAsync(r.id),
-                                "Soumission impossible",
-                                setError,
-                              )
-                            }
-                          >
-                            Soumettre
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Éditer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetailId(r.id);
+                              }}
+                            >
+                              <Edit className="h-5 w-5" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Confirmer (soumettre)"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                runAction(
+                                  () => submit.mutateAsync(r.id),
+                                  "Soumission impossible",
+                                  setError,
+                                );
+                              }}
+                            >
+                              <CheckCircle2 className="h-5 w-5" />
+                            </Button>
+                          </>
                         )}
                         {r.status === "submitted" &&
                           can("purchase_request:approve") && (
                             <>
                               <Button
                                 size="sm"
-                                onClick={() =>
+                                variant="ghost"
+                                title="Confirmer / Approuver"
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   runAction(
                                     () => approve.mutateAsync(r.id),
                                     "Approbation impossible",
                                     setError,
-                                  )
-                                }
+                                  );
+                                }}
                               >
-                                Approuver
+                                <CheckCircle2 className="h-5 w-5" />
                               </Button>
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => {
+                                variant="ghost"
+                                title="Annuler / Rejeter"
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setRejectId(r.id);
                                   setRejectReason("");
                                 }}
                               >
-                                Rejeter
+                                <X className="h-5 w-5" />
                               </Button>
                             </>
                           )}
                         {r.status === "approved" && can("purchase_order:edit") && (
                           <Button
                             size="sm"
-                            onClick={() =>
+                            variant="ghost"
+                            title="Convertir en BC"
+                            onClick={(e) => {
+                              e.stopPropagation();
                               runAction(
                                 async () => {
                                   await convert.mutateAsync(r.id);
@@ -490,20 +596,24 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
                                 },
                                 "Conversion impossible",
                                 setError,
-                              )
-                            }
+                              );
+                            }}
                           >
-                            Convertir en BC
+                            <ChevronRight className="h-5 w-5" />
                           </Button>
                         )}
                         {r.status === "rejected" &&
                           can("purchase_request:delete") && (
                             <Button
                               size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(r.number, r.id)}
+                              variant="ghost"
+                              title="Supprimer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(r.number, r.id);
+                              }}
                             >
-                              Supprimer
+                              <Trash2 className="h-5 w-5" />
                             </Button>
                           )}
                       </div>
@@ -513,21 +623,30 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
                             className="w-44 rounded-md border border-gray-300 px-2 py-1 text-xs"
                             placeholder="Motif du rejet"
                             value={rejectReason}
-                            onChange={(e) => setRejectReason(e.target.value)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              setRejectReason(e.target.value);
+                            }}
                           />
                           <Button
                             size="sm"
                             className="px-2 py-1 text-xs"
-                            onClick={() => handleReject(r.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReject(r.id);
+                            }}
                             disabled={reject.isPending}
                           >
                             OK
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
                             className="px-2 py-1 text-xs"
-                            onClick={() => setRejectId(null)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRejectId(null);
+                            }}
                           >
                             Annuler
                           </Button>
@@ -541,6 +660,107 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
           </table>
         )}
       </Card>
+
+      {/* Détail d'une DA (popup) */}
+      {detailId && detail && (
+        <Dialog open={detailId !== null} onOpenChange={(open) => setDetailId(open ? detailId : null)}>
+          <DialogContent className="sm:max-w-[720px]">
+            <DialogHeader>
+              <DialogTitle>Demande d&#39;achat {detail.number}</DialogTitle>
+            </DialogHeader>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">Fournisseur</span>
+                  <p>{supplierName(detail.supplier_id)}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">Date</span>
+                  <p>{formatDate(detail.request_date)}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">Priorité</span>
+                  <p>{PRIORITY_LABELS[detail.priority]?.label ?? detail.priority}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">Statut</span>
+                  <StatusBadge status={detail.status} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">Total estimé</span>
+                  <p className="text-right font-medium">{formatCurrency(detail.estimated_total)}</p>
+                </div>
+                {detail.needed_by && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-gray-500 text-xs uppercase">Besoin avant le</span>
+                    <p>{formatDate(detail.needed_by)}</p>
+                  </div>
+                )}
+              </div>
+              <div>
+                <span className="text-gray-500 text-xs uppercase block mb-1">Lignes</span>
+                <table className="w-full text-sm border border-gray-100">
+                  <thead className="border-b border-gray-100 bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-500">Produit</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">Qté</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">Prix unit.</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {(detail.lines ?? []).map((l) => (
+                      <tr key={l.id ?? l.description} className="text-sm">
+                        <td className="px-3 py-2">{l.description}</td>
+                        <td className="px-3 py-2 text-right">{l.quantity}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(l.estimated_unit_price)}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency((Number(l.quantity) || 0) * (Number(l.estimated_unit_price) || 0))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {detail.status === "rejected" && detail.rejection_reason && (
+                <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+                  <span className="font-semibold text-xs uppercase block mb-1">Motif du rejet</span>
+                  {detail.rejection_reason}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={() => setDetailId(null)}>
+                Fermer
+              </Button>
+              {detail.status === "draft" && can("purchase_request:edit") && (
+                <Button onClick={() => runAction(() => submit.mutateAsync(detail.id), "Soumission impossible", setError)}>
+                  Confirmer
+                </Button>
+              )}
+              {detail.status === "submitted" && can("purchase_request:approve") && (
+                <>
+                  <Button onClick={() => runAction(() => approve.mutateAsync(detail.id), "Approbation impossible", setError)}>
+                    Confirmer
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => { setRejectId(detail.id); setRejectReason(""); }}>
+                    Rejeter
+                  </Button>
+                </>
+              )}
+              {detail.status === "approved" && can("purchase_order:edit") && (
+                <Button onClick={() => runAction(async () => { await convert.mutateAsync(detail.id); onConverted(); }, "Conversion impossible", setError)}>
+                  Convertir en BC
+                </Button>
+              )}
+              {detail.status === "rejected" && can("purchase_request:delete") && (
+                <Button type="button" variant="outline" onClick={() => handleDelete(detail.number, detail.id)}>
+                  Supprimer
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+          <DialogClose />
+        </Dialog>
+      )}
     </div>
   );
 }

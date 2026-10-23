@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, MappedColumn, relationship
@@ -40,7 +41,7 @@ class Setting(Base):
         index=True,
     )
     key: Mapped[str] = MappedColumn(String(100), nullable=False, index=True)
-    value: Mapped[str] = MappedColumn(String(5000), nullable=False)
+    value: Mapped[str] = MappedColumn(Text, nullable=False)
     type: Mapped[str] = MappedColumn(String(20), default="string")
     is_public: Mapped[bool] = MappedColumn(Boolean, default=False)
     description: Mapped[str | None] = MappedColumn(String(500))

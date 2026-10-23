@@ -7,6 +7,7 @@ Il configure le moteur async SQLAlchemy et génère les migrations.
 from __future__ import annotations
 
 import asyncio
+import sys
 from logging.config import fileConfig
 
 from alembic import context
@@ -16,6 +17,13 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.core.config import settings
 from app.core.database import Base
+
+# Sous Windows, asyncio utilise l'event loop "Proactor" par defaut, que psycopg
+# refuse en mode async ("cannot use the 'ProactorEventLoop' to run in async mode").
+# On impose le "Selector" event loop, compatible avec psycopg, uniquement sur
+# Windows : sans cela, `alembic upgrade head` echoue sur PostgreSQL.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # Importe tous les modèles pour qu'ils soient inclus dans metadata
 from app.core.models import *  # noqa: F401,F403
@@ -65,7 +73,13 @@ def do_run_migrations(connection: Connection) -> None:
         target_metadata=target_metadata,
         compare_type=True,
         compare_server_default=True,
-        include_schemas=True,
+        # Les modeles de l'application vivent tous dans le schema "public".
+        # On ne compare donc QUE le schema courant ("public") : sans cela,
+        # Alembic voit aussi les schemas gérés par Supabase (auth, storage,
+        # realtime...) et signale des suppressions de tables/index qui
+        # n'ont rien a voir avec l'ERP. Pire, un "revision --autogenerate"
+        # genererait un DROP de toutes ces tables Supabase.
+        include_schemas=False,
         render_as_batch=False,
     )
 

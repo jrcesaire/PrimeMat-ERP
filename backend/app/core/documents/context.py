@@ -172,7 +172,7 @@ class ContextBuilder:
     async def build_purchase_order_context(self, order_id: int) -> dict[str, Any]:
         """Contexte pour un bon de commande fournisseur."""
         from app.core.database import AsyncSessionLocal
-        from app.modules.purchases.models.purchase_order import PurchaseOrder
+        from app.modules.purchases.models import PurchaseOrder
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
 
@@ -180,7 +180,6 @@ class ContextBuilder:
             result = await session.execute(
                 select(PurchaseOrder)
                 .options(
-                    selectinload(PurchaseOrder.company),
                     selectinload(PurchaseOrder.supplier),
                     selectinload(PurchaseOrder.lines),
                 )
@@ -193,10 +192,10 @@ class ContextBuilder:
 
         return {
             "order": order,
-            "company": order.company,
+            "company": order,
             "supplier": order.supplier,
             "lines": order.lines,
-            "currency": getattr(order.company, "currency_code", "FCFA"),
+            "currency": getattr(order, "currency_code", "FCFA"),
             "document_type": "purchase_order",
             **_naming("purchase_order", order.number),
         }

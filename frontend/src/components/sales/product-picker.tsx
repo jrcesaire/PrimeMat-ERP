@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, PackagePlus, X } from "lucide-react";
+import { ChevronDown, ChevronUp, PackagePlus, X } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,6 +74,7 @@ export function ProductPicker({
   const [quickOpen, setQuickOpen] = useState(false);
   const [created, setCreated] = useState<Product | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
@@ -152,6 +153,13 @@ export function ProductPicker({
     };
   }, [open, updatePosition, results.length]);
 
+  // Focus le champ de saisie quand le panneau s'ouvre — indispensable dans
+  // un Dialog (Radix piège le focus, `autoFocus` seul n'est pas fiable).
+  useEffect(() => {
+    if (!open) return;
+    inputRef.current?.focus();
+  }, [open]);
+
   // Fermeture au clic extérieur. Le panneau étant dans un portail, il vit
   // hors de `boxRef` : les deux conteneurs doivent être testés, sinon un clic
   // sur une suggestion fermerait la liste avant que son onClick ne s'exécute.
@@ -209,7 +217,7 @@ export function ProductPicker({
     <div ref={boxRef} className="relative w-full">
       {open ? (
         <Input
-          autoFocus
+          ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
@@ -219,7 +227,10 @@ export function ProductPicker({
         <button
           type="button"
           disabled={disabled}
-          onClick={() => setOpen(true)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
           className="flex h-8 w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-2 text-left text-sm hover:border-primary focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
         >
           <span className="min-w-0 flex-1 truncate">
@@ -245,8 +256,25 @@ export function ProductPicker({
               <X className="h-3.5 w-3.5" />
             </span>
           )}
-          <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
         </button>
+      )}
+      {/* Chevron : bascule l'ouverture / fermeture du panneau. */}
+      {open ? (
+        <ChevronUp
+          className="h-4 w-4 shrink-0 text-gray-400 cursor-pointer hover:text-gray-600"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(false);
+          }}
+        />
+      ) : (
+        <ChevronDown
+          className="h-4 w-4 shrink-0 text-gray-400 cursor-pointer hover:text-gray-600"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+        />
       )}
 
       {/* Panneau en portail : échappe au `overflow-hidden` du Card et aux
