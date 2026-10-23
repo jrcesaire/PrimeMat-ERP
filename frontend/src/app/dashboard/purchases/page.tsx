@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Page Achats — demandes d'achat (DA), bons de commande (BC),
  * réceptions (BR), factures fournisseur, fournisseurs et suggestions.
  *
@@ -42,6 +42,7 @@ import {
   useDeletePurchaseRequest,
   useConvertRequestToOrder,
   usePurchaseOrders,
+  usePurchaseOrder,
   useCreatePurchaseOrder,
   useSubmitPurchaseOrder,
   useConfirmPurchaseOrder,
@@ -771,6 +772,7 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
 function OrdersTab() {
   const { data: orders = [], isLoading } = usePurchaseOrders();
   const { data: suppliers = [] } = useSuppliers();
+  const { data: products = [] } = useProducts();
   const create = useCreatePurchaseOrder();
   const submit = useSubmitPurchaseOrder();
   const confirmOrder = useConfirmPurchaseOrder();
@@ -779,13 +781,22 @@ function OrdersTab() {
   const confirm = useConfirm();
 
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [supplierId, setSupplierId] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([{ ...EMPTY_LINE }]);
+  const [detailId, setDetailId] = useState<number | null>(null);
+
+  const { data: detail, isLoading: detailLoading } = usePurchaseOrder(detailId);
 
   const supplierName = (id: number) =>
     suppliers.find((s) => s.id === id)?.name ?? `#${id}`;
+
+  const resetForm = () => {
+    setSupplierId("");
+    setExpectedDate("");
+    setLines([{ ...EMPTY_LINE }]);
+  };
 
   const handleCreate = () =>
     runAction(
@@ -811,10 +822,8 @@ function OrdersTab() {
           expected_date: expectedDate || null,
           lines: payloadLines,
         });
-        setSupplierId("");
-        setExpectedDate("");
-        setLines([{ ...EMPTY_LINE }]);
-        setShowForm(false);
+        resetForm();
+        setFormOpen(false);
       },
       "Création du bon de commande impossible",
       setError,
@@ -840,8 +849,14 @@ function OrdersTab() {
           depuis l&apos;onglet Demandes
         </p>
         {can("purchase_order:edit") && (
-          <Button onClick={() => setShowForm((v) => !v)} variant="outline">
-            {showForm ? "Fermer" : "+ Nouvelle commande"}
+          <Button
+            onClick={() => {
+              resetForm();
+              setFormOpen(true);
+            }}
+            variant="outline"
+          >
+            + Nouvelle commande
           </Button>
         )}
       </div>
@@ -850,38 +865,62 @@ function OrdersTab() {
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>
       )}
 
-      {showForm && (
-        <Card className="space-y-3 p-4">
-          <h2 className="font-semibold text-gray-800">Nouveau bon de commande</h2>
-          <div className="flex flex-wrap gap-2">
-            <select
-              className="min-w-56 rounded-md border border-gray-300 px-3 py-2 text-sm"
-              value={supplierId}
-              onChange={(e) => setSupplierId(e.target.value)}
-            >
-              <option value="">— Fournisseur —</option>
-              {suppliers
-                .filter((s) => s.is_active)
-                .map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-            </select>
-            <input
-              type="date"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-              title="Date prévue"
-              value={expectedDate}
-              onChange={(e) => setExpectedDate(e.target.value)}
+      {/* Formulaire de création en pop-up (Dialog) */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="sm:max-w-[640px]">
+          <DialogHeader>
+            <DialogTitle>Nouveau bon de commande</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 p-4">
+            <div className="flex flex-wrap gap-2">
+              <select
+                className="min-w-56 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                value={supplierId}
+                onChange={(e) => setSupplierId(e.target.value)}
+              >
+                <option value="">— Fournisseur —</option>
+                {suppliers
+                  .filter((s) => s.is_active)
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+              </select>
+              <input
+                type="date"
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                title="Date prévue"
+                value={expectedDate}
+                onChange={(e) => setExpectedDate(e.target.value)}
+              />
+            </div>
+            <LineEditor
+              lines={lines}
+              setLines={setLines}
+              priceLabel="Prix unitaire"
+              products={products}
             />
           </div>
-          <LineEditor lines={lines} setLines={setLines} priceLabel="Prix unitaire" />
-          <Button onClick={handleCreate} disabled={create.isPending}>
-            {create.isPending ? "Création…" : "Créer le bon de commande"}
-          </Button>
-        </Card>
-      )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setFormOpen(false);
+                resetForm();
+              }}
+              disabled={create.isPending}
+            >
+              Annuler
+            </Button>
+            <Button onClick={handleCreate} disabled={create.isPending}>
+              {create.isPending ? "Création…" : "Créer le bon de commande"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+        <DialogClose />
+      </Dialog>
 
       <Card className="overflow-x-auto p-0">
         {isLoading ? (
@@ -905,16 +944,33 @@ function OrdersTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {orders.map((o) => (
-                <tr key={o.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5 font-medium text-gray-900">
-                    {o.number}
-                    {o.origin_request_id && (
-                      <span className="ml-1 text-xs text-gray-400">
-                        (DA #{o.origin_request_id})
-                      </span>
-                    )}
-                  </td>
+              {orders.map((o) => {
+                const received = (o.lines ?? []).some(
+                  (l) => l.quantity_received > 0,
+                );
+                return (
+                  <tr
+                    key={o.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setDetailId(o.id)}
+                  >
+                    <td className="px-4 py-2.5 font-medium text-gray-900">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDetailId(o.id);
+                        }}
+                        className="font-medium text-blue-600 hover:underline hover:text-blue-800"
+                      >
+                        {o.number}
+                      </button>
+                      {o.origin_request_id && (
+                        <span className="ml-1 text-xs text-gray-400">
+                          (DA #{o.origin_request_id})
+                        </span>
+                      )}
+                    </td>
                   <td className="px-4 py-2.5">{supplierName(o.supplier_id)}</td>
                   <td className="px-4 py-2.5">{formatDate(o.order_date)}</td>
                   <td className="px-4 py-2.5">{formatDate(o.expected_date)}</td>
@@ -932,78 +988,286 @@ function OrdersTab() {
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex flex-wrap justify-end gap-1">
-                      {o.status === "draft" && can("purchase_order:edit") && (
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            runAction(
-                              () => submit.mutateAsync(o.id),
-                              "Soumission impossible",
-                              setError,
-                            )
-                          }
-                        >
-                          Soumettre
-                        </Button>
+                      {/* Pas d'action si le BC est reçu */}
+                      {o.status !== "received" && (
+                        <>
+                          {o.status === "draft" &&
+                            can("purchase_order:edit") && (
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  runAction(
+                                    () => submit.mutateAsync(o.id),
+                                    "Soumission impossible",
+                                    setError,
+                                  );
+                                }}
+                              >
+                                Soumettre
+                              </Button>
+                            )}
+                          {o.status === "pending" &&
+                            can("purchase_order:confirm") && (
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  runAction(
+                                    () => confirmOrder.mutateAsync(o.id),
+                                    "Confirmation impossible",
+                                    setError,
+                                  );
+                                }}
+                              >
+                                Confirmer
+                              </Button>
+                            )}
+                          {(o.status === "draft" ||
+                            o.status === "pending") &&
+                            can("purchase_order:cancel") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCancel(o.number, o.id);
+                                }}
+                              >
+                                Annuler
+                              </Button>
+                            )}
+                        </>
                       )}
-                      {o.status === "pending" && can("purchase_order:confirm") && (
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            runAction(
-                              () => confirmOrder.mutateAsync(o.id),
-                              "Confirmation impossible",
-                              setError,
-                            )
-                          }
-                        >
-                          Confirmer
-                        </Button>
-                      )}
-                      {(o.status === "draft" || o.status === "pending") &&
-                        can("purchase_order:cancel") && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleCancel(o.number, o.id)}
-                          >
-                            Annuler
-                          </Button>
-                        )}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title="Télécharger le PDF"
-                      onClick={() => printPurchaseOrder(o.id)}
-                    >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title="Télécharger le PDF"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          printPurchaseOrder(o.id);
+                        }}
                       >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                      PDF
-                    </Button>
+                        <svg
+                          className="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        PDF
+                      </Button>
+                    </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
+      {/* Détail d'un BC (pop-up) */}
+      {detailId && detail && (
+        <Dialog
+          open={detailId !== null}
+          onOpenChange={(open) => setDetailId(open ? detailId : null)}
+        >
+          <DialogContent className="sm:max-w-[720px]">
+            <DialogHeader>
+              <DialogTitle>Bon de commande {detail.number}</DialogTitle>
+            </DialogHeader>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">
+                    Fournisseur
+                  </span>
+                  <p>{supplierName(detail.supplier_id)}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">
+                    Date commande
+                  </span>
+                  <p>{formatDate(detail.order_date)}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">
+                    Prévu le
+                  </span>
+                  <p>{formatDate(detail.expected_date)}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">
+                    Statut
+                  </span>
+                  <StatusBadge status={detail.status} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">
+                    Total HT
+                  </span>
+                  <p className="text-right font-medium">
+                    {formatCurrency(detail.amount_untaxed)}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">
+                    Total TTC
+                  </span>
+                  <p className="text-right font-medium">
+                    {formatCurrency(detail.amount_total)}
+                  </p>
+                </div>
+              </div>
+              {detail.notes && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 text-xs uppercase">Notes</span>
+                  <p>{detail.notes}</p>
+                </div>
+              )}
+              <div>
+                <span className="text-gray-500 text-xs uppercase block mb-1">
+                  Lignes
+                </span>
+                <table className="w-full text-sm border border-gray-100">
+                  <thead className="border-b border-gray-100 bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-500">
+                        Produit
+                      </th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">
+                        Qté
+                      </th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">
+                        Qté reçue
+                      </th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">
+                        Prix unit.
+                      </th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {(detail.lines ?? []).map((l) => (
+                      <tr key={l.id} className="text-sm">
+                        <td className="px-3 py-2">{l.description}</td>
+                        <td className="px-3 py-2 text-right">{l.quantity}</td>
+                        <td className="px-3 py-2 text-right">
+                          {l.quantity_received}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {formatCurrency(l.unit_price)}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {formatCurrency(l.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={() => setDetailId(null)}>
+                Fermer
+              </Button>
+              {detail.status === "draft" && can("purchase_order:edit") && (
+                <>
+                  <Button
+                    onClick={() => {
+                      setDetailId(null);
+                      runAction(
+                        () => submit.mutateAsync(detail.id),
+                        "Soumission impossible",
+                        setError,
+                      );
+                    }}
+                  >
+                    Soumettre
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCancel(detail.number, detail.id);
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                </>
+              )}
+              {detail.status === "pending" && can("purchase_order:confirm") && (
+                <>
+                  <Button
+                    onClick={() => {
+                      setDetailId(null);
+                      runAction(
+                        () => confirmOrder.mutateAsync(detail.id),
+                        "Confirmation impossible",
+                        setError,
+                      );
+                    }}
+                  >
+                    Confirmer
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCancel(detail.number, detail.id);
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                </>
+              )}
+              {detail.status === "received" && (
+                <span className="text-xs text-gray-500">
+                  Aucune opération possible (reçu).
+                </span>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                title="Télécharger le PDF"
+                onClick={() => {
+                  setDetailId(null);
+                  printPurchaseOrder(detail.id);
+                }}
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                PDF
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+          <DialogClose />
+        </Dialog>
+      )}
       </Card>
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
 // Onglet : Réceptions (BR)
 // ---------------------------------------------------------------------------
 function ReceptionsTab() {
