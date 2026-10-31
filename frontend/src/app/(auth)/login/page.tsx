@@ -86,9 +86,14 @@ export default function LoginPage() {
         message = detail;
       } else if (!err?.response) {
         // Aucune réponse : le backend est arrêté ou l'URL de l'API est fausse.
+        // On affiche l'URL réellement configurée (NEXT_PUBLIC_API_URL est
+        // injectée au build) plutôt qu'un port codé en dur, pour ne pas
+        // envoyer sur une fausse piste quand le port change.
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api/v1";
         message =
           "Serveur injoignable. Vérifiez que le backend est démarré sur " +
-          "http://localhost:8000 (voir frontend/.env.local).";
+          `${apiUrl} (voir frontend/.env.local).`;
       } else {
         message = "Identifiants incorrects ou serveur injoignable";
       }
