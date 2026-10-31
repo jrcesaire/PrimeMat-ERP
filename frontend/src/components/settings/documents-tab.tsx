@@ -209,9 +209,11 @@ function WatermarkCard() {
   const [busy, setBusy] = useState(false);
   const [opacity, setOpacity] = useState(10);
   const [saturation, setSaturation] = useState(100);
-  const [opacitySaved, setOpacitySaved] = useState(false);
-  const [saturationSaved, setSaturationSaved] = useState(false);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Enregistrement explicite : les curseurs ne modifient que l'état local, la
+  // persistance est déclenchée par le bouton « Enregistrer ».
+  const [dirty, setDirty] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
 
   const refresh = () => {
     apiClient
@@ -221,50 +223,47 @@ function WatermarkCard() {
         if (typeof res.data?.opacity === "number") setOpacity(res.data.opacity);
         if (typeof res.data?.saturation === "number")
           setSaturation(res.data.saturation);
+        setDirty(false);
       })
-      .catch(() => setInfo({ exists: false, opacity: 10, saturation: 100 }));
-  };
-
-  /** Sauvegarde différée (500 ms) : pas d'appel API à chaque cran du curseur. */
-  const saveOpacity = async (v: number) => {
-    try {
-      await apiClient.put("/core/settings/watermark/opacity", { value: v });
-      setOpacitySaved(true);
-      window.setTimeout(() => setOpacitySaved(false), 2500);
-    } catch {
-      setMsg("Échec de l'enregistrement de l'opacité.");
-    }
-  };
-
-  const saveSaturation = async (v: number) => {
-    try {
-      await apiClient.put("/core/settings/watermark/saturation", { value: v });
-      setSaturationSaved(true);
-      window.setTimeout(() => setSaturationSaved(false), 2500);
-    } catch {
-      setMsg("Échec de l'enregistrement de la saturation.");
-    }
+      .catch(() => {
+        setInfo({ exists: false, opacity: 10, saturation: 100 });
+        setDirty(false);
+      });
   };
 
   const onOpacityChange = (v: number) => {
     setOpacity(v);
-    setOpacitySaved(false);
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => void saveOpacity(v), 500);
+    setSettingsSaved(false);
+    setDirty(true);
   };
 
   const onSaturationChange = (v: number) => {
     setSaturation(v);
-    setSaturationSaved(false);
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => void saveSaturation(v), 500);
+    setSettingsSaved(false);
+    setDirty(true);
+  };
+
+  /** Persiste l'opacité et la saturation du filigrane (bouton « Enregistrer »). */
+  const saveWatermarkSettings = async () => {
+    setSavingSettings(true);
+    setMsg("");
+    try {
+      await apiClient.put("/core/settings/watermark/opacity", { value: opacity });
+      await apiClient.put("/core/settings/watermark/saturation", {
+        value: saturation,
+      });
+      setDirty(false);
+      setSettingsSaved(true);
+      window.setTimeout(() => setSettingsSaved(false), 3000);
+    } catch {
+      setMsg("Échec de l'enregistrement des réglages du filigrane.");
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
   useEffect(() => {
     refresh();
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
   }, []);
 
   const upload = async (f: File) => {
@@ -372,9 +371,6 @@ function WatermarkCard() {
         <p className="mt-1 text-xs text-gray-500">
           Valeur basse = filigrane très discret (recommandé : 5–15 %), valeur
           haute = plus visible mais gêne la lecture.
-          {opacitySaved && (
-            <span className="ml-1 font-medium text-green-600">Enregistré ✓</span>
-          )}
         </p>
       </div>
 
@@ -397,10 +393,26 @@ function WatermarkCard() {
         />
         <p className="mt-1 text-xs text-gray-500">
           100 % = couleur pleine, 0 % = niveaux de gris (N&B).
-          {saturationSaved && (
-            <span className="ml-1 font-medium text-green-600">Enregistré ✓</span>
-          )}
         </p>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
+        <Button
+          onClick={() => void saveWatermarkSettings()}
+          disabled={savingSettings || !dirty}
+        >
+          {savingSettings ? "Enregistrement…" : "Enregistrer"}
+        </Button>
+        {settingsSaved && (
+          <span className="text-sm font-medium text-green-600">
+            Réglages enregistrés ✓
+          </span>
+        )}
+        {dirty && !savingSettings && (
+          <span className="text-xs text-gray-500">
+            Modifications non enregistrées
+          </span>
+        )}
       </div>
     </Card>
   );
