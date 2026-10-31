@@ -967,3 +967,119 @@ export interface CreditNoteApply {
   amount_to_apply?: number | null;
 }
 
+// ========================================================================
+// Point de Vente — Sessions de caisse (PRD "Improvements module PoS")
+// ========================================================================
+
+export interface PosSession {
+  id: number;
+  reference: string;
+  status: "open" | "closing" | "closed";
+  closing_hour: number;
+  accounting_write_up_hour: number;
+  initial_balance: number;
+  closing_balance: number | null;
+  opened_at: string;
+  closed_at: string | null;
+  opened_by_id: number | null;
+  closed_by_id: number | null;
+  company_id: number;
+  notes: string | null;
+}
+
+export interface PosSessionCreate {
+  initial_balance: number;
+  notes?: string | null;
+}
+
+export interface PosSessionClose {
+  closing_balance: number;
+  notes?: string | null;
+}
+
+export interface PosSessionsPage {
+  items: PosSession[];
+  total: number;
+  skip: number;
+  limit: number;
+  has_more: boolean;
+}
+
+// ========================================================================
+// Point de Vente — Rapport de clôture de session (PRD §4.1.2 §4)
+// ========================================================================
+
+export interface PosSessionSaleLine {
+  order_reference: string;
+  created_at: string;
+  partner_name: string | null;
+  amount_total: number;
+}
+
+export interface PosSessionCloseReport {
+  session_id: number;
+  reference: string;
+  status: string;
+  opened_at: string;
+  closed_at: string | null;
+  initial_balance: number;
+  closing_balance: number | null;
+  sales_count: number;
+  sales_total: number;
+  fund_movements_total: number; // net des dépôts/retraits manuels
+  theoretical_balance: number; // initial_balance + sales_total + fund_movements_total
+  variance: number | null; // closing_balance - theoretical_balance
+  sales: PosSessionSaleLine[];
+}
+
+
+// ========================================================================
+// Point de Vente — Journal des mouvements de fonds manuels (PRD §4.1.2 §5)
+// ========================================================================
+
+export interface PosFundMovement {
+  id: number;
+  session_id: number;
+  movement_type: "deposit" | "withdrawal";
+  amount: number;
+  label: string;
+  reference: string | null;
+  created_at: string;
+  created_by: number | null;
+  company_id: number;
+  notes: string | null;
+}
+
+export interface PosFundMovementCreate {
+  session_id: number;
+  movement_type: "deposit" | "withdrawal";
+  amount: number;
+  label: string;
+  reference?: string | null;
+  notes?: string | null;
+}
+
+export interface PosFundMovementsPage {
+  items: PosFundMovement[];
+  total: number;
+  skip: number;
+  limit: number;
+  has_more: boolean;
+}
+
+// ========================================================================
+// Point de Vente — Réglages du PoS (PRD §4.2.2.6)
+// ========================================================================
+
+export interface PosSettings {
+  /** Heure de clôture automatique des sessions de caisse (0–23). */
+  closing_hour: number;
+  /** Heure-valeur de l'écriture comptable des ventes (0–23). */
+  accounting_write_up_hour: number;
+  /** URL publique imprimée dans le QR code des tickets de caisse. */
+  ticket_url: string;
+}
+
+/** Mise à jour partielle : seuls les champs fournis sont enregistrés. */
+export type PosSettingsUpdate = Partial<PosSettings>;
+

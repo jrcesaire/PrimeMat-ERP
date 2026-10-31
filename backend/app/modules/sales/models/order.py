@@ -7,6 +7,7 @@ Chaque ligne suit l'approvisionnement :
 from __future__ import annotations
 
 from datetime import date
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
@@ -20,6 +21,9 @@ from sqlalchemy.orm import Mapped, MappedColumn, relationship
 
 from app.core.database import Base, TenantMixin
 from app.shared.enums import SalesOrderStatus
+
+if TYPE_CHECKING:
+    from app.modules.sales.models.pos_session import PosSession
 
 
 class SalesOrder(Base, TenantMixin):
@@ -65,6 +69,14 @@ class SalesOrder(Base, TenantMixin):
     # Archivage caisse : masque la vente de l'historique du Point de Vente
     # sans toucher à la comptabilité (facture + paiement conservés).
     archived: Mapped[bool] = MappedColumn(Boolean, default=False, nullable=False)
+
+    # Session de caisse à laquelle cette vente est rattachée (ventes comptoir).
+    pos_session_id: Mapped[int | None] = MappedColumn(
+        Integer,
+        ForeignKey("pos_sessions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     lines: Mapped[list["SalesOrderLine"]] = relationship(
         "SalesOrderLine", back_populates="order",

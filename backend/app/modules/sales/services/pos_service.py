@@ -15,6 +15,8 @@ from app.modules.payments.services.payment_service import PaymentService
 from app.modules.sales.models.order import SalesOrder
 from app.modules.sales.schemas import PosSaleCreate
 from app.modules.sales.services.order_service import OrderService
+from app.modules.sales.services.pos_session_service import PosSessionService
+from app.shared.enums import PosSessionStatus
 
 logger = logging.getLogger(__name__)
 
@@ -64,16 +66,49 @@ class PosService:
         return partner.id
 
     async def create_pos_sale(
-        self, data: PosSaleCreate, company_id: int | None = None
+        self,
+        data: PosSaleCreate,
+        company_id: int | None = None,
+        user_id: int | None = None,
     ) -> dict:
-        """Crée la commande comptoir + sortie stock + facture + paiement."""
+        """Crée la commande comptoir + sortie stock + facture + paiement.
+
+        ``user_id`` identifie le caissier à l'origine de la vente : il est
+        journalisé comme auteur de l'ouverture automatique de la session de
+        caisse (PRD §4.1.2 / §5.3 — traçabilité).
+        """
         # 0) Client : choisi ou walk-in « Client de passage »
         partner_id = await self._resolve_partner_id(data, company_id)
+
+        # 0bis) Session de caisse : utiliser la session active, l'ouvrir
+        #     automatiquement si aucune n'existe (PRD §4.1.2).
+        pos_session = None
+        if company_id is not None:
+            session_service = PosSessionService(self.session)
+            pos_session = await session_service.get_active_session(company_id)
+            if pos_session is None:
+                from app.modules.sales.schemas import PosSessionCreate
+
+                pos_session = await session_service.open_session(
+                    company_id=company_id,
+                    user_id=user_id,
+                    data=PosSessionCreate(initial_balance=0),
+                )
+                logger.info(
+                    "Session PoS auto-ouverte %s pour l'entreprise %d",
+                    pos_session.reference,
+                    company_id,
+                )
 
         # 1) Commande client (mode pos)
         order = await self.orders_.create_order(
             data.to_sales_order_create(partner_id)
         )
+
+        # Rattacher la commande à la session de caisse active.
+        if pos_session is not None:
+            order.pos_session_id = pos_session.id
+            await self.session.flush()
 
         # 2) Sortie de stock immédiate (produits non gérés au ml)
         from app.modules.stock.services.stock_service import StockService

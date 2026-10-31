@@ -3,6 +3,7 @@ Configuration de l'application Celery pour les tâches asynchrones.
 
 Broker : Redis (configuré dans app/core/config.py).
 """
+
 from __future__ import annotations
 
 from celery import Celery
@@ -17,6 +18,7 @@ celery_app = Celery(
         "app.tasks.pdf_tasks",
         "app.tasks.backup_tasks",
         "app.tasks.report_tasks",
+        "app.tasks.pos_session_tasks",
     ],
 )
 
@@ -45,5 +47,9 @@ def setup_periodic_tasks(sender: Celery, **kwargs) -> None:
         "reports-morning": {
             "task": "app.tasks.report_tasks.generate_daily_reports",
             "schedule": crontab(hour=6, minute=0),  # tous les jours à 06h00
+        },
+        "pos-auto-close": {
+            "task": "app.tasks.pos_session_tasks.auto_close_pos_sessions",
+            "schedule": crontab(minute=0, hour="*"),  # toutes les heures
         },
     }

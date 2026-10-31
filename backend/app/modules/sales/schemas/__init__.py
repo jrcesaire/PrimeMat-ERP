@@ -216,6 +216,7 @@ class SalesOrderRead(BaseModel):
     quote_id: int | None = None
     fulfillment_mode: str
     status: str
+    pos_session_id: int | None = None
     archived: bool = False
     order_date: date
     currency_code: str
@@ -258,3 +259,103 @@ class PosSaleCreate(BaseModel):
             notes=self.notes,
             lines=self.lines,
         )
+
+
+# ------------------------------------------------------------------ #
+# Schémas PosSession (caisse)
+# ------------------------------------------------------------------ #
+class PosSessionCreate(BaseModel):
+    """Création d'une session de caisse."""
+
+    initial_balance: float = 0
+    notes: str | None = None
+
+
+class PosSessionUpdate(BaseModel):
+    """Mise à jour d'une session (notes uniquement, session ouverte)."""
+
+    notes: str | None = None
+
+
+class PosSessionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    reference: str
+    status: str
+    closing_hour: int
+    accounting_write_up_hour: int
+    initial_balance: float
+    closing_balance: float | None = None
+    opened_at: datetime
+    closed_at: datetime | None = None
+    opened_by_id: int | None = None
+    closed_by_id: int | None = None
+    company_id: int
+    notes: str | None = None
+
+
+class PosSessionClose(BaseModel):
+    """Clôture d'une session de caisse."""
+
+    closing_balance: float
+    notes: str | None = None
+
+
+# ------------------------------------------------------------------ #
+# Rapport de clôture de session (PRD §4.1.2 §4)
+# ------------------------------------------------------------------ #
+class PosSessionSaleLine(BaseModel):
+    """Ligne de vente résumée pour le rapport de clôture."""
+
+    order_reference: str
+    created_at: str
+    partner_name: str | None
+    amount_total: float
+
+
+class PosSessionCloseReport(BaseModel):
+    """Etat récapitulatif de clôture d'une session de caisse."""
+
+    session_id: int
+    reference: str
+    status: str
+    opened_at: str
+    closed_at: str | None
+    initial_balance: float
+    closing_balance: float | None
+    sales_count: int
+    sales_total: float
+    fund_movements_total: float  # net des dépôts/retraits manuels
+    theoretical_balance: float  # initial_balance + sales_total + fund_movements_total
+    variance: float | None  # closing_balance - theoretical_balance
+    sales: list[PosSessionSaleLine]
+
+
+# ------------------------------------------------------------------ #
+# Schémas PosFundMovement (journal des mouvements de fonds manuels) — PRD §4.1.2 §5
+# ------------------------------------------------------------------ #
+class PosFundMovementCreate(BaseModel):
+    """Création d'un mouvement de fonds manuel en caisse."""
+
+    session_id: int
+    movement_type: str  # deposit | withdrawal
+    amount: float = 0
+    label: str
+    reference: str | None = None
+    notes: str | None = None
+
+
+class PosFundMovementRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    session_id: int
+    movement_type: str
+    amount: float
+    label: str
+    reference: str | None = None
+    created_at: datetime
+    created_by: int | None = None
+    company_id: int
+    notes: str | None = None

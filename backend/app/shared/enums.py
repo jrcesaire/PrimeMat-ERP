@@ -199,6 +199,21 @@ class ModuleStatus(str, enum.Enum):
     NOT_INSTALLED = "not_installed"
 
 
+class PosSessionStatus(str, enum.Enum):
+    """Cycle de vie d'une session de caisse (Point de Vente)."""
+
+    OPEN = "open"         # Session en cours — ventes autorisées
+    CLOSING = "closing"   # Clôture demandée — ventes bloquées, solde en cours de figement
+    CLOSED = "closed"     # Session clôturée — solde figé, rapport généré
+
+
+class PosFundMovementType(str, enum.Enum):
+    """Type de mouvement de fonds manuel en caisse (Point de Vente)."""
+
+    DEPOSIT = "deposit"      # Entrée de fonds (dépôt en caisse)
+    WITHDRAWAL = "withdrawal"  # Sortie de fonds (retrait de caisse)
+
+
 class TaxRegime(str, enum.Enum):
     """Régimes d'imposition fiscale Côte d'Ivoire (OHADA).
 

@@ -54,6 +54,20 @@ DEFAULT_SETTINGS: dict[str, dict[str, Any]] = {
         "is_public": True,
         "description": "URL publique affichée dans le QR code des tickets de caisse (POS)",
     },
+    # Heure de clôture automatique des sessions de caisse (0–23)
+    "pos_closing_hour": {
+        "value": "0",
+        "type": "integer",
+        "is_public": True,
+        "description": "Heure de clôture automatique des sessions de caisse (POS), de 0 à 23",
+    },
+    # Heure-valeur de l'écriture comptable des ventes PoS (0–23)
+    "pos_accounting_writeup_hour": {
+        "value": "0",
+        "type": "integer",
+        "is_public": True,
+        "description": "Heure-valeur de l'écriture comptable des ventes (POS), de 0 à 23",
+    },
     # Nomenclature des documents (préfixe / série / suffixe par type)
     "doc_nomenclature": {
         "value": {

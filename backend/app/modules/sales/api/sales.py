@@ -553,7 +553,9 @@ async def create_pos_sale(
     """
     service = PosService(session)
     try:
-        return await service.create_pos_sale(body, company_id=user.company_id)
+        return await service.create_pos_sale(
+            body, company_id=user.company_id, user_id=user.id
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -611,4 +613,5 @@ async def print_pos_ticket(
                 context.get("doc_filename") or "document.pdf"
             )
         },
-    )
+
+)

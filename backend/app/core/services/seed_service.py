@@ -69,6 +69,7 @@ SYSTEM_PERMISSIONS: dict[str, list[str]] = {
     "expense": ["view", "create", "edit", "delete"],
     "treasury": ["view", "create", "edit", "delete"],
     "report": ["view"],
+    "pos": ["view", "create", "edit", "close"],
     "account": ["view", "create", "edit"],
     "journal_entry": ["view", "create", "edit", "post"],
     "fiscal_year": ["view", "create", "edit", "close"],
@@ -105,6 +106,7 @@ ROLES: list[dict] = [
             "delivery": ["view", "create", "confirm", "delete"],
             "expense": ["view", "create"],
             "report": ["view"],
+            "pos": ["view", "create", "edit", "close"],
         },
     },
     {
@@ -121,6 +123,7 @@ ROLES: list[dict] = [
             "stock_level": ["view"],
             "payment": ["view", "create"],
             "site": ["view", "create"],
+            "pos": ["view", "create"],
         },
     },
     {
