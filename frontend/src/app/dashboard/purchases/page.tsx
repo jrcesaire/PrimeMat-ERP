@@ -59,10 +59,11 @@ import {
 } from "@/hooks/usePurchases";
 import { printPurchaseOrder } from "@/lib/api/pdf";
 import { useWarehouses } from "@/hooks/useStock";
-import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
+import { formatCurrency, formatDate, lastRouteSegment, StatusBadge } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 import type { MatchingResult, Product } from "@/lib/types";
 
-type Tab =
+export type Tab =
   | "demandes"
   | "commandes"
   | "receptions"
@@ -202,8 +203,16 @@ function LineEditor({
   );
 }
 
+/** Sous-route → onglet : /dashboard/purchases/commandes ouvre les bons de commande. */
+function tabFromPath(pathname: string | null): Tab {
+  const segment = lastRouteSegment(pathname);
+  const match = TABS.find((t) => t.key === segment);
+  return match ? match.key : "demandes";
+}
+
 export default function PurchasesPage() {
-  const [tab, setTab] = useState<Tab>("demandes");
+  const pathname = usePathname();
+  const [tab, setTab] = useState<Tab>(tabFromPath(pathname));
 
   return (
     <div className="space-y-8">

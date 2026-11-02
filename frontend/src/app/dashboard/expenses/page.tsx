@@ -4,15 +4,25 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useExpenses, useCreateExpense } from "@/hooks/useOperations";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { ViewSwitcher } from "@/components/shared/view-switcher";
+import { cn, formatCurrency, formatDate, lastRouteSegment } from "@/lib/utils";
+
+/** Vue du module Dépenses (sous-routes « Nouvelle dépense » / « Journal »). */
+export type ExpensesView = "new" | "list";
+
+/** Sous-route → vue : /dashboard/expenses/new ouvre la saisie. */
+function viewFromPath(pathname: string | null): ExpensesView {
+  return lastRouteSegment(pathname) === "new" ? "new" : "list";
+}
 
 export default function ExpensesPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: expenses = [], isLoading } = useExpenses();
   const createExpense = useCreateExpense();
 
@@ -21,6 +31,7 @@ export default function ExpensesPage() {
   const [amount, setAmount] = useState(0);
   const [method, setMethod] = useState("cash");
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<ExpensesView>(viewFromPath(pathname));
 
   const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
 
@@ -53,8 +64,17 @@ export default function ExpensesPage() {
         </p>
       </div>
 
+      <ViewSwitcher
+        value={view}
+        onChange={setView}
+        options={[
+          { key: "new", label: "Nouvelle dépense" },
+          { key: "list", label: "Journal de dépenses" },
+        ]}
+      />
+
       {/* Saisie rapide */}
-      <Card className="space-y-3 p-4">
+      <Card className={cn("space-y-3 p-4", view !== "new" && "hidden")}>
         <h2 className="font-semibold text-gray-800">Enregistrer une dépense</h2>
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
@@ -99,7 +119,7 @@ export default function ExpensesPage() {
       </Card>
 
       {/* Liste */}
-      <Card className="overflow-hidden p-0">
+      <Card className={cn("overflow-hidden p-0", view !== "list" && "hidden")}>
         {isLoading ? (
           <p className="p-6 text-sm text-gray-500">Chargement…</p>
         ) : expenses.length === 0 ? (

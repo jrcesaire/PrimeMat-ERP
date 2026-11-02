@@ -4,17 +4,30 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Users, Phone, Mail, Upload } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ImportDialog } from "@/components/shared/import-dialog";
 import { ExportButton } from "@/components/shared/export-button";
 import { CRM_KEYS, usePartners } from "@/hooks/useCRM";
+import { lastRouteSegment } from "@/lib/utils";
+
+/** Filtre de rôle du module Contacts (sous-routes « Clients » / « Fournisseurs »). */
+export type ContactsRole = "all" | "client" | "supplier";
+
+/** Sous-route → filtre : /dashboard/contacts/clients ouvre les clients. */
+function roleFromPath(pathname: string | null): ContactsRole {
+  const segment = lastRouteSegment(pathname);
+  if (segment === "clients") return "client";
+  if (segment === "fournisseurs") return "supplier";
+  return "all";
+}
 
 export default function ContactsPage() {
   const router = useRouter();
-  const [role, setRole] = useState<"all" | "client" | "supplier">("all");
+  const pathname = usePathname();
+  const [role, setRole] = useState<ContactsRole>(roleFromPath(pathname));
   const [importOpen, setImportOpen] = useState(false);
   const { data: partners = [], isLoading } = usePartners(
     role === "all" ? undefined : role,

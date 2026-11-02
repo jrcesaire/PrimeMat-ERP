@@ -9,61 +9,50 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useCurrentCompany } from "@/hooks/useAuth";
 import { useSettingsNav } from "@/components/settings/settings-nav";
-import {
-  BarChart3,
-  BookOpen,
-  ChevronDown,
-  CreditCard,
-  FileText,
-  LayoutDashboard,
-  Package,
-  Receipt,
-  Settings,
-  ShoppingCart,
-  Store,
-  Tag,
-  Truck,
-  Users,
-  Warehouse,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { NAV_ITEMS, isNavGroup, type NavChild } from "@/lib/nav-config";
+import { NavSubmenu } from "@/components/layout/nav-submenu";
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ElementType;
+/** Vrai si l'un des liens du sous-menu mène à la route courante. */
+function containsRoute(items: NavChild[], route: string): boolean {
+  return items.some((child) =>
+    isNavGroup(child) ? containsRoute(child.items, route) : child.href === route,
+  );
 }
-
-const navItems: NavItem[] = [
-  { label: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Point de vente", href: "/dashboard/sales/pos", icon: Store },
-  { label: "Catalogue", href: "/dashboard/catalogue", icon: Package },
-  { label: "Clients", href: "/dashboard/contacts", icon: Users },
-  { label: "Ventes", href: "/dashboard/sales", icon: ShoppingCart },
-  { label: "Stock", href: "/dashboard/stock", icon: Warehouse },
-  { label: "Achats", href: "/dashboard/purchases", icon: Tag },
-  { label: "Livraison", href: "/dashboard/delivery", icon: Truck },
-  { label: "Facturation", href: "/dashboard/invoicing", icon: FileText },
-  { label: "Paiements", href: "/dashboard/payments", icon: CreditCard },
-  { label: "Dépenses", href: "/dashboard/expenses", icon: Receipt },
-  { label: "Comptabilité", href: "/dashboard/accounting", icon: BookOpen },
-  { label: "Reporting", href: "/dashboard/reporting", icon: BarChart3 },
-  { label: "Paramètres", href: "/dashboard/settings", icon: Settings },
-];
 
 export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname();
   const { data: company } = useCurrentCompany();
   // Sections accessibles du module Paramètres (sous-menu dépliable).
   const settingsNav = useSettingsNav();
-  // Le sous-menu se déplie dès qu'on entre dans la section Paramètres, mais
-  // reste repliable par l'utilisateur : la flèche est un contrôle indépendant
-  // du lien (elle ne navigue pas).
-  const inSettings = pathname?.startsWith("/dashboard/settings") ?? false;
-  const [settingsOpen, setSettingsOpen] = useState(inSettings);
+  // Entrées dont le sous-menu est déplié (plusieurs peuvent l'être à la fois).
+  const [openSections, setOpenSections] = useState<string[]>([]);
 
+  const route = (pathname ?? "").replace(/\/+$/, "") || "/";
+
+  // À l'arrivée sur une page d'un module, son sous-menu s'ouvre automatiquement ;
+  // l'utilisateur peut ensuite le replier (la flèche est un contrôle distinct du
+  // lien, elle ne navigue pas).
   useEffect(() => {
-    if (inSettings) setSettingsOpen(true);
-  }, [inSettings]);
+    const opened = NAV_ITEMS.filter(
+      (item) =>
+        item.children &&
+        (route === item.href || containsRoute(item.children, route)),
+    ).map((item) => item.href);
+    if (opened.length === 0) return;
+    setOpenSections((prev) => Array.from(new Set([...prev, ...opened])));
+  }, [route]);
+
+  const toggleSection = (href: string) =>
+    setOpenSections((prev) =>
+      prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href],
+    );
+
+  /** « Tableau de bord » ne doit pas rester actif sur les autres pages. */
+  const isRouteActive = (href: string) =>
+    href === "/dashboard"
+      ? route === "/dashboard"
+      : route === href || route.startsWith(`${href}/`);
 
   return (
     <div
@@ -97,12 +86,18 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         </div>
       </div>
       <nav className={cn("flex-1 space-y-1 py-4", collapsed ? "px-2" : "px-2")}>
-        {navItems.map((item) => {
-          const isActive = pathname?.startsWith(item.href);
-          // L'entrée « Paramètres » déplie ses sections en sous-menu.
-          const subItems =
-            item.href === "/dashboard/settings" ? settingsNav : undefined;
-          const subExpanded = settingsOpen && Boolean(subItems);
+        {NAV_ITEMS.map((item) => {
+          const isActive = isRouteActive(item.href);
+          // L'entrée « Paramètres » déplie ses sections (filtrées par
+          // permission) ; les autres modules utilisent `nav-config`.
+          const subItems: NavChild[] | undefined =
+            item.href === "/dashboard/settings"
+              ? settingsNav.map((section) => ({
+                  label: section.label,
+                  href: section.href,
+                }))
+              : item.children;
+          const subExpanded = openSections.includes(item.href);
           return (
             <div key={item.href}>
               {/* Ligne du menu : le lien navigue, la flèche déplie (deux cibles
@@ -131,7 +126,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
                 {!collapsed && subItems && (
                   <button
                     type="button"
-                    onClick={() => setSettingsOpen((open) => !open)}
+                    onClick={() => toggleSection(item.href)}
                     aria-expanded={subExpanded}
                     aria-label={
                       subExpanded
@@ -156,26 +151,12 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
                 )}
               </div>
 
-              {!collapsed && subItems && settingsOpen && (
-                <div className="mt-1 space-y-0.5">
-                  {subItems.map((child) => {
-                    const childActive = pathname === child.href;
-                    return (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={cn(
-                          "flex items-center rounded-md py-1.5 pl-10 pr-3 text-xs transition-colors",
-                          childActive
-                            ? "bg-gray-800 font-medium text-white"
-                            : "text-gray-400 hover:bg-gray-800 hover:text-white",
-                        )}
-                      >
-                        <span className="truncate">{child.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
+              {!collapsed && subItems && (
+                <NavSubmenu
+                  items={subItems}
+                  open={subExpanded}
+                  pathname={pathname}
+                />
               )}
             </div>
           );

@@ -27,6 +27,17 @@ export function formatDate(iso: string | null | undefined): string {
   return d.toLocaleDateString("fr-FR");
 }
 
+/**
+ * Dernier segment d'un chemin d'URL.
+ *
+ * Sert aux sous-routes de module : « /dashboard/sales/orders » → « orders »,
+ * ce qui permet à une page d'ouvrir le bon onglet ou la bonne vue.
+ */
+export function lastRouteSegment(pathname: string | null | undefined): string {
+  const clean = (pathname ?? "").replace(/\/+$/, "");
+  return clean.split("/").filter(Boolean).pop() ?? "";
+}
+
 /** Libellés et classes des statuts de documents. */
 export const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   draft: { label: "Brouillon", className: "bg-gray-100 text-gray-700" },

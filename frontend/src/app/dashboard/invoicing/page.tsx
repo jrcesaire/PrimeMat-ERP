@@ -4,11 +4,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExportButton } from "@/components/shared/export-button";
+import { ViewSwitcher } from "@/components/shared/view-switcher";
 import { useInvoices, useCreateInvoiceFromOrder, usePostInvoice, useDeleteInvoice } from "@/hooks/useOperations";
 import { useOrders } from "@/hooks/useSales";
 import { usePermission } from "@/hooks/useAuth";
@@ -18,10 +19,19 @@ import {
   confirmPostOptions,
 } from "@/components/ui/confirm";
 import { printInvoice } from "@/lib/api/pdf";
-import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, lastRouteSegment, StatusBadge } from "@/lib/utils";
+
+/** Vue du module Facturation (sous-routes « Créer » / « Liste »). */
+export type InvoicingView = "new" | "list";
+
+/** Sous-route → vue : /dashboard/invoicing/new ouvre la création. */
+function viewFromPath(pathname: string | null): InvoicingView {
+  return lastRouteSegment(pathname) === "new" ? "new" : "list";
+}
 
 export default function InvoicingPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: invoices = [], isLoading } = useInvoices();
   const { data: orders = [] } = useOrders();
   const createInvoice = useCreateInvoiceFromOrder();
@@ -34,6 +44,7 @@ export default function InvoicingPage() {
 
   const [orderId, setOrderId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<InvoicingView>(viewFromPath(pathname));
 
   const handleDeleteInvoice = async (
     e: React.MouseEvent,
@@ -120,8 +131,17 @@ export default function InvoicingPage() {
         />
       </div>
 
+      <ViewSwitcher
+        value={view}
+        onChange={setView}
+        options={[
+          { key: "new", label: "Créer une facture" },
+          { key: "list", label: "Liste des factures" },
+        ]}
+      />
+
       {/* Facturer une commande */}
-      <Card className="space-y-3 p-4">
+      <Card className={cn("space-y-3 p-4", view !== "new" && "hidden")}>
         <h2 className="font-semibold text-gray-800">Facturer une commande confirmée</h2>
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="flex flex-wrap items-center gap-2">
@@ -149,7 +169,7 @@ export default function InvoicingPage() {
       </Card>
 
       {/* Liste des factures */}
-      <Card className="overflow-hidden p-0">
+      <Card className={cn("overflow-hidden p-0", view !== "list" && "hidden")}>
         {isLoading ? (
           <p className="p-6 text-sm text-gray-500">Chargement…</p>
         ) : invoices.length === 0 ? (

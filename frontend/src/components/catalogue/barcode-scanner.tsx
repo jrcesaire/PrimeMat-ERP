@@ -20,12 +20,19 @@ const FORMATS = [
 interface BarcodeScannerProps {
   /** Appelé avec le code détecté (ou saisi manuellement). */
   onScan: (code: string) => void;
+  /** Ouvre la caméra dès le montage (sous-route « Scanner un produit »). */
+  autoOpen?: boolean;
   label?: string;
   className?: string;
 }
 
-export function BarcodeScanner({ onScan, label = "Scanner", className }: BarcodeScannerProps) {
-  const [open, setOpen] = useState(false);
+export function BarcodeScanner({
+  onScan,
+  label = "Scanner",
+  className,
+  autoOpen = false,
+}: BarcodeScannerProps) {
+  const [open, setOpen] = useState(autoOpen);
   const [manualMode, setManualMode] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [error, setError] = useState<string | null>(null);

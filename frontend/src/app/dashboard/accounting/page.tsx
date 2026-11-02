@@ -10,7 +10,8 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, lastRouteSegment } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 import {
   useTrialBalance,
   useIncomeStatement,
@@ -19,7 +20,7 @@ import {
   useBackfill,
 } from "@/hooks/useAccounting";
 
-type Tab = "balance" | "income" | "sheet" | "entries";
+export type Tab = "balance" | "income" | "sheet" | "entries";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "balance", label: "Balance de vérification" },
@@ -36,8 +37,16 @@ const QUICK_LINKS: { label: string; href: string }[] = [
   { label: "Cash-flow", href: "/dashboard/accounting/cash-flow" },
 ];
 
+/** Sous-route → onglet : /dashboard/accounting/sheet ouvre le bilan. */
+function tabFromPath(pathname: string | null): Tab {
+  const segment = lastRouteSegment(pathname);
+  const match = TABS.find((t) => t.key === segment);
+  return match ? match.key : "balance";
+}
+
 export default function AccountingPage() {
-  const [tab, setTab] = useState<Tab>("balance");
+  const pathname = usePathname();
+  const [tab, setTab] = useState<Tab>(tabFromPath(pathname));
   const trial = useTrialBalance();
   const income = useIncomeStatement();
   const sheet = useBalanceSheet();

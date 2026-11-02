@@ -4,7 +4,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,8 @@ import {
   confirmDeleteOptions,
 } from "@/components/ui/confirm";
 import { printReceipt } from "@/lib/api/pdf";
-import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
+import { ViewSwitcher } from "@/components/shared/view-switcher";
+import { cn, formatCurrency, formatDate, lastRouteSegment, StatusBadge } from "@/lib/utils";
 
 function apiDetail(err: unknown, fallback: string): string {
   const detail = (err as { response?: { data?: { detail?: string } } })
@@ -41,8 +42,17 @@ const METHOD_LABELS: Record<string, string> = {
   check: "Chèque",
 };
 
+/** Vue du module Paiements (sous-routes « Encaisser » / « Liste »). */
+export type PaymentsView = "new" | "list";
+
+/** Sous-route → vue : /dashboard/payments/new ouvre l'encaissement. */
+function viewFromPath(pathname: string | null): PaymentsView {
+  return lastRouteSegment(pathname) === "new" ? "new" : "list";
+}
+
 export default function PaymentsPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: payments = [], isLoading } = usePayments();
   const { data: invoices = [] } = useInvoices();
   const { data: clients = [] } = useClients();
@@ -59,6 +69,7 @@ export default function PaymentsPage() {
   const [method, setMethod] = useState("cash");
   const [amount, setAmount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<PaymentsView>(viewFromPath(pathname));
 
   // Cascade de suppression : remise au brouillon → suppression
   const handleBackToDraft = async (p: Payment) => {
@@ -133,8 +144,17 @@ export default function PaymentsPage() {
         <p className="text-sm text-gray-600">Encaissements clients</p>
       </div>
 
+      <ViewSwitcher
+        value={view}
+        onChange={setView}
+        options={[
+          { key: "new", label: "Encaisser" },
+          { key: "list", label: "Liste des paiements" },
+        ]}
+      />
+
       {/* Nouveau paiement */}
-      <Card className="space-y-3 p-4">
+      <Card className={cn("space-y-3 p-4", view !== "new" && "hidden")}>
         <h2 className="font-semibold text-gray-800">Encaisser un paiement</h2>
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
@@ -182,7 +202,7 @@ export default function PaymentsPage() {
       </Card>
 
       {/* Liste */}
-      <Card className="overflow-hidden p-0">
+      <Card className={cn("overflow-hidden p-0", view !== "list" && "hidden")}>
         {isLoading ? (
           <p className="p-6 text-sm text-gray-500">Chargement…</p>
         ) : payments.length === 0 ? (

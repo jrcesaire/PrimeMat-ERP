@@ -4,11 +4,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExportButton } from "@/components/shared/export-button";
+import { ViewSwitcher } from "@/components/shared/view-switcher";
 import {
   useDeliveryNotes,
   useCreateDeliveryFromOrder,
@@ -25,7 +26,7 @@ import {
   confirmDeleteOptions,
 } from "@/components/ui/confirm";
 import { printDelivery } from "@/lib/api/pdf";
-import { formatDate, StatusBadge } from "@/lib/utils";
+import { cn, formatDate, lastRouteSegment, StatusBadge } from "@/lib/utils";
 
 const NEXT_STATUS: Record<string, { label: string; value: string }> = {
   draft: { label: "Confirmer", value: "pending" },
@@ -36,8 +37,17 @@ const NEXT_STATUS: Record<string, { label: string; value: string }> = {
   delivered: { label: "Terminer", value: "completed" },
 };
 
+/** Vue du module Livraison (sous-routes « Créer » / « Liste »). */
+export type DeliveryView = "new" | "list";
+
+/** Sous-route → vue : /dashboard/delivery/new ouvre la création. */
+function viewFromPath(pathname: string | null): DeliveryView {
+  return lastRouteSegment(pathname) === "new" ? "new" : "list";
+}
+
 export default function DeliveryPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: deliveries = [], isLoading } = useDeliveryNotes();
   const { data: orders = [] } = useOrders();
   const { data: clients = [] } = useClients();
@@ -52,6 +62,7 @@ export default function DeliveryPage() {
 
   const [orderId, setOrderId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<DeliveryView>(viewFromPath(pathname));
 
   const handleBackToDraft = async (reference: string, deliveryId: number) => {
     const { confirmed } = await confirm(
@@ -126,8 +137,17 @@ export default function DeliveryPage() {
         />
       </div>
 
+      <ViewSwitcher
+        value={view}
+        onChange={setView}
+        options={[
+          { key: "new", label: "Créer un bon de livraison" },
+          { key: "list", label: "Liste des bons" },
+        ]}
+      />
+
       {/* Créer depuis commande */}
-      <Card className="space-y-3 p-4">
+      <Card className={cn("space-y-3 p-4", view !== "new" && "hidden")}>
         <h2 className="font-semibold text-gray-800">Préparer une livraison</h2>
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="flex flex-wrap items-center gap-2">
@@ -153,7 +173,7 @@ export default function DeliveryPage() {
       </Card>
 
       {/* Liste */}
-      <Card className="overflow-hidden p-0">
+      <Card className={cn("overflow-hidden p-0", view !== "list" && "hidden")}>
         {isLoading ? (
           <p className="p-6 text-sm text-gray-500">Chargement…</p>
         ) : deliveries.length === 0 ? (

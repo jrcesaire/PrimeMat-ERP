@@ -7,7 +7,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Package, Upload } from "lucide-react";
 import { BarcodeScanner } from "@/components/catalogue/barcode-scanner";
@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { ImportDialog } from "@/components/shared/import-dialog";
 import { ExportButton } from "@/components/shared/export-button";
 import { CATALOGUE_KEYS, useProducts } from "@/hooks/useCatalogue";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, lastRouteSegment } from "@/lib/utils";
 
 const SALE_MODE_LABELS: Record<string, { label: string; cls: string }> = {
   unit: { label: "À l'unité", cls: "bg-gray-100 text-gray-700" },
@@ -36,6 +36,9 @@ const STORAGE_TYPE_BADGES: Record<string, { label: string; cls: string }> = {
 
 export default function CataloguePage() {
   const router = useRouter();
+  const pathname = usePathname();
+  // Sous-route « Scanner un produit » : la caméra s'ouvre dès l'arrivée.
+  const autoScan = lastRouteSegment(pathname) === "scan";
   const { data: products = [], isLoading } = useProducts();
   const [importOpen, setImportOpen] = useState(false);
   const [scanMsg, setScanMsg] = useState<string | null>(null);
@@ -75,6 +78,7 @@ export default function CataloguePage() {
           <BarcodeScanner
             label="Scanner un produit"
             onScan={handleScanLookup}
+            autoOpen={autoScan}
           />
           <ExportButton endpoint="/catalogue/products/export" fallbackName="produits" />
           <Button

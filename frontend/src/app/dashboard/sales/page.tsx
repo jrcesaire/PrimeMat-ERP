@@ -4,7 +4,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -53,7 +53,7 @@ import {
   type Invoice,
 } from "@/hooks/useOperations";
 import type { Partner, Quote, SalesOrder } from "@/lib/types";
-import { formatCurrency, formatDate, StatusBadge } from "@/lib/utils";
+import { formatCurrency, formatDate, lastRouteSegment, StatusBadge } from "@/lib/utils";
 import { printQuote, printOrder } from "@/lib/api/pdf";
 
 /** Nombre de lignes par page (pagination façon Odoo). */
@@ -89,9 +89,18 @@ function filterDocs<T extends ListDoc>(
   return [...out].sort((a, b) => b.id - a.id);
 }
 
+/** Onglet du module Ventes (sous-routes « Devis » / « Commandes »). */
+export type SalesTab = "quotes" | "orders";
+
+/** Sous-route → onglet : /dashboard/sales/orders ouvre les commandes. */
+function tabFromPath(pathname: string | null): SalesTab {
+  return lastRouteSegment(pathname) === "orders" ? "orders" : "quotes";
+}
+
 export default function SalesPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<"quotes" | "orders">("quotes");
+  const pathname = usePathname();
+  const [tab, setTab] = useState<SalesTab>(tabFromPath(pathname));
   const [importOpen, setImportOpen] = useState(false);
   const { data: quotes = [], isLoading: loadingQuotes } = useQuotes();
   const { data: orders = [], isLoading: loadingOrders } = useOrders();
