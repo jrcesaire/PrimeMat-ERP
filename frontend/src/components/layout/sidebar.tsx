@@ -7,10 +7,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useCurrentCompany } from "@/hooks/useAuth";
+import { useCurrentCompany, useCurrentUser, usePermission } from "@/hooks/useAuth";
 import { useSettingsNav } from "@/components/settings/settings-nav";
 import { ChevronDown } from "lucide-react";
-import { NAV_ITEMS, isNavGroup, type NavChild } from "@/lib/nav-config";
+import {
+  NAV_ITEMS,
+  isNavGroup,
+  visibleNavModules,
+  type NavChild,
+} from "@/lib/nav-config";
 import { NavSubmenu } from "@/components/layout/nav-submenu";
 
 /** Vrai si l'un des liens du sous-menu mène à la route courante. */
@@ -25,6 +30,15 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const { data: company } = useCurrentCompany();
   // Sections accessibles du module Paramètres (sous-menu dépliable).
   const settingsNav = useSettingsNav();
+  // Sous-menus filtrés par permission : une entrée n'est proposée que si
+  // l'utilisateur détient le droit exigé par la page (cf. `lib/nav-config`).
+  const { data: currentUser } = useCurrentUser();
+  const can = usePermission();
+  // Profil pas encore chargé (premier rendu / SSR) : aucun filtrage, pour
+  // éviter un clignotement des sous-menus.
+  const filterReady = Boolean(currentUser);
+  const isAllowed = (permission?: string) =>
+    !permission || !filterReady || can(permission);
   // Entrées dont le sous-menu est déplié (plusieurs peuvent l'être à la fois).
   const [openSections, setOpenSections] = useState<string[]>([]);
 
@@ -53,6 +67,16 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
     href === "/dashboard"
       ? route === "/dashboard"
       : route === href || route.startsWith(`${href}/`);
+
+  // Modules affichés : `visibleNavModules` retire ceux dont la page d'accueil
+  // est interdite, sauf s'il reste une page accessible dans leur sous-menu (un
+  // vendeur garde ainsi « Achats » pour « Besoins (ventes) » sans
+  // `purchase:view`). Les sections de « Paramètres » viennent de
+  // `useSettingsNav` (déjà filtrées par permission).
+  const modules = visibleNavModules(
+    isAllowed,
+    settingsNav.map((section) => ({ label: section.label, href: section.href })),
+  );
 
   return (
     <div
@@ -86,17 +110,10 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         </div>
       </div>
       <nav className={cn("flex-1 space-y-1 py-4", collapsed ? "px-2" : "px-2")}>
-        {NAV_ITEMS.map((item) => {
+        {modules.map(({ item, children: subItems }) => {
           const isActive = isRouteActive(item.href);
-          // L'entrée « Paramètres » déplie ses sections (filtrées par
-          // permission) ; les autres modules utilisent `nav-config`.
-          const subItems: NavChild[] | undefined =
-            item.href === "/dashboard/settings"
-              ? settingsNav.map((section) => ({
-                  label: section.label,
-                  href: section.href,
-                }))
-              : item.children;
+          // Un module dont toutes les pages sont interdites n'a pas de chevron.
+          const hasSub = subItems.length > 0;
           const subExpanded = openSections.includes(item.href);
           return (
             <div key={item.href}>
@@ -123,7 +140,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
                   {!collapsed && <span className="truncate">{item.label}</span>}
                 </Link>
 
-                {!collapsed && subItems && (
+                {!collapsed && hasSub && (
                   <button
                     type="button"
                     onClick={() => toggleSection(item.href)}
@@ -151,7 +168,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
                 )}
               </div>
 
-              {!collapsed && subItems && (
+              {!collapsed && hasSub && (
                 <NavSubmenu
                   items={subItems}
                   open={subExpanded}
