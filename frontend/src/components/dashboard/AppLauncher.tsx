@@ -43,28 +43,21 @@ function Tile({ app, disabled = false }: { app: AppTile; disabled?: boolean }) {
     <Card
       title={tooltip}
       className={cn(
-        "group flex h-full cursor-pointer flex-col gap-4 p-5 transition-colors",
+        "group relative flex h-full cursor-pointer flex-col items-center justify-center gap-4 p-5 text-center transition-colors",
         disabled ? "cursor-default opacity-55 grayscale" : "hover:border-primary/40",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-primary-soft">
-          {SvgIcon ? (
-            <SvgIcon className="h-6 w-6" />
-          ) : (
-            <app.icon className="h-5 w-5 text-primary" />
-          )}
-        </div>
-        {!disabled && (
-          <ArrowUpRight className="h-4 w-4 shrink-0 text-faint transition-colors group-hover:text-primary" />
+      {!disabled && (
+        <ArrowUpRight className="absolute right-4 top-4 h-4 w-4 shrink-0 text-faint transition-colors group-hover:text-primary" />
+      )}
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-card bg-primary-soft">
+        {SvgIcon ? (
+          <SvgIcon className="h-10 w-10" />
+        ) : (
+          <app.icon className="h-9 w-9 text-primary" />
         )}
       </div>
-      <div className="min-w-0">
-        <p className="text-[15px] font-semibold text-ink">{app.label}</p>
-        <p className="mt-1 text-[13px] leading-snug text-muted">
-          {app.description}
-        </p>
-      </div>
+      <p className="text-[15px] font-semibold text-ink">{app.label}</p>
     </Card>
   );
 
@@ -134,7 +127,7 @@ export function AppLauncher() {
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className={cn("h-32 animate-pulse rounded-card bg-subtle", TILE_WIDTH)}
+              className={cn("h-36 animate-pulse rounded-card bg-subtle", TILE_WIDTH)}
             />
           ))}
         </div>
