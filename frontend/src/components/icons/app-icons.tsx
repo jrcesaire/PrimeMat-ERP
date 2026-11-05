@@ -231,16 +231,21 @@ export function ReportingIcon(props: AppIconProps) {
   );
 }
 
-/** Correspondance entre une clé d'application et son icône SVG. */
+/**
+ * Correspondance entre la clé d'une tuile (`lib/module-registry`) et son icône.
+ *
+ * Les clés sont celles de `APP_TILES` : `finance` désigne la tuile
+ * « Dépenses » et `dashboard` la tuile « Tableau de bord ».
+ */
 export const APP_ICONS: Record<string, ComponentType<AppIconProps>> = {
-  accounting: AccountingIcon,
-  expenses: ExpensesIcon,
+  dashboard: ApplicationsIcon,
+  sales: SalesIcon,
+  invoicing: InvoicingIcon,
+  stock: StockIcon,
   delivery: DeliveryIcon,
   payments: PaymentsIcon,
-  sales: SalesIcon,
-  stock: StockIcon,
-  applications: ApplicationsIcon,
-  invoicing: InvoicingIcon,
+  finance: ExpensesIcon,
+  accounting: AccountingIcon,
   reporting: ReportingIcon,
 };
 
