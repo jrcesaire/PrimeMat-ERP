@@ -20,6 +20,7 @@ import { ArrowUpRight, Search, Settings, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useModuleStates } from "@/hooks/useModules";
 import { APP_TILES, type AppTile } from "@/lib/module-registry";
+import { ANIMATED_APP_ICONS } from "@/components/icons/animated-icons";
 import { APP_ICONS } from "@/components/icons/app-icons";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +38,9 @@ function Tile({ app, disabled = false }: { app: AppTile; disabled?: boolean }) {
   const tooltip = disabled
     ? `${app.label} — Désactivé`
     : `${app.label} — ${app.description}`;
-  // Icône SVG dédiée quand elle existe, sinon l'icône Lucide du registre.
+  // Visuel animé quand il existe — il prime sur le tracé vectoriel —, sinon
+  // l'icône SVG dédiée, sinon l'icône Lucide du registre.
+  const animated = ANIMATED_APP_ICONS[app.key];
   const SvgIcon = APP_ICONS[app.key];
   const inner = (
     <Card
@@ -50,13 +53,36 @@ function Tile({ app, disabled = false }: { app: AppTile; disabled?: boolean }) {
       {!disabled && (
         <ArrowUpRight className="absolute right-4 top-4 h-4 w-4 shrink-0 text-faint transition-colors group-hover:text-primary" />
       )}
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-card bg-primary-soft">
-        {SvgIcon ? (
-          <SvgIcon className="h-10 w-10" />
-        ) : (
-          <app.icon className="h-9 w-9 text-primary" />
-        )}
-      </div>
+      {animated ? (
+        // Les visuels animés ont un fond blanc opaque : la pastille passe en
+        // blanc pour que l'icône s'y fonde. L'animation boucle sans fin, donc
+        // elle est figée sur sa première image quand le visiteur a demandé
+        // moins de mouvement.
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-card bg-white">
+          <picture>
+            <source
+              srcSet={animated.staticSrc}
+              media="(prefers-reduced-motion: reduce)"
+            />
+            <img
+              src={animated.src}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-contain"
+            />
+          </picture>
+        </div>
+      ) : (
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-card bg-primary-soft">
+          {SvgIcon ? (
+            <SvgIcon className="h-10 w-10" />
+          ) : (
+            <app.icon className="h-9 w-9 text-primary" />
+          )}
+        </div>
+      )}
       <p className="text-[15px] font-semibold text-ink">{app.label}</p>
     </Card>
   );
