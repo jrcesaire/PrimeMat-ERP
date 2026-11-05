@@ -42,7 +42,7 @@ function BrandLogo({ size = 56 }: { size?: number }) {
         fill="#ffffff"
         fontSize="20"
         fontWeight="700"
-        fontFamily="Poppins, sans-serif"
+        fontFamily="var(--font-open-sans), sans-serif"
       >
         GEA
       </text>

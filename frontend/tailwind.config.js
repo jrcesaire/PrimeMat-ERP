@@ -60,7 +60,7 @@ module.exports = {
         chip: "5px",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", ...defaultTheme.fontFamily.sans],
+        sans: ["var(--font-open-sans)", ...defaultTheme.fontFamily.sans],
       },
       boxShadow: {
         /** Bordure seule — remplace `shadow-sm` sur les cartes. */

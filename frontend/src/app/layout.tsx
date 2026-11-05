@@ -6,12 +6,18 @@
  * - les styles globaux (Tailwind)
  */
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Open_Sans } from "next/font/google";
 import "./globals.css";
 
 import { Providers } from "./providers";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+// Police globale de l'application. La variable CSS alimente `font-sans`
+// (cf. `tailwind.config.js`), donc tout l'ERP en hérite.
+const openSans = Open_Sans({
+  subsets: ["latin"],
+  variable: "--font-open-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "ERP Matériaux de Construction",
@@ -33,7 +39,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.variable} font-sans`} suppressHydrationWarning>
+      <body className={`${openSans.variable} font-sans`} suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>
