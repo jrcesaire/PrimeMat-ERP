@@ -46,7 +46,7 @@ export function PosKeypad({ value, onChange, onExact }: Props) {
         type="button"
         onClick={onExact}
         disabled={!onExact}
-        className="row-span-2 flex items-center justify-center rounded-md border border-green-600 bg-green-50 px-2 text-sm font-bold text-green-700 transition hover:bg-green-100 active:bg-green-200"
+        className="row-span-2 flex items-center justify-center rounded-control border border-primary bg-primary-soft px-2 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/15 active:bg-primary/20"
       >
         Exact
       </button>
@@ -72,10 +72,10 @@ function Key({
       type="button"
       onClick={onPress}
       className={cn(
-        "h-12 rounded-md border text-lg font-semibold shadow-sm transition active:scale-[0.97]",
+        "h-11 rounded-control border text-[17px] font-semibold transition-colors active:scale-[0.97]",
         muted
-          ? "border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200"
-          : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50",
+          ? "border-line bg-subtle text-muted hover:bg-line"
+          : "border-line bg-surface text-ink hover:bg-subtle",
       )}
     >
       {label}

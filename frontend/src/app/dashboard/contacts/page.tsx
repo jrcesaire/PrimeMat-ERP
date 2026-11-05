@@ -10,8 +10,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ImportDialog } from "@/components/shared/import-dialog";
 import { ExportButton } from "@/components/shared/export-button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { CRM_KEYS, usePartners } from "@/hooks/useCRM";
-import { lastRouteSegment } from "@/lib/utils";
+import { cn, lastRouteSegment } from "@/lib/utils";
 
 /** Filtre de rôle du module Contacts (sous-routes « Clients » / « Fournisseurs »). */
 export type ContactsRole = "all" | "client" | "supplier";
@@ -87,69 +88,73 @@ export default function ContactsPage() {
         ))}
       </div>
 
-      <Card className="overflow-hidden p-0">
-        {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
-        ) : partners.length === 0 ? (
-          <div className="p-10 text-center">
-            <Users className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-            <p className="text-sm text-gray-500">Aucun contact.</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
-                <th className="px-4 py-3">Nom</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Téléphone</th>
-                <th className="px-4 py-3">E-mail</th>
-                <th className="px-4 py-3">Ville</th>
-              </tr>
-            </thead>
-            <tbody>
-              {partners.map((p) => (
-                <tr
-                  key={p.id}
-                  onClick={() => router.push(`/dashboard/contacts/new?id=${p.id}`)}
-                  className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
-                >
-                  <td className="px-4 py-3 font-medium text-gray-900 hover:text-primary hover:underline">{p.name}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-                      {p.role === "supplier"
-                        ? "Fournisseur"
-                        : p.role === "both"
-                          ? "Client + Fourn."
-                          : "Client"}
+            {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-[176px] animate-pulse rounded-card bg-subtle" />
+          ))}
+        </div>
+      ) : partners.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="Aucun contact"
+          description="Ajoutez un client ou un fournisseur pour le voir apparaitre ici."
+          className="rounded-card border border-line bg-surface"
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {partners.map((p) => {
+            const role =
+              p.role === "supplier"
+                ? { label: "Fournisseur", tone: "bg-warning-soft text-warning" }
+                : p.role === "both"
+                  ? { label: "Client + Fourn.", tone: "bg-primary-soft text-primary" }
+                  : { label: "Client", tone: "bg-success-soft text-success" };
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => router.push(`/dashboard/contacts/new?id=${p.id}`)}
+                className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4 text-left transition-colors hover:border-primary/40"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[13px] font-semibold uppercase text-primary">
+                    {p.name.slice(0, 2)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-semibold text-ink">
+                      {p.name}
+                    </p>
+                    <span
+                      className={cn(
+                        "mt-0.5 inline-flex rounded-chip px-2 py-0.5 text-[10px] font-medium",
+                        role.tone,
+                      )}
+                    >
+                      {role.label}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {p.phone ? (
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" /> {p.phone}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {p.email ? (
-                      <span className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" /> {p.email}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {p.addresses?.[0]?.city ?? "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+                  </div>
+                </div>
+
+                <div className="space-y-1 border-t border-line pt-3 text-[12px] text-muted">
+                  <p className="flex items-center gap-2 truncate">
+                    <Phone className="h-3.5 w-3.5 shrink-0 text-faint" />
+                    {p.phone || "-"}
+                  </p>
+                  <p className="flex items-center gap-2 truncate">
+                    <Mail className="h-3.5 w-3.5 shrink-0 text-faint" />
+                    {p.email || "-"}
+                  </p>
+                  <p className="flex items-center gap-2 truncate">
+                    <Users className="h-3.5 w-3.5 shrink-0 text-faint" />
+                    {p.addresses?.[0]?.city ?? "-"}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

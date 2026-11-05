@@ -38,42 +38,77 @@ export function lastRouteSegment(pathname: string | null | undefined): string {
   return clean.split("/").filter(Boolean).pop() ?? "";
 }
 
-/** Libellés et classes des statuts de documents. */
-export const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  draft: { label: "Brouillon", className: "bg-gray-100 text-gray-700" },
-  confirmed: { label: "Confirmé", className: "bg-blue-100 text-blue-800" },
-  posted: { label: "Confirmée", className: "bg-blue-100 text-blue-800" },
-  partially_paid: { label: "Partiellement payée", className: "bg-amber-100 text-amber-800" },
-  paid: { label: "Payée", className: "bg-green-100 text-green-800" },
-  pending: { label: "En attente", className: "bg-yellow-100 text-yellow-800" },
-  in_progress: { label: "En cours", className: "bg-indigo-100 text-indigo-800" },
-  reserved: { label: "Réservé", className: "bg-indigo-100 text-indigo-800" },
-  shipped: { label: "Expédié", className: "bg-cyan-100 text-cyan-800" },
-  delivered: { label: "Livré", className: "bg-green-100 text-green-800" },
-  completed: { label: "Terminé", className: "bg-green-100 text-green-800" },
-  cancelled: { label: "Annulé", className: "bg-red-100 text-red-700" },
-  converted: { label: "Converti", className: "bg-purple-100 text-purple-800" },
-  // --- Achats ---
-  submitted: { label: "Soumis", className: "bg-blue-100 text-blue-800" },
-  approved: { label: "Approuvé", className: "bg-green-100 text-green-800" },
-  rejected: { label: "Rejeté", className: "bg-red-100 text-red-700" },
-  partially_received: {
-    label: "Partiellement reçu",
-    className: "bg-amber-100 text-amber-800",
-  },
-  received: { label: "Reçu", className: "bg-green-100 text-green-800" },
-  done: { label: "Terminé", className: "bg-green-100 text-green-800" },
-  validated: { label: "Validé", className: "bg-green-100 text-green-800" },
-  match_ok: { label: "Rapproché", className: "bg-green-100 text-green-800" },
-  qty_diff: { label: "Écart quantité", className: "bg-amber-100 text-amber-800" },
-  price_diff: { label: "Écart prix", className: "bg-amber-100 text-amber-800" },
-  no_reference: { label: "Sans référence", className: "bg-red-100 text-red-700" },
+/**
+ * Tons sémantiques des pastilles d'état.
+ *
+ * Reposent sur les jetons de `globals.css` : une pastille écrite avec ces
+ * classes s'adapte automatiquement au mode sombre (fond `*-soft`, texte plein).
+ */
+export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
+
+export const TONE_CLASSES: Record<Tone, string> = {
+  neutral: "bg-subtle text-muted",
+  info: "bg-primary-soft text-primary",
+  success: "bg-success-soft text-success",
+  warning: "bg-warning-soft text-warning",
+  danger: "bg-danger-soft text-danger",
 };
 
+/** Libellés, ton et classes des statuts de documents. */
+export const STATUS_LABELS: Record<
+  string,
+  { label: string; tone: Tone; className: string }
+> = {
+  draft: { label: "Brouillon", tone: "neutral", className: TONE_CLASSES.neutral },
+  confirmed: { label: "Confirmé", tone: "info", className: TONE_CLASSES.info },
+  posted: { label: "Confirmée", tone: "info", className: TONE_CLASSES.info },
+  partially_paid: {
+    label: "Partiellement payée",
+    tone: "warning",
+    className: TONE_CLASSES.warning,
+  },
+  paid: { label: "Payée", tone: "success", className: TONE_CLASSES.success },
+  pending: { label: "En attente", tone: "warning", className: TONE_CLASSES.warning },
+  in_progress: { label: "En cours", tone: "info", className: TONE_CLASSES.info },
+  reserved: { label: "Réservé", tone: "info", className: TONE_CLASSES.info },
+  shipped: { label: "Expédié", tone: "info", className: TONE_CLASSES.info },
+  delivered: { label: "Livré", tone: "success", className: TONE_CLASSES.success },
+  completed: { label: "Terminé", tone: "success", className: TONE_CLASSES.success },
+  cancelled: { label: "Annulé", tone: "danger", className: TONE_CLASSES.danger },
+  converted: { label: "Converti", tone: "info", className: TONE_CLASSES.info },
+  // --- Achats ---
+  submitted: { label: "Soumis", tone: "info", className: TONE_CLASSES.info },
+  approved: { label: "Approuvé", tone: "success", className: TONE_CLASSES.success },
+  rejected: { label: "Rejeté", tone: "danger", className: TONE_CLASSES.danger },
+  partially_received: {
+    label: "Partiellement reçu",
+    tone: "warning",
+    className: TONE_CLASSES.warning,
+  },
+  received: { label: "Reçu", tone: "success", className: TONE_CLASSES.success },
+  done: { label: "Terminé", tone: "success", className: TONE_CLASSES.success },
+  validated: { label: "Validé", tone: "success", className: TONE_CLASSES.success },
+  match_ok: { label: "Rapproché", tone: "success", className: TONE_CLASSES.success },
+  qty_diff: { label: "Écart quantité", tone: "warning", className: TONE_CLASSES.warning },
+  price_diff: { label: "Écart prix", tone: "warning", className: TONE_CLASSES.warning },
+  no_reference: {
+    label: "Sans référence",
+    tone: "danger",
+    className: TONE_CLASSES.danger,
+  },
+};
+
+/** Pastille d'état d'un document — style « pill » de la maquette. */
 export function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_LABELS[status] ?? { label: status, className: "bg-gray-100 text-gray-700" };
+  const cfg = STATUS_LABELS[status] ?? {
+    label: status,
+    tone: "neutral" as Tone,
+    className: TONE_CLASSES.neutral,
+  };
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.className}`}>
+    <span
+      className={`inline-flex items-center rounded-chip px-2.5 py-0.5 text-[11px] font-medium ${cfg.className}`}
+    >
       {cfg.label}
     </span>
   );

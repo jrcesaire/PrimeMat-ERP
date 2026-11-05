@@ -17,6 +17,7 @@ export const OHADA_KEYS = {
   currentFiscalYear: "ohada-current-fiscal-year",
   exchangeRates: "ohada-exchange-rates",
   seedResult: "ohada-seed-result",
+  closingPreview: "ohada-closing-preview",
 };
 
 // --- Types (miroir des schémas backend) ---
@@ -55,6 +56,37 @@ export interface FiscalYearPayload {
   name: string;
   start_date: string;
   end_date: string;
+}
+
+/** Compte de charges/produits soldé par l'écriture de clôture. */
+export interface FiscalYearClosingLine {
+  account_code: string;
+  account_name: string;
+  class_no: string;
+  /** Solde de l'exercice (débit − crédit). */
+  balance: number;
+  /** Sens de la ligne de soldage (inverse du solde). */
+  debit: number;
+  credit: number;
+}
+
+/** Aperçu de la clôture : comptes à solder, résultat et exercice de report. */
+export interface FiscalYearClosingPreview {
+  fiscal_year: FiscalYear;
+  lines: FiscalYearClosingLine[];
+  /** Résultat de l'exercice (positif = bénéfice). */
+  result: number;
+  result_type: "profit" | "loss" | "none";
+  /** Compte de résultat utilisé (121 bénéfice / 129 perte). */
+  result_account: string | null;
+  total_debit: number;
+  total_credit: number;
+  /** Exercice qui recevra le report à nouveau (null = à créer). */
+  next_year: FiscalYear | null;
+  next_year_will_be_created: boolean;
+  closing_entry_reference: string | null;
+  opening_entry_reference: string | null;
+  already_closed: boolean;
 }
 
 export interface ExchangeRate {
@@ -173,6 +205,47 @@ export function useCloseFiscalYear() {
       queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.fiscalYears] });
       queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.currentFiscalYear] });
       queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.constraints] });
+      queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.closingPreview] });
+    },
+  });
+}
+
+/**
+ * Aperçu de la clôture : comptes de charges/produits à solder, résultat de
+ * l'exercice et exercice qui recevra le report à nouveau.
+ */
+export function useFiscalYearClosingPreview(yearId: number | null) {
+  return useQuery({
+    queryKey: [OHADA_KEYS.closingPreview, yearId ?? 0],
+    queryFn: async (): Promise<FiscalYearClosingPreview | null> => {
+      if (!yearId) return null;
+      const res = await apiClient.get(
+        `/accounting/fiscal-years/${yearId}/closing-preview`,
+      );
+      return res.data;
+    },
+    enabled: !!yearId,
+  });
+}
+
+/**
+ * Réouvre un exercice clôturé (retire les écritures de clôture générées pour
+ * permettre une correction, puis une nouvelle clôture).
+ */
+export function useReopenFiscalYear() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (yearId: number): Promise<FiscalYear> => {
+      const res = await apiClient.post(
+        `/accounting/fiscal-years/${yearId}/reopen`,
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.fiscalYears] });
+      queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.currentFiscalYear] });
+      queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.constraints] });
+      queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.closingPreview] });
     },
   });
 }

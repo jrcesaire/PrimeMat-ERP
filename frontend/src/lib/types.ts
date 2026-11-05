@@ -906,6 +906,25 @@ export interface SupplierInvoicePay {
   method?: string;
 }
 
+/**
+ * Achat de quincaillerie saisi depuis le PoS (PRD US5).
+ * Le montant est TTC ; la facture fournisseur est créée, comptabilisée et
+ * réglée sur la caisse du point de vente.
+ */
+export interface PosPurchaseCreate {
+  supplier_id: number;
+  label: string;
+  amount_total: number;
+  tax_rate?: number;
+  purchase_date?: string | null;
+  supplier_invoice_number?: string | null;
+  notes?: string | null;
+  paid?: boolean;
+  payment_method?: "cash" | "bank_transfer" | "check" | "mobile_money";
+  treasury_account?: string | null;
+  journal_code?: string | null;
+}
+
 export interface MatchingLineDetail {
   product_id?: number | null;
   description?: string | null;
@@ -1082,4 +1101,284 @@ export interface PosSettings {
 
 /** Mise à jour partielle : seuls les champs fournis sont enregistrés. */
 export type PosSettingsUpdate = Partial<PosSettings>;
+
+// ========================================================================
+// Trésorerie — comptes, relevés bancaires et rapprochement (Phase 2 PRD)
+// (backend : app/modules/finance — routes /finance/treasury/*)
+// ========================================================================
+
+/** Compte de trésorerie (banque, caisse, mobile money). */
+export interface TreasuryAccount {
+  id: number;
+  company_id: number;
+  /** Code interne court (ex. `BQ1`, `CAI1`, `OM1`). */
+  code: string;
+  name: string;
+  /** Compte du plan comptable OHADA rattaché (511, 531...). */
+  account_code: string;
+  bank_name: string | null;
+  account_number: string | null;
+  currency: string;
+  is_active: boolean;
+}
+
+export interface TreasuryAccountCreate {
+  code: string;
+  name: string;
+  account_code: string;
+  bank_name?: string | null;
+  account_number?: string | null;
+  currency?: string;
+  is_active?: boolean;
+}
+
+/** Mise à jour partielle : seuls les champs fournis sont enregistrés. */
+export type TreasuryAccountUpdate = Partial<TreasuryAccountCreate>;
+
+/** Ligne de relevé — montant signé : positif = encaissement, négatif = décaissement. */
+export interface BankStatementLine {
+  id: number;
+  statement_id: number;
+  line_date: string;
+  label: string;
+  amount: number;
+  /** Ligne du journal rapprochée (`null` = non rapprochée). */
+  entry_line_id: number | null;
+  reconciled_at: string | null;
+}
+
+/** Relevé bancaire / état de caisse. */
+export interface BankStatement {
+  id: number;
+  company_id: number;
+  account_id: number;
+  label: string;
+  statement_date: string;
+  opening_balance: number;
+  closing_balance: number;
+  /** `open` | `closed` — un relevé clôturé est verrouillé. */
+  status: string;
+  lines: BankStatementLine[];
+}
+
+export interface BankStatementCreate {
+  label: string;
+  statement_date: string;
+  opening_balance?: number;
+  closing_balance?: number;
+}
+
+export interface BankStatementLineCreate {
+  line_date: string;
+  label: string;
+  /** Positif = encaissement, négatif = décaissement. */
+  amount: number;
+}
+
+/** Résultat d'un rapprochement (manuel ou automatique). */
+export interface ReconcileResult {
+  matched: number;
+  unmatched: number;
+  message: string;
+}
+
+/** Ligne d'écriture de trésorerie non rapprochée. */
+export interface UnreconciledEntryLine {
+  entry_line_id: number;
+  entry_id: number;
+  reference: string;
+  entry_date: string;
+  label: string | null;
+  amount: number;
+}
+
+/** État de rapprochement d'un compte de trésorerie. */
+export interface ReconciliationReport {
+  account_id: number;
+  account_code: string;
+  /** Solde du compte comptable (écritures publiées). */
+  accounting_balance: number;
+  /** Solde de clôture du dernier relevé saisi. */
+  statement_balance: number;
+  /** Cumul des lignes de relevé déjà rapprochées. */
+  reconciled_amount: number;
+  unreconciled_lines: BankStatementLine[];
+  unreconciled_entry_lines: UnreconciledEntryLine[];
+}
+
+// ========================================================================
+// Immobilisations et amortissements (Phase 2 PRD comptable)
+// (backend : app/modules/accounting — routes /accounting/fixed-assets/*)
+// ========================================================================
+
+/** Échéance du plan d'amortissement d'une immobilisation. */
+export interface Depreciation {
+  id: number;
+  asset_id: number;
+  period_index: number;
+  period_date: string;
+  /** Valeur nette comptable au début de la période. */
+  opening_value: number;
+  /** Dotation de la période. */
+  amount: number;
+  /** Cumul des dotations après cette période. */
+  accumulated: number;
+  /** Valeur nette comptable après cette période. */
+  net_value: number;
+  /** `planned` (à comptabiliser) | `posted` (comptabilisée). */
+  status: "planned" | "posted";
+  journal_entry_id: number | null;
+  posted_at: string | null;
+}
+
+/** Immobilisation amortissable, avec son plan d'amortissement. */
+export interface FixedAsset {
+  id: number;
+  company_id: number;
+  code: string;
+  name: string;
+  /** incorporeal | land | building | equipment | financial | other */
+  category: string;
+  /** Compte d'immobilisation (ex. 245). */
+  asset_account: string;
+  /** Compte d'amortissement cumulé (ex. 284). */
+  depreciation_account: string;
+  /** Compte de dotation (681 exploitation, 686 financier). */
+  expense_account: string;
+  journal_code: string;
+  acquisition_date: string;
+  in_service_date: string;
+  acquisition_cost: number;
+  residual_value: number;
+  useful_life_years: number;
+  method: "linear" | "declining";
+  periodicity: "annual" | "monthly";
+  status: "draft" | "active" | "disposed";
+  disposal_date: string | null;
+  notes: string | null;
+  depreciations: Depreciation[];
+}
+
+export interface FixedAssetCreate {
+  code: string;
+  name: string;
+  category?: string;
+  asset_account: string;
+  /** Vide = déduit du compte d'immobilisation (245 → 284). */
+  depreciation_account?: string;
+  expense_account?: string;
+  journal_code?: string;
+  acquisition_date: string;
+  in_service_date?: string;
+  acquisition_cost: number;
+  residual_value?: number;
+  useful_life_years: number;
+  method?: "linear" | "declining";
+  periodicity?: "annual" | "monthly";
+  notes?: string | null;
+}
+
+export type FixedAssetUpdate = Partial<FixedAssetCreate> & {
+  status?: "draft" | "active" | "disposed";
+  disposal_date?: string | null;
+};
+
+/** Synthèse comptable d'une immobilisation (bandeau de la fiche). */
+export interface FixedAssetSummary {
+  asset_id: number;
+  code: string;
+  name: string;
+  acquisition_cost: number;
+  residual_value: number;
+  depreciable_base: number;
+  accumulated: number;
+  net_value: number;
+  posted_count: number;
+  periods_count: number;
+  remaining_to_post: number;
+  next_amount: number | null;
+  next_period_date: string | null;
+}
+
+/** Résultat de la comptabilisation des dotations échues. */
+export interface DepreciationRunResult {
+  asset_id: number;
+  posted: number;
+  skipped: number;
+  total_amount: number;
+  references: string[];
+  message: string;
+}
+
+// ========================================================================
+// TVA déclarative (Phase 2 PRD comptable)
+// (backend : app/modules/accounting — routes /accounting/vat-returns/*)
+// ========================================================================
+
+/** TVA d'un compte du plan sur la période déclarée. */
+export interface VATLine {
+  id: number;
+  account_code: string;
+  account_name: string;
+  /** `collected` (TVA facturée) | `deductible` (TVA récupérable). */
+  kind: "collected" | "deductible";
+  /** Montant de TVA, toujours positif (le sens est porté par `kind`). */
+  amount: number;
+  /** Nombre de lignes d'écriture contribuant au montant. */
+  entry_count: number;
+}
+
+/** Déclaration de TVA d'une période. */
+export interface VATReturn {
+  id: number;
+  company_id: number;
+  reference: string;
+  label: string;
+  period_start: string;
+  period_end: string;
+  /** `draft` | `submitted` | `paid` */
+  status: "draft" | "submitted" | "paid";
+  collected_amount: number;
+  deductible_amount: number;
+  /** TVA à payer (0 si la période dégage un crédit). */
+  net_due: number;
+  /** Crédit de TVA reportable (0 si la période est à payer). */
+  credit_carry: number;
+  counterpart_account: string;
+  payment_account: string;
+  journal_code: string;
+  journal_entry_id: number | null;
+  payment_entry_id: number | null;
+  submitted_at: string | null;
+  paid_at: string | null;
+  notes: string | null;
+  lines: VATLine[];
+}
+
+export interface VATReturnCreate {
+  period_start: string;
+  period_end: string;
+  label?: string | null;
+  counterpart_account?: string;
+  payment_account?: string;
+  journal_code?: string;
+  notes?: string | null;
+}
+
+export interface VATPayRequest {
+  payment_date?: string | null;
+  amount?: number | null;
+}
+
+/** Aperçu non enregistré d'une déclaration. */
+export interface VATPreview {
+  period_start: string;
+  period_end: string;
+  label: string;
+  collected_amount: number;
+  deductible_amount: number;
+  net_due: number;
+  credit_carry: number;
+  lines: VATLine[];
+}
 

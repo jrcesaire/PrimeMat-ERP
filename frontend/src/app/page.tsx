@@ -33,7 +33,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title="Applications" />
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="mx-auto w-full max-w-[1212px] px-6 py-8">
         {company?.logo ? (
           <div className="mb-6 flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}

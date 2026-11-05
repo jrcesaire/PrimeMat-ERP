@@ -45,7 +45,7 @@ export function NavSubmenu({ items, open, pathname }: NavSubmenuProps) {
       aria-hidden={!open}
       className={cn(
         "overflow-x-hidden overflow-y-auto transition-[max-height,opacity] duration-300 ease-in-out",
-        "[scrollbar-color:rgb(75_85_99)_transparent] [scrollbar-width:thin]",
+        "[scrollbar-color:rgb(179_180_192)_transparent] [scrollbar-width:thin]",
         open
           ? cn("mt-1 opacity-100", MAX_HEIGHT)
           : // `invisible` retire les liens du parcours clavier quand c'est replié.
@@ -56,7 +56,7 @@ export function NavSubmenu({ items, open, pathname }: NavSubmenuProps) {
         {items.map((child) =>
           isNavGroup(child) ? (
             <div key={child.label} className="pt-2">
-              <p className="px-3 pl-10 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+              <p className="px-3 pl-9 text-[9px] font-semibold uppercase tracking-[0.08em] text-faint">
                 {child.label}
               </p>
               <div className="mt-0.5 space-y-0.5">
@@ -100,10 +100,10 @@ function SubmenuLink({
     <Link
       href={href}
       className={cn(
-        "flex items-center rounded-md py-1.5 pl-10 pr-3 text-xs transition-colors",
+        "flex items-center rounded-chip py-1.5 pl-9 pr-3 text-[11px] transition-colors",
         active
-          ? "bg-gray-800 font-medium text-white"
-          : "text-gray-400 hover:bg-gray-800 hover:text-white",
+          ? "bg-primary-soft font-medium text-primary"
+          : "text-muted hover:bg-subtle hover:text-ink",
       )}
     >
       <span className="truncate">{label}</span>

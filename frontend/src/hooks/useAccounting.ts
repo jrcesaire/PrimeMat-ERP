@@ -336,3 +336,212 @@ export function useApplyCreditNote() {
     },
   });
 }
+
+// --------------------------------------------------------------------------- //
+// États auxiliaires — grand livre auxiliaire, chéancier, grand livre par compte
+// --------------------------------------------------------------------------- //
+export const AUXILIARY_KEYS = {
+  partnerLedger: (partnerId: number, from: string, to: string) =>
+    ["accounting-partner-ledger", partnerId, from, to] as const,
+  paymentSchedule: (partnerType: string, asOf: string, horizon: number) =>
+    ["accounting-payment-schedule", partnerType, asOf, horizon] as const,
+  accountLedger: (accountCode: string, from: string, to: string) =>
+    ["accounting-account-ledger", accountCode, from, to] as const,
+};
+
+/** Mouvement du grand livre auxiliaire d'un tiers. */
+export interface PartnerLedgerLine {
+  entry_id: number;
+  reference: string;
+  entry_date: string;
+  journal_code: string;
+  account_code: string;
+  account_name: string;
+  label: string | null;
+  debit: number;
+  credit: number;
+  /** Solde progressif du tiers après ce mouvement. */
+  balance: number;
+}
+
+export interface PartnerLedger {
+  partner_id: number;
+  partner_name: string;
+  partner_code: string | null;
+  date_from: string | null;
+  date_to: string | null;
+  opening_balance: number;
+  total_debit: number;
+  total_credit: number;
+  closing_balance: number;
+  lines: PartnerLedgerLine[];
+}
+
+/** Échéance du chéancier. */
+export interface PaymentScheduleLine {
+  partner_id: number;
+  partner_name: string;
+  reference: string;
+  invoice_date: string;
+  due_date: string;
+  amount_due: number;
+  /** Négatif = en retard. */
+  days_remaining: number;
+  bucket: "overdue" | "d0_30" | "d31_60" | "d61_90" | "d90_plus";
+}
+
+export interface PaymentSchedule {
+  partner_type: "customer" | "supplier";
+  as_of: string;
+  horizon_days: number;
+  lines: PaymentScheduleLine[];
+  totals: Record<string, number>;
+  total: number;
+}
+
+/** Mouvement du grand livre d'un compte. */
+export interface AccountLedgerMovement {
+  entry_id: number;
+  reference: string;
+  entry_date: string;
+  journal_code: string;
+  label: string | null;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+export interface AccountLedger {
+  account_code: string;
+  account_name: string;
+  date_from: string | null;
+  date_to: string | null;
+  opening_balance: number;
+  closing_balance: number;
+  total_debit: number;
+  total_credit: number;
+  movements: AccountLedgerMovement[];
+}
+
+/** Grand livre auxiliaire d'un tiers : mouvements et solde progressif. */
+export function usePartnerLedger(
+  partnerId: number | null,
+  dateFrom = "",
+  dateTo = "",
+) {
+  return useQuery({
+    queryKey: AUXILIARY_KEYS.partnerLedger(partnerId ?? 0, dateFrom, dateTo),
+    queryFn: async (): Promise<PartnerLedger | null> => {
+      if (!partnerId) return null;
+      const res = await apiClient.get("/accounting/financial/partner-ledger", {
+        params: {
+          partner_id: partnerId,
+          ...(dateFrom ? { date_from: dateFrom } : {}),
+          ...(dateTo ? { date_to: dateTo } : {}),
+        },
+      });
+      return res.data;
+    },
+    enabled: !!partnerId,
+  });
+}
+
+/** Chéancier : échéances à venir et retards des factures non soldées. */
+export function usePaymentSchedule(
+  partnerType: "customer" | "supplier" = "customer",
+  asOf = "",
+  horizonDays = 90,
+) {
+  return useQuery({
+    queryKey: AUXILIARY_KEYS.paymentSchedule(partnerType, asOf, horizonDays),
+    queryFn: async (): Promise<PaymentSchedule | null> => {
+      const res = await apiClient.get(
+        "/accounting/financial/payment-schedule",
+        {
+          params: {
+            partner_type: partnerType,
+            horizon_days: horizonDays,
+            ...(asOf ? { as_of: asOf } : {}),
+          },
+        },
+      );
+      return res.data;
+    },
+  });
+}
+
+/** Grand livre d'un compte du plan (mouvements chronologiques + cumul). */
+export function useAccountLedger(
+  accountCode: string,
+  dateFrom = "",
+  dateTo = "",
+) {
+  return useQuery({
+    queryKey: AUXILIARY_KEYS.accountLedger(accountCode, dateFrom, dateTo),
+    queryFn: async (): Promise<AccountLedger | null> => {
+      if (!accountCode) return null;
+      const res = await apiClient.get(
+        `/accounting/financial/ledger/${accountCode}`,
+        {
+          params: {
+            ...(dateFrom ? { date_from: dateFrom } : {}),
+            ...(dateTo ? { date_to: dateTo } : {}),
+          },
+        },
+      );
+      return res.data;
+    },
+    enabled: Boolean(accountCode),
+  });
+}
+
+// --------------------------------------------------------------------------- //
+// Journal d'audit comptable
+// --------------------------------------------------------------------------- //
+export const AUDIT_KEYS = {
+  list: (action: string, from: string, to: string) =>
+    ["accounting-audit-logs", action, from, to] as const,
+};
+
+/** Entrée du journal d'audit comptable. */
+export interface AuditLogEntry {
+  id: number;
+  company_id: number | null;
+  user_id: number | null;
+  /** `journal_entry.created` | `journal_entry.posted` */
+  action: string;
+  entity_type: string;
+  entity_id: number | null;
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
+/**
+ * Journal d'audit des écritures comptables (lecture seule).
+ *
+ * ``action`` filtre sur le type d'opération (``journal_entry.posted`` pour ne
+ * voir que les publications, par exemple).
+ */
+export function useAccountingAuditLogs(
+  action = "",
+  dateFrom = "",
+  dateTo = "",
+) {
+  return useQuery({
+    queryKey: AUDIT_KEYS.list(action, dateFrom, dateTo),
+    queryFn: async (): Promise<AuditLogEntry[]> => {
+      const res = await apiClient.get("/accounting/audit-logs", {
+        params: {
+          entity_type: "journal_entry",
+          ...(action ? { action } : {}),
+          ...(dateFrom ? { date_from: dateFrom } : {}),
+          ...(dateTo ? { date_to: dateTo } : {}),
+        },
+      });
+      return Array.isArray(res.data) ? res.data : [];
+    },
+  });
+}

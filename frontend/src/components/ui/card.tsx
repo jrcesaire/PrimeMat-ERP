@@ -1,5 +1,8 @@
 /**
  * Composant Card — conteneur de contenu.
+ *
+ * Design « GEA ERP » : rayon 10 px, bordure 1 px, **aucune ombre portée**
+ * (la maquette est entièrement « flat »).
  */
 import { cn } from "@/lib/utils";
 import { forwardRef } from "react";
@@ -11,7 +14,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     <div
       ref={ref}
       className={cn(
-        "rounded-lg border border-gray-200 bg-white p-6 shadow-sm",
+        "rounded-card border border-line bg-surface p-6",
         className,
       )}
       {...props}
@@ -37,7 +40,7 @@ export const CardTitle = forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn("text-lg font-semibold text-gray-900", className)}
+    className={cn("text-[15px] font-semibold text-ink", className)}
     {...props}
   />
 ));
@@ -47,7 +50,7 @@ export const CardDescription = forwardRef<HTMLParagraphElement, CardProps>(
   ({ className, ...props }, ref) => (
     <p
       ref={ref}
-      className={cn("text-sm text-gray-500", className)}
+      className={cn("text-[13px] text-muted", className)}
       {...props}
     />
   ),

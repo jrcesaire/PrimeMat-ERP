@@ -74,10 +74,16 @@ export default function DashboardLayout({
           className={
             posFocus
               ? "min-h-0 flex-1 overflow-hidden p-4"
-              : "flex-1 overflow-y-auto px-[150px] py-[32px]"
+              : "flex-1 overflow-y-auto bg-canvas px-6 py-8 lg:px-8"
           }
         >
-          {children}
+          {posFocus ? (
+            children
+          ) : (
+            // Conteneur centré de la maquette (1212 px), qui remplace l'ancien
+            // rembourrage fixe `px-[150px]` — illisible sur petit écran.
+            <div className="mx-auto w-full max-w-[1212px]">{children}</div>
+          )}
         </main>
       </div>
     </div>

@@ -1,17 +1,24 @@
 /**
  * Sidebar de navigation — liste les modules et leurs pages.
+ *
+ * Design « GEA ERP » : fond blanc bordé, emblème coloré, carte « Organisation »,
+ * puis les modules **groupés par sections** (Espace de travail, Gestion
+ * commerciale, Finances). Les modules riches conservent leur **sous-menu
+ * dépliable** : le chevron est un contrôle distinct du lien (deux cibles de
+ * clic), et plusieurs sous-menus peuvent rester ouverts à la fois.
  */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useCurrentCompany, useCurrentUser, usePermission } from "@/hooks/useAuth";
 import { useSettingsNav } from "@/components/settings/settings-nav";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Store } from "lucide-react";
 import {
   NAV_ITEMS,
+  NAV_SECTIONS,
   isNavGroup,
   visibleNavModules,
   type NavChild,
@@ -78,107 +85,170 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
     settingsNav.map((section) => ({ label: section.label, href: section.href })),
   );
 
+  // Répartition par section, dans l'ordre de `NAV_SECTIONS`. Les modules sans
+  // section (Reporting, Paramètres) sont affichés seuls, après les groupes.
+  const { groups, standalone } = useMemo(() => {
+    const byKey = NAV_SECTIONS.map((section) => ({
+      ...section,
+      modules: [] as typeof modules,
+    }));
+    const orphans: typeof modules = [];
+    for (const entry of modules) {
+      const group = entry.item.section
+        ? byKey.find((g) => g.key === entry.item.section)
+        : undefined;
+      if (group) group.modules.push(entry);
+      else orphans.push(entry);
+    }
+    return {
+      groups: byKey.filter((g) => g.modules.length > 0),
+      standalone: orphans,
+    };
+  }, [modules]);
+
+  /** Une entrée de navigation (module) — lien + chevron facultatif. */
+  const renderEntry = ({
+    item,
+    children: subItems,
+  }: (typeof modules)[number]) => {
+    const isActive = isRouteActive(item.href);
+    // Un module dont toutes les pages sont interdites n'a pas de chevron.
+    const hasSub = subItems.length > 0;
+    const subExpanded = openSections.includes(item.href);
+    return (
+      <div key={item.href}>
+        {/* Ligne du menu : le lien navigue, la flèche déplie (deux cibles
+            de clic distinctes). */}
+        <div
+          className={cn(
+            "flex items-center rounded-control transition-colors",
+            isActive
+              ? "bg-primary-soft text-primary"
+              : "text-muted hover:bg-subtle hover:text-ink",
+          )}
+        >
+          <Link
+            href={item.href}
+            title={item.label}
+            aria-label={item.label}
+            className={cn(
+              "flex flex-1 items-center gap-3 px-3 py-2 text-[11px] font-medium",
+              collapsed && "justify-center px-0",
+            )}
+          >
+            <item.icon className="h-[18px] w-[18px] shrink-0" />
+            {!collapsed && <span className="truncate">{item.label}</span>}
+          </Link>
+
+          {!collapsed && hasSub && (
+            <button
+              type="button"
+              onClick={() => toggleSection(item.href)}
+              aria-expanded={subExpanded}
+              aria-label={
+                subExpanded
+                  ? `Replier le menu ${item.label}`
+                  : `Déplier le menu ${item.label}`
+              }
+              title={subExpanded ? "Replier" : "Déplier"}
+              className={cn(
+                "mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-chip transition-colors",
+                isActive
+                  ? "hover:bg-primary/10"
+                  : "text-faint hover:bg-subtle hover:text-ink",
+              )}
+            >
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 transition-transform",
+                  subExpanded && "rotate-180",
+                )}
+              />
+            </button>
+          )}
+        </div>
+
+        {!collapsed && hasSub && (
+          <NavSubmenu items={subItems} open={subExpanded} pathname={pathname} />
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
       className={cn(
-        "flex h-screen flex-col overflow-y-auto bg-gray-900 text-gray-100 transition-all duration-200",
-        collapsed ? "w-16" : "w-64"
+        "flex h-screen shrink-0 flex-col border-r border-line bg-surface transition-all duration-200",
+        collapsed ? "w-16" : "w-[228px]",
       )}
     >
-      <div className={cn("border-b border-gray-800 p-4", collapsed && "flex justify-center px-2")}>
+      {/* Emblème + nom de l'application */}
+      <div className={cn("px-4 pt-5", collapsed && "px-2")}>
         <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
           {company?.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={company.logo}
               alt={`Logo ${company.name}`}
-              className="h-10 w-10 shrink-0 rounded-md bg-white object-contain p-0.5"
+              className="h-8 w-8 shrink-0 rounded-[9px] bg-surface object-contain"
             />
           ) : (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-primary text-[12px] font-bold text-white">
               {(company?.name ?? "GEA").slice(0, 2).toUpperCase()}
             </div>
           )}
-          <div className={cn("min-w-0", collapsed && "hidden")}>
-            <h1 className="truncate text-sm font-bold leading-tight text-white">
+          {!collapsed && (
+            <span className="truncate text-[17px] font-bold tracking-tight text-ink">
               {company?.name ?? "ERP Matériaux"}
-            </h1>
-            {company?.code && (
-              <span className="text-xs text-gray-400">{company.code}</span>
-            )}
-          </div>
+            </span>
+          )}
         </div>
-      </div>
-      <nav className={cn("flex-1 space-y-1 py-4", collapsed ? "px-2" : "px-2")}>
-        {modules.map(({ item, children: subItems }) => {
-          const isActive = isRouteActive(item.href);
-          // Un module dont toutes les pages sont interdites n'a pas de chevron.
-          const hasSub = subItems.length > 0;
-          const subExpanded = openSections.includes(item.href);
-          return (
-            <div key={item.href}>
-              {/* Ligne du menu : le lien navigue, la flèche déplie (deux cibles
-                  de clic distinctes). */}
-              <div
-                className={cn(
-                  "flex items-center rounded-md transition-colors",
-                  isActive
-                    ? "bg-primary text-white"
-                    : "text-gray-300 hover:bg-gray-800 hover:text-white",
-                )}
-              >
-                <Link
-                  href={item.href}
-                  title={item.label}
-                  aria-label={item.label}
-                  className={cn(
-                    "flex flex-1 items-center gap-3 px-3 py-2 text-sm",
-                    collapsed && "justify-center px-0",
-                  )}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                </Link>
 
-                {!collapsed && hasSub && (
-                  <button
-                    type="button"
-                    onClick={() => toggleSection(item.href)}
-                    aria-expanded={subExpanded}
-                    aria-label={
-                      subExpanded
-                        ? `Replier le menu ${item.label}`
-                        : `Déplier le menu ${item.label}`
-                    }
-                    title={subExpanded ? "Replier" : "Déplier"}
-                    className={cn(
-                      "mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
-                      isActive
-                        ? "hover:bg-black/10"
-                        : "text-gray-400 hover:bg-gray-700 hover:text-white",
-                    )}
-                  >
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 transition-transform",
-                        subExpanded && "rotate-180",
-                      )}
-                    />
-                  </button>
-                )}
-              </div>
-
-              {!collapsed && hasSub && (
-                <NavSubmenu
-                  items={subItems}
-                  open={subExpanded}
-                  pathname={pathname}
-                />
-              )}
+        {/* Carte « Organisation » — nom + établissement courant */}
+        {!collapsed && (
+          <div className="mt-4 flex items-center gap-3 rounded-card bg-subtle px-3 py-2.5">
+            <Store className="h-[18px] w-[18px] shrink-0 text-muted" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[11px] font-semibold text-ink">
+                {company?.name ?? "Mon entreprise"}
+              </p>
+              <p className="truncate text-[10px] text-muted">
+                {company?.establishment ?? "Espace entreprise"}
+              </p>
             </div>
-          );
-        })}
+          </div>
+        )}
+      </div>
+      {/* Navigation groupée par sections */}
+      <nav
+        className={cn(
+          "flex-1 space-y-4 overflow-y-auto py-4",
+          collapsed ? "px-2" : "px-3",
+        )}
+      >
+        {groups.map((group) => (
+          <div key={group.key} className="space-y-0.5">
+            {!collapsed && (
+              <p className="px-3 pb-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-faint">
+                {group.label}
+              </p>
+            )}
+            {group.modules.map(renderEntry)}
+          </div>
+        ))}
+
+        {standalone.length > 0 && (
+          <div className="space-y-0.5 border-t border-line pt-3">
+            {standalone.map(renderEntry)}
+          </div>
+        )}
       </nav>
+
+      {!collapsed && (
+        <div className="border-t border-line px-4 py-3 text-[9px] text-faint">
+          {company?.name ?? "ERP"} · Gestion multimodulaire
+        </div>
+      )}
     </div>
   );
 }

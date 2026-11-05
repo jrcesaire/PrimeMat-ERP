@@ -21,7 +21,7 @@ export function ThemeSelector() {
         onChange={(e) => setTheme(themePresets[e.target.value])}
         className="text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
       >
-        <option value="default">Bleu (défaut)</option>
+        <option value="default">Violet (défaut)</option>
         <option value="ocean">Océan</option>
         <option value="forest">Forêt</option>
         <option value="sunset">Coucher de soleil</option>

@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutGrid } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Chip, ChipGroup } from "@/components/ui/chip";
 import type { CategoryTreeNode } from "@/lib/types";
 
 interface Props {
@@ -23,37 +23,26 @@ export function PosCategoryRail({ tree, selectedId, onSelect }: Props) {
   const flat = flatten(tree);
   if (flat.length === 0) return null;
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1">
-      <button
-        type="button"
+    <ChipGroup className="flex-nowrap overflow-x-auto pb-1">
+      <Chip
+        active={selectedId === null}
         onClick={() => onSelect(null)}
-        className={cn(
-          "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-sm",
-          selectedId === null
-            ? "border-primary bg-primary text-white"
-            : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
-        )}
+        className="shrink-0"
       >
-        <LayoutGrid className="h-4 w-4" />
+        <LayoutGrid className="h-3.5 w-3.5" />
         Tout
-      </button>
+      </Chip>
       {flat.map(({ node, depth }) => (
-        <button
+        <Chip
           key={node.id}
-          type="button"
+          active={node.id === selectedId}
           onClick={() => onSelect(node.id === selectedId ? null : node.id)}
           title={node.name}
-          className={cn(
-            "shrink-0 rounded-full border px-3 py-2 text-sm",
-            node.id === selectedId
-              ? "border-primary bg-primary text-white"
-              : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
-          )}
-          style={depth > 0 ? { marginLeft: 0, opacity: 0.92 } : undefined}
+          className="shrink-0"
         >
           {depth > 0 ? `${"· ".repeat(Math.min(depth, 2))}${node.name}` : node.name}
-        </button>
+        </Chip>
       ))}
-    </div>
+    </ChipGroup>
   );
 }

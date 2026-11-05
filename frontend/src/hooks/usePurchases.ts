@@ -23,6 +23,7 @@ import {
   SupplierInvoiceCreate,
   SupplierInvoicePay,
   MatchingResult,
+  PosPurchaseCreate,
 } from "@/lib/types";
 
 export const PURCHASES_KEYS = {
@@ -477,6 +478,25 @@ export function usePaySupplierInvoice() {
       data: SupplierInvoicePay;
     }): Promise<SupplierInvoice> => {
       const res = await apiClient.post(`/purchases/invoices/${id}/pay`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PURCHASES_KEYS.invoices] });
+    },
+  });
+}
+
+/**
+ * Achat de quincaillerie saisi depuis le PoS (PRD US5).
+ *
+ * Crée une facture fournisseur (module Achats global), la comptabilise puis la
+ * règle sur la caisse : l'achat apparaît dans le grand livre de l'entreprise.
+ */
+export function useCreatePosPurchase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: PosPurchaseCreate): Promise<SupplierInvoice> => {
+      const res = await apiClient.post("/purchases/invoices/pos-purchase", data);
       return res.data;
     },
     onSuccess: () => {

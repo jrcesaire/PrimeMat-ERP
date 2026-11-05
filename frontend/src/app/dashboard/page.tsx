@@ -1,63 +1,87 @@
 /**
- * Page du dashboard — Interface d'accueil moderne et ergonomique.
+ * Page du tableau de bord — vue d'ensemble de l'activité.
  *
- * Première zone visible : modules principaux (Ventes, PdV, Dépenses, Contacts)
- * Zone suivante : actions rapides (nouveau devis, vente comptoir, dépense)
- * Zone suivante : livraisons prévues et commandes en production
- * Dernière zone : statistiques BI
+ * Disposition de la maquette « GEA ERP » :
+ * 1. en-tête (salutation + actions) ;
+ * 2. **rangée de 4 indicateurs clés, visible dès l'ouverture** ;
+ * 3. graphique d'évolution du chiffre d'affaires + encaissements par mode ;
+ * 4. dernières commandes + points à suivre ;
+ * 5. barre d'accès rapide.
  */
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { QuickActionsSection } from "@/components/dashboard/QuickActionsSection";
-import { MainModulesSection } from "@/components/dashboard/MainModulesSection";
-import { OperationsTrackingSection } from "@/components/dashboard/OperationsTrackingSection";
-import { BIStatsSection } from "@/components/dashboard/BIStatsSection";
 import { LayoutGrid, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { DashboardKpis } from "@/components/dashboard/DashboardKpis";
+import { RevenueChart } from "@/components/dashboard/RevenueChart";
+import { SalesChannels } from "@/components/dashboard/SalesChannels";
+import { RecentOrders } from "@/components/dashboard/RecentOrders";
+import { TodayAlerts } from "@/components/dashboard/TodayAlerts";
+import { QuickAccessBar } from "@/components/dashboard/QuickAccessBar";
+import { useCurrentUser } from "@/hooks/useAuth";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { data: user } = useCurrentUser();
+
+  // Salutation personnalisée quand le profil est chargé.
+  const firstName =
+    user?.first_name?.trim() || user?.full_name?.trim().split(" ")[0] || "";
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Hero header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Bienvenue dans votre ERP — ERP Matériaux de Construction
-          </p>
+      <PageHeader
+        eyebrow="Tableau de bord"
+        title={firstName ? `Bonjour, ${firstName}` : "Bonjour,"}
+        subtitle="Voici ce qui se passe dans votre entreprise aujourd'hui."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/")}
+              title="Retour à toutes les applications"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Toutes les applications
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => queryClient.invalidateQueries()}
+              title="Recharger les indicateurs"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Actualiser
+            </Button>
+          </>
+        }
+      />
+
+      {/* Indicateurs clés — visibles dès l'ouverture du tableau de bord. */}
+      <DashboardKpis />
+
+      {/* Activité commerciale */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <RevenueChart />
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push("/")}
-            title="Retour à toutes les applications"
-            className="flex items-center gap-2"
-          >
-            <LayoutGrid className="h-4 w-4" />
-            Toutes les applications
-          </Button>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Actualiser
-          </Button>
-        </div>
+        <SalesChannels />
       </div>
 
-      {/* Quick Actions */}
-      <QuickActionsSection />
+      {/* Opérations et points d'attention */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <RecentOrders />
+        </div>
+        <TodayAlerts />
+      </div>
 
-      {/* Main Modules */}
-      <MainModulesSection />
-
-      {/* Operations Tracking */}
-      <OperationsTrackingSection />
-
-      {/* BI Stats */}
-      <BIStatsSection />
+      <QuickAccessBar />
     </div>
   );
 }

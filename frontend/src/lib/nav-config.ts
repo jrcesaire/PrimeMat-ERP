@@ -17,6 +17,7 @@ import {
   BookOpen,
   CreditCard,
   FileText,
+  Landmark,
   LayoutDashboard,
   Package,
   Receipt,
@@ -52,6 +53,18 @@ export interface NavGroup {
 
 export type NavChild = NavLeaf | NavGroup;
 
+/**
+ * Regroupements de la sidebar, dans l'ordre d'affichage de la maquette.
+ * Une entrée sans `section` est affichée seule, après les groupes.
+ */
+export type NavSection = "workspace" | "commercial" | "finance";
+
+export const NAV_SECTIONS: { key: NavSection; label: string }[] = [
+  { key: "workspace", label: "Espace de travail" },
+  { key: "commercial", label: "Gestion commerciale" },
+  { key: "finance", label: "Finances" },
+];
+
 /** Entrée principale de la sidebar. */
 export interface NavItem {
   label: string;
@@ -66,6 +79,8 @@ export interface NavItem {
    * vendeur voit ainsi « Achats » pour « Besoins (ventes) ».
    */
   permission?: string;
+  /** Groupe d'affichage dans la sidebar (cf. `NAV_SECTIONS`). */
+  section?: NavSection;
   /** Sous-menu dépliable (facultatif). */
   children?: NavChild[];
 }
@@ -76,18 +91,20 @@ export function isNavGroup(child: NavChild): child is NavGroup {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard, section: "workspace" },
   {
     label: "Point de vente",
     href: "/dashboard/sales/pos",
     icon: Store,
     permission: "pos:view",
+    section: "workspace",
   },
   {
     label: "Catalogue",
     href: "/dashboard/catalogue",
     icon: Package,
     permission: "product:view",
+    section: "commercial",
     children: [
       {
         label: "Scanner un produit",
@@ -106,6 +123,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/contacts",
     icon: Users,
     permission: "partner:view",
+    section: "commercial",
     children: [
       { label: "Tous", href: "/dashboard/contacts", permission: "partner:view" },
       {
@@ -125,6 +143,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/sales",
     icon: ShoppingCart,
     permission: "quote:view",
+    section: "commercial",
     children: [
       {
         label: "Nouveau devis",
@@ -148,18 +167,15 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/stock",
     icon: Warehouse,
     permission: "stock_level:view",
+    section: "commercial",
   },
   {
     label: "Achats",
     href: "/dashboard/purchases",
     icon: Tag,
     permission: "purchase:view",
+    section: "commercial",
     children: [
-      {
-        label: "Nouvelle demande",
-        href: "/dashboard/purchases/demandes",
-        permission: "purchase_request:view",
-      },
       {
         label: "Demandes",
         href: "/dashboard/purchases/demandes",
@@ -202,6 +218,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/delivery",
     icon: Truck,
     permission: "delivery:view",
+    section: "commercial",
     children: [
       {
         label: "Créer un bon de livraison",
@@ -220,6 +237,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/invoicing",
     icon: FileText,
     permission: "invoice:view",
+    section: "finance",
     children: [
       {
         label: "Créer une facture",
@@ -238,6 +256,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/payments",
     icon: CreditCard,
     permission: "payment:view",
+    section: "finance",
     children: [
       {
         label: "Encaisser",
@@ -256,6 +275,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/expenses",
     icon: Receipt,
     permission: "expense:view",
+    section: "finance",
     children: [
       {
         label: "Nouvelle dépense",
@@ -270,10 +290,18 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    label: "Trésorerie",
+    href: "/dashboard/treasury",
+    icon: Landmark,
+    permission: "treasury:view",
+    section: "finance",
+  },
+  {
     label: "Comptabilité",
     href: "/dashboard/accounting",
     icon: BookOpen,
     permission: "account:view",
+    section: "finance",
     children: [
       {
         label: "Balance",
@@ -322,6 +350,41 @@ export const NAV_ITEMS: NavItem[] = [
             label: "Cash-flow",
             href: "/dashboard/accounting/cash-flow",
             permission: "account:view",
+          },
+          {
+            label: "Grand livre",
+            href: "/dashboard/accounting/ledger",
+            permission: "account:view",
+          },
+          {
+            label: "Grand livre auxiliaire",
+            href: "/dashboard/accounting/partner-ledger",
+            permission: "account:view",
+          },
+          {
+            label: "Chéancier",
+            href: "/dashboard/accounting/payment-schedule",
+            permission: "account:view",
+          },
+          {
+            label: "TVA déclarative",
+            href: "/dashboard/accounting/vat",
+            permission: "account:view",
+          },
+          {
+            label: "Immobilisations",
+            href: "/dashboard/accounting/fixed-assets",
+            permission: "account:view",
+          },
+          {
+            label: "Clôture d'exercice",
+            href: "/dashboard/accounting/fiscal-year",
+            permission: "fiscal_year:view",
+          },
+          {
+            label: "Journal d'audit",
+            href: "/dashboard/accounting/audit",
+            permission: "audit_log:view",
           },
           {
             label: "Assistant de configuration",

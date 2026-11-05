@@ -46,8 +46,8 @@ export function PosPaymentPanel({
   const change = received - total;
 
   return (
-    <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+    <div className="space-y-3 rounded-card border border-line bg-surface p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
         Mode de paiement
       </p>
 
@@ -58,10 +58,10 @@ export function PosPaymentPanel({
             type="button"
             onClick={() => onMethod(id)}
             className={cn(
-              "flex items-center gap-2 rounded-md border px-3 py-3 text-sm font-medium transition",
+              "flex items-center gap-2 rounded-control border px-3 py-2.5 text-[13px] font-medium transition-colors",
               method === id
-                ? "border-primary bg-primary text-white shadow"
-                : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+                ? "border-primary bg-primary-soft text-primary"
+                : "border-line bg-surface text-muted hover:bg-subtle hover:text-ink",
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
@@ -71,21 +71,21 @@ export function PosPaymentPanel({
       </div>
 
       {/* Affichage montant reçu / monnaie — style terminal encaisseur */}
-      <div className="rounded-md bg-gray-900 p-3 text-right">
-        <p className="text-[11px] uppercase tracking-wide text-gray-400">
+      <div className="rounded-control bg-subtle p-3 text-right">
+        <p className="text-[10px] uppercase tracking-[0.08em] text-muted">
           Montant reçu
         </p>
-        <p className="text-2xl font-bold tabular-nums text-white">
+        <p className="text-[22px] font-semibold tabular-nums text-ink">
           {formatCurrency(received)}
         </p>
         <p
           className={cn(
-            "mt-1 text-sm font-medium",
+            "mt-1 text-[12px] font-medium",
             change > 0
-              ? "text-green-400"
+              ? "text-success"
               : received > 0 && change < 0
-                ? "text-amber-400"
-                : "text-gray-500",
+                ? "text-warning"
+                : "text-faint",
           )}
         >
           {change > 0
@@ -103,7 +103,7 @@ export function PosPaymentPanel({
       />
 
       {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+        <div className="rounded-control bg-danger-soft p-3 text-[13px] text-danger">
           {error}
         </div>
       )}
@@ -112,7 +112,7 @@ export function PosPaymentPanel({
         size="lg"
         onClick={onSubmit}
         disabled={disabled || submitting || (received > 0 && change < 0)}
-        className="h-14 w-full bg-green-600 text-base font-bold text-white hover:bg-green-700"
+        className="h-12 w-full"
       >
         {submitting
           ? "Encaissement…"

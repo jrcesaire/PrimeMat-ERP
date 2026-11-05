@@ -51,7 +51,9 @@ const MENU_TILES: MenuTile[] = [
   { label: "Historique des Ventes", icon: History, href: "/dashboard/sales/pos/vente" },
   { label: "Ajout de Produits", icon: PackagePlus, href: "/dashboard/catalogue/new" },
   { label: "Modifier Catalogue", icon: FolderCog, href: "/dashboard/catalogue" },
-  { label: "Achats", icon: ShoppingBag, href: "/dashboard/purchases" },
+  // §4.2.2.5 / US5 — achat de quincaillerie saisi depuis le PoS puis consolidé
+  // dans le module Achats global (facture fournisseur + grand livre).
+  { label: "Achats", icon: ShoppingBag, href: "/dashboard/sales/pos/achats" },
   { label: "Réglages", icon: Settings, href: "/dashboard/sales/pos/reglages", restricted: true },
 ];
 

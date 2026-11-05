@@ -24,17 +24,12 @@ type ThemeContextType = {
 };
 
 const defaultTheme: Theme = {
-  primary: "221 83% 53%", // bleu Material
-  secondary: "142 48% 47%", // vert
-  accent: "34 100% 50%", // orange
+  primary: "250 62% 58%", // violet « GEA ERP » (#6852D6)
+  secondary: "164 61% 33%", // vert succès (#21876B)
+  accent: "33 56% 43%", // ocre alerte (#AA7330)
 };
 
-const ThemeContext = createContext<{
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-  mode: ThemeMode;
-  toggleMode: () => void;
-} | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEME_KEY = "erp-theme";
 const MODE_KEY = "erp-theme-mode";
@@ -118,9 +113,9 @@ export function useTheme() {
 // Available theme presets
 export const themePresets: Record<string, Theme> = {
   default: {
-    primary: "221 83% 53%",
-    secondary: "142 48% 47%",
-    accent: "34 100% 50%",
+    primary: "250 62% 58%", // violet GEA ERP
+    secondary: "164 61% 33%", // vert
+    accent: "33 56% 43%", // ocre
   },
   ocean: {
     primary: "210 100% 50%",

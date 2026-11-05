@@ -5,17 +5,45 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Couleurs thématiques personnalisables (HSL pour contrôle d'opacité) */
+/* ---------------------------------------------------------------------------
+   Jetons de design
+   ---------------------------------------------------------------------------
+   Les couleurs thématiques sont en HSL (contrôle de l'opacité par Tailwind).
+   Les neutres sont eux aussi exposés en variables : `globals.css` les redéfinit
+   sous `.dark`, si bien qu'un composant écrit avec `bg-surface` / `text-ink`
+   s'adapte tout seul aux deux thèmes — sans les surcharges `!important`
+   qui rendaient le mode sombre fragile.
+   --------------------------------------------------------------------------- */
 :root {
-  --primary-hue: 221 83% 53%;    /* Bleu Material par défaut */
-  --secondary-hue: 142 48% 47%;  /* Vert par défaut */
-  --accent-hue: 34 100% 50%;     /* Orange par défaut */
+  /* Palette par défaut = celle de la maquette « GEA ERP ». */
+  --primary-hue: 250 62% 58%;    /* Violet #6852D6 */
+  --secondary-hue: 164 61% 33%;  /* Vert  #21876B */
+  --accent-hue: 33 56% 43%;      /* Ocre  #AA7330 */
+
+  /* Neutres — thème clair */
+  --ink: 237 24% 19%;            /* #25263D — texte principal */
+  --muted: 234 8% 49%;           /* #737588 — texte secondaire */
+  --faint: 234 8% 56%;           /* #858797 — texte tertiaire */
+  --ghost: 235 9% 73%;           /* #B3B4C0 — placeholder / désactivé */
+  --line: 233 21% 94%;           /* #EBECF2 — bordures et séparateurs */
+  --canvas: 225 29% 97%;         /* #F6F7FA — fond de page */
+  --surface: 0 0% 100%;          /* #FFFFFF — cartes et panneaux */
+  --subtle: 230 27% 96%;         /* #F1F2F7 — fonds alternés */
+
+  /* États */
+  --success: 164 61% 33%;        /* #21876B */
+  --success-soft: 149 40% 94%;   /* #EAF6F0 */
+  --warning: 33 56% 43%;         /* #AA7330 */
+  --warning-soft: 37 100% 95%;   /* #FFF4E3 */
+  --danger: 10 45% 54%;          /* #BE6654 */
+  --danger-soft: 10 60% 96%;
 }
 
 /* Styles personnalisés */
 body {
-  @apply bg-gray-50 antialiased;
+  @apply bg-canvas text-ink antialiased;
 }
+
 
 /* Scrollbar personnalisée */
 ::-webkit-scrollbar {
@@ -39,12 +67,26 @@ body {
 /* ===== MODE SOMBRE ===== */
 .dark {
   color-scheme: dark;
+
+  /* Neutres redéfinis : les composants écrits avec les jetons sémantiques
+     (`bg-surface`, `text-ink`, `border-line`…) basculent automatiquement. */
+  --ink: 220 22% 93%;
+  --muted: 220 12% 66%;
+  --faint: 220 11% 58%;
+  --ghost: 220 10% 45%;
+  --line: 220 18% 24%;
+  --canvas: 222 40% 9%;
+  --surface: 222 30% 15%;
+  --subtle: 222 26% 19%;
+
+  --success-soft: 164 35% 15%;
+  --warning-soft: 33 40% 16%;
+  --danger-soft: 10 32% 17%;
 }
 
-.dark body {
-  background-color: #0f172a;
-  color: #e2e8f0;
-}
+/* Les règles ci-dessous couvrent le code historique écrit en classes Tailwind
+   neutres (`bg-white`, `text-gray-900`…). Le code nouveau utilise les jetons
+   sémantiques ci-dessus et n'en a pas besoin. */
 
 /* Surfaces */
 .dark .bg-white { background-color: #1e293b !important; }

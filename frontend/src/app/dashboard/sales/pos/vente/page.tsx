@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  LogOut,
   Pause,
   Play,
   Plus,
@@ -800,18 +801,37 @@ function PosPageInner() {
   // Vue 2 : nouvelle vente — split caisse tactile (mode focus plein écran)
   return (
     <div className="flex h-full gap-4">
-      {/* Rail caisse (40 %) — client, panier, totaux, encaissement */}
-      <div className="flex w-[40%] min-w-[360px] flex-col gap-3 overflow-y-auto pr-1">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Nouvelle vente</h1>
-            <p className="text-xs text-gray-600">
+      {/* Rail caisse — client, panier, totaux, encaissement.
+          `order-2` le place à droite : la maquette présente le catalogue à
+          gauche et le ticket à droite. */}
+      <div className="order-2 flex h-full min-h-0 w-[380px] shrink-0 flex-col gap-3 overflow-y-auto pl-1">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-[17px] font-semibold text-ink">Nouvelle vente</h1>
+            <p className="text-[11px] text-muted">
               Vente comptoir — encaissement direct
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setView("history")}>
-            <ChevronLeft className="h-4 w-4" /> Historique
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Retour au menu du point de vente (les 6 tuiles). */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/dashboard/sales/pos")}
+              title="Retour au menu du point de vente"
+            >
+              <ArrowLeft className="h-4 w-4" /> Retour
+            </Button>
+            {/* Fermer la caisse → tableau de bord. */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/dashboard")}
+              title="Fermer la caisse et revenir au tableau de bord"
+            >
+              <LogOut className="h-4 w-4" /> Fermer la caisse
+            </Button>
+          </div>
         </div>
 
         {scanMsg && (
@@ -821,22 +841,22 @@ function PosPageInner() {
         )}
 
         {/* Client facultatif — défaut : « Client de passage » (walk-in) */}
-        <div className="rounded-lg border border-gray-200 bg-white p-3">
+        <div className="shrink-0 rounded-card border border-line bg-surface p-3">
           <div className="mb-1 flex items-center justify-between gap-2">
-            <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+            <label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
               <UserRound className="h-3.5 w-3.5" /> Client (facultatif)
             </label>
             <button
               type="button"
               onClick={() => setPartnerDialogOpen(true)}
-              className="flex items-center gap-1 rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+              className="flex items-center gap-1 rounded-chip border border-line px-2 py-1 text-[11px] font-medium text-muted transition-colors hover:bg-subtle hover:text-ink"
               title="Créer un nouveau client sans quitter la vente"
             >
               <Plus className="h-3.5 w-3.5" /> Nouveau client
             </button>
           </div>
           <select
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded-control border border-line bg-surface px-3 py-2 text-[13px] text-ink"
             value={partnerId ?? ""}
             onChange={(e) =>
               setPartnerId(e.target.value ? Number(e.target.value) : null)
@@ -852,7 +872,7 @@ function PosPageInner() {
         </div>
 
         {/* Suspendre la vente en cours — reprise depuis l'historique */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex shrink-0 items-center justify-between gap-2">
           <Button
             variant="ghost"
             size="sm"
@@ -872,44 +892,52 @@ function PosPageInner() {
           </Button>
         </div>
 
-        {/* Panier */}
-        <PosCartTable
-          lines={lines}
-          selectedKey={selectedKey}
-          onSelect={setSelectedKey}
-          onQuantity={(key, qty) => updateLine(key, { quantity: qty })}
-          onPrice={(key, price) => updateLine(key, { unit_price: price })}
-          onDiscount={(key, pct) => updateLine(key, { discount_percent: pct })}
-          onRemove={removeLine}
-        />
+        {/* Panier — SEULE zone défilante du rail : le pavé numérique et le
+            bouton d'encaissement restent ainsi toujours visibles, quelle que
+            soit la longueur de la vente. */}
+        <div className="min-h-[140px] flex-1 overflow-y-auto">
+          <PosCartTable
+            lines={lines}
+            selectedKey={selectedKey}
+            onSelect={setSelectedKey}
+            onQuantity={(key, qty) => updateLine(key, { quantity: qty })}
+            onPrice={(key, price) => updateLine(key, { unit_price: price })}
+            onDiscount={(key, pct) => updateLine(key, { discount_percent: pct })}
+            onRemove={removeLine}
+          />
+        </div>
 
-        {/* Totaux — variante caisse (total géant dominant) */}
-        <PosTotalsBar
-          variant="giant"
-          subtotal={totals.subtotal}
-          discountAmount={totals.discountAmount}
-          taxPercent={POS_TAX_PERCENT}
-          taxAmount={totals.taxAmount}
-          total={totals.total}
-          itemsCount={totals.itemsCount}
-        />
+        {/* Totaux — ancrés en bas, jamais rognés */}
+        <div className="shrink-0">
+          <PosTotalsBar
+            variant="giant"
+            subtotal={totals.subtotal}
+            discountAmount={totals.discountAmount}
+            taxPercent={POS_TAX_PERCENT}
+            taxAmount={totals.taxAmount}
+            total={totals.total}
+            itemsCount={totals.itemsCount}
+          />
+        </div>
 
         {/* Encaissement — tuiles de méthode + pavé numérique + bouton géant */}
-        <PosPaymentPanel
-          method={method}
-          onMethod={setMethod}
-          amount={amountStr}
-          onAmount={setAmountStr}
-          total={totals.total}
-          disabled={lines.length === 0}
-          submitting={submitting}
-          error={error}
-          onSubmit={handleSubmit}
-        />
+        <div className="shrink-0">
+          <PosPaymentPanel
+            method={method}
+            onMethod={setMethod}
+            amount={amountStr}
+            onAmount={setAmountStr}
+            total={totals.total}
+            disabled={lines.length === 0}
+            submitting={submitting}
+            error={error}
+            onSubmit={handleSubmit}
+          />
+        </div>
       </div>
 
-      {/* Colonne produits (60 %) — recherche + catégories + grille tactile */}
-      <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+      {/* Colonne produits — recherche + catégories + grille tactile (à gauche) */}
+      <div className="order-1 flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
         <ProductSearchAdd onAdd={addProduct} categoryId={categoryFilter} />
         <PosCategoryRail
           tree={categoryTree}

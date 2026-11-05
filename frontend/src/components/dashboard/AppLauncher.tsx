@@ -1,28 +1,38 @@
 /**
- * Lanceur d'applications — grille façon Odoo des modules ACTIVÉS.
+ * Lanceur d'applications — grille des modules ACTIVÉS.
  *
- * - Tuiles colorées des applications dont le module backend est actif
+ * Design « GEA ERP » : recherche « Trouver une application… », en-tête de
+ * section avec compteur, grille de 4 colonnes de tuiles (icône colorée, libellé,
+ * flèche d'ouverture, description) et bandeau « Un ERP adapté à votre
+ * organisation ».
+ *
+ * - Tuiles des applications dont le module backend est actif ;
  * - Section « Autres applications disponibles » : modules installés mais
- *   désactivés (tuiles grisées → Paramètres pour activer)
+ *   désactivés (tuiles grisées → Paramètres pour activer) ;
  * - Généré dynamiquement : désactiver un module dans Paramètres le retire
- *   instantanément de l'accueil
+ *   instantanément de l'accueil.
  */
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { ArrowUpRight, Search, Settings, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useModuleStates } from "@/hooks/useModules";
 import { APP_TILES, type AppTile } from "@/lib/module-registry";
 import { cn } from "@/lib/utils";
 
-function Tile({
-  app,
-  disabled = false,
-}: {
-  app: AppTile;
-  disabled?: boolean;
-}) {
+/**
+ * Largeur d'une tuile : 4 par ligne sur grand écran, 2 sur tablette, 1 sur
+ * mobile. Combinée à `justify-center` sur le conteneur, elle **centre la
+ * dernière ligne incomplète** (ex. « Comptabilité » et « Reporting ») au lieu
+ * de la coller à gauche — et tout module ajouté vient s'y aligner sans
+ * déséquilibrer la mise en page.
+ */
+const TILE_WIDTH =
+  "w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)]";
+
+function Tile({ app, disabled = false }: { app: AppTile; disabled?: boolean }) {
   const tooltip = disabled
     ? `${app.label} — Désactivé`
     : `${app.label} — ${app.description}`;
@@ -30,27 +40,30 @@ function Tile({
     <Card
       title={tooltip}
       className={cn(
-        "group flex cursor-pointer flex-col items-center gap-2 p-3 transition-all duration-200",
-        disabled
-          ? "cursor-default opacity-55 grayscale"
-          : "hover:-translate-y-0.5 hover:shadow-lg"
+        "group flex h-full cursor-pointer flex-col gap-4 p-5 transition-colors",
+        disabled ? "cursor-default opacity-55 grayscale" : "hover:border-primary/40",
       )}
     >
-      <div
-        className={cn(
-          "flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-sm",
-          app.gradient
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-primary-soft">
+          <app.icon className="h-5 w-5 text-primary" />
+        </div>
+        {!disabled && (
+          <ArrowUpRight className="h-4 w-4 shrink-0 text-faint transition-colors group-hover:text-primary" />
         )}
-      >
-        <app.icon className="h-6 w-6" />
       </div>
-      <p className="text-center text-sm font-semibold text-gray-900">{app.label}</p>
+      <div className="min-w-0">
+        <p className="text-[15px] font-semibold text-ink">{app.label}</p>
+        <p className="mt-1 text-[13px] leading-snug text-muted">
+          {app.description}
+        </p>
+      </div>
     </Card>
   );
 
   if (disabled) return inner;
   return (
-    <Link href={app.href} aria-label={tooltip} title={tooltip}>
+    <Link href={app.href} aria-label={tooltip} title={tooltip} className={cn("block h-full", TILE_WIDTH)}>
       {inner}
     </Link>
   );
@@ -58,6 +71,7 @@ function Tile({
 
 export function AppLauncher() {
   const { data: moduleStates = [], isLoading } = useModuleStates();
+  const [query, setQuery] = useState("");
 
   // Modules backend actifs (core exclu — pas une application métier)
   const activeModules = new Set(
@@ -94,15 +108,26 @@ export function AppLauncher() {
     return true;
   });
 
+  // Filtre de recherche local sur le libellé et la description.
+  const visibleApps = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return activeApps;
+    return activeApps.filter(
+      (a) =>
+        a.label.toLowerCase().includes(needle) ||
+        a.description.toLowerCase().includes(needle),
+    );
+  }, [activeApps, query]);
+
   if (isLoading) {
     return (
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Applications</h2>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, i) => (
+      <section className="space-y-6">
+        <div className="mx-auto h-10 w-full max-w-md animate-pulse rounded-control bg-subtle" />
+        <div className="flex flex-wrap justify-center gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="h-32 animate-pulse rounded-lg bg-gray-100"
+              className={cn("h-32 animate-pulse rounded-card bg-subtle", TILE_WIDTH)}
             />
           ))}
         </div>
@@ -111,28 +136,84 @@ export function AppLauncher() {
   }
 
   return (
-    <section>
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Applications</h2>
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-        {activeApps.map((app) => (
-          <Tile key={app.key} app={app} />
-        ))}
+    <section className="space-y-8">
+      {/* Recherche d'application */}
+      <div className="mx-auto flex h-10 w-full max-w-md items-center gap-2 rounded-control border border-line bg-surface px-3">
+        <Search className="h-4 w-4 shrink-0 text-faint" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Trouver une application…"
+          aria-label="Trouver une application"
+          className="min-w-0 flex-1 bg-transparent text-[13px] text-ink placeholder:text-faint focus:outline-none"
+        />
       </div>
 
-      {(disabledApps.length > 0 || activeApps.length === 0) && (
-        <div className="mt-6">
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-500">
+      {/* En-tête de section */}
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+          Applications disponibles
+        </h2>
+        <span className="text-[11px] text-faint">
+          {visibleApps.length} module{visibleApps.length > 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {/* Grille des applications actives */}
+      {visibleApps.length === 0 ? (
+        <p className="py-10 text-center text-[13px] text-muted">
+          Aucune application ne correspond à « {query} ».
+        </p>
+      ) : (
+        <div className="flex flex-wrap justify-center gap-4">
+          {visibleApps.map((app) => (
+            <Tile key={app.key} app={app} />
+          ))}
+        </div>
+      )}
+
+      {/* Bandeau d'aide vers les paramètres */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-line bg-surface p-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-subtle">
+            <Settings className="h-5 w-5 text-muted" />
+          </div>
+          <div>
+            <p className="text-[13px] font-semibold text-ink">
+              Un ERP adapté à votre organisation
+            </p>
+            <p className="text-[12px] text-muted">
+              Organisation, utilisateurs, droits d&apos;accès et préférences.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/dashboard/settings"
+          className="text-[13px] font-medium text-primary hover:underline"
+        >
+          Ouvrir les paramètres →
+        </Link>
+      </div>
+
+      {/* Modules installés mais désactivés */}
+      {disabledApps.length > 0 && (
+        <div>
+          <h3 className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
             <Sparkles className="h-4 w-4" />
             Autres applications disponibles
           </h3>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+          <div className="flex flex-wrap justify-center gap-4">
             {disabledApps.map((app) => (
-              <Link key={`off-${app.key}`} href="/dashboard/settings">
+              <Link
+                key={`off-${app.key}`}
+                href="/dashboard/settings"
+                className={TILE_WIDTH}
+              >
                 <Tile app={app} disabled />
               </Link>
             ))}
           </div>
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-3 text-[11px] text-faint">
             Activez-les dans Paramètres → Modules. D&apos;autres applications
             pourront être ajoutées à l&apos;ERP.
           </p>

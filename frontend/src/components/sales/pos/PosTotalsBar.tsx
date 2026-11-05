@@ -28,75 +28,58 @@ export function PosTotalsBar({
 }: Props) {
   if (variant === "giant") {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <div className="grid grid-cols-4 gap-2 text-sm">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-gray-400">
-              Sous-total
-            </p>
-            <p className="font-semibold text-gray-900">
-              {formatCurrency(subtotal)}
-            </p>
+      <div className="rounded-card border border-line bg-surface p-4">
+        <dl className="space-y-2 text-[13px]">
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-muted">Sous-total HT</dt>
+            <dd className="tabular-nums text-ink">{formatCurrency(subtotal)}</dd>
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-gray-400">
-              Remise
-            </p>
-            <p className="font-semibold text-gray-900">
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-muted">Remise</dt>
+            <dd className="tabular-nums text-ink">
               {formatCurrency(discountAmount)}
-            </p>
+            </dd>
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-gray-400">
-              TVA ({formatNumber(taxPercent, 2)} %)
-            </p>
-            <p className="font-semibold text-gray-900">
-              {formatCurrency(taxAmount)}
-            </p>
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-muted">TVA ({formatNumber(taxPercent, 2)} %)</dt>
+            <dd className="tabular-nums text-ink">{formatCurrency(taxAmount)}</dd>
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-gray-400">
-              Articles
-            </p>
-            <p className="font-semibold text-gray-900">
-              {formatNumber(itemsCount, 2)}
-            </p>
-          </div>
-        </div>
-        <div className="mt-3 flex items-baseline justify-between border-t border-gray-100 pt-3">
-          <span className="text-sm font-medium uppercase tracking-wide text-gray-500">
-            Total
-          </span>
-          <span className="text-4xl font-extrabold tracking-tight text-gray-900">
+        </dl>
+        <div className="mt-3 flex items-baseline justify-between gap-3 border-t border-line pt-3">
+          <span className="text-[15px] font-semibold text-ink">Total TTC</span>
+          <span className="text-[22px] font-semibold tabular-nums text-ink">
             {formatCurrency(total)}
           </span>
         </div>
+        <p className="mt-1 text-right text-[11px] text-faint">
+          {formatNumber(itemsCount, 2)} article(s)
+        </p>
       </div>
     );
   }
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-lg border border-gray-200 bg-white p-3 text-sm sm:grid-cols-5">
+    <div className="grid grid-cols-2 gap-2 rounded-card border border-line bg-surface p-3 text-[13px] sm:grid-cols-5">
       <div>
-        <p className="text-xs uppercase tracking-wide text-gray-400">Sous-total</p>
-        <p className="font-semibold text-gray-900">{formatCurrency(subtotal)}</p>
+        <p className="text-[10px] uppercase tracking-[0.08em] text-muted">Sous-total</p>
+        <p className="font-semibold text-ink">{formatCurrency(subtotal)}</p>
       </div>
       <div>
-        <p className="text-xs uppercase tracking-wide text-gray-400">Remise</p>
-        <p className="font-semibold text-gray-900">{formatCurrency(discountAmount)}</p>
+        <p className="text-[10px] uppercase tracking-[0.08em] text-muted">Remise</p>
+        <p className="font-semibold text-ink">{formatCurrency(discountAmount)}</p>
       </div>
       <div>
-        <p className="text-xs uppercase tracking-wide text-gray-400">
+        <p className="text-[10px] uppercase tracking-[0.08em] text-muted">
           TVA ({formatNumber(taxPercent, 2)} %)
         </p>
-        <p className="font-semibold text-gray-900">{formatCurrency(taxAmount)}</p>
+        <p className="font-semibold text-ink">{formatCurrency(taxAmount)}</p>
       </div>
       <div>
-        <p className="text-xs uppercase tracking-wide text-gray-400">Articles</p>
-        <p className="font-semibold text-gray-900">{formatNumber(itemsCount, 2)}</p>
+        <p className="text-[10px] uppercase tracking-[0.08em] text-muted">Articles</p>
+        <p className="font-semibold text-ink">{formatNumber(itemsCount, 2)}</p>
       </div>
       <div>
-        <p className="text-xs uppercase tracking-wide text-gray-400">Total</p>
-        <p className="text-lg font-bold text-gray-900">{formatCurrency(total)}</p>
+        <p className="text-[10px] uppercase tracking-[0.08em] text-muted">Total</p>
+        <p className="text-[17px] font-semibold text-ink">{formatCurrency(total)}</p>
       </div>
     </div>
   );

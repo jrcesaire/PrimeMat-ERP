@@ -35,6 +35,13 @@ const QUICK_LINKS: { label: string; href: string }[] = [
   { label: "Régime fiscal", href: "/dashboard/accounting/fiscal-regime" },
   { label: "Balance âgée", href: "/dashboard/accounting/aged-balance" },
   { label: "Cash-flow", href: "/dashboard/accounting/cash-flow" },
+  { label: "Grand livre", href: "/dashboard/accounting/ledger" },
+  { label: "Grand livre auxiliaire", href: "/dashboard/accounting/partner-ledger" },
+  { label: "Chéancier", href: "/dashboard/accounting/payment-schedule" },
+  { label: "TVA déclarative", href: "/dashboard/accounting/vat" },
+  { label: "Immobilisations", href: "/dashboard/accounting/fixed-assets" },
+  { label: "Clôture d'exercice", href: "/dashboard/accounting/fiscal-year" },
+  { label: "Journal d'audit", href: "/dashboard/accounting/audit" },
 ];
 
 /** Sous-route → onglet : /dashboard/accounting/sheet ouvre le bilan. */
