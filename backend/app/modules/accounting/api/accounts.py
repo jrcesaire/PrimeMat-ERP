@@ -155,12 +155,14 @@ async def create_entry(
     body: JournalEntryCreate,
     session: SessionDep,
     company_id: int = Depends(get_current_company_id),
-    _: User = Depends(require_permission("account", "create")),
+    user: User = Depends(require_permission("account", "create")),
 ):
     """Crée et publie une écriture manuelle (débit == crédit)."""
     service = LedgerService(session)
     try:
-        entry = await service.create_entry(company_id, body, post=True)
+        entry = await service.create_entry(
+            company_id, body, post=True, user_id=user.id
+        )
         await session.commit()
         return await service.get_entry(entry.id, company_id)
     except ValueError as exc:
@@ -186,12 +188,12 @@ async def post_entry(
     entry_id: int,
     session: SessionDep,
     company_id: int = Depends(get_current_company_id),
-    _: User = Depends(require_permission("account", "edit")),
+    user: User = Depends(require_permission("account", "edit")),
 ):
     """Valide et publie une écriture (draft → posted)."""
     service = LedgerService(session)
     try:
-        entry = await service.post_entry(entry_id, company_id)
+        entry = await service.post_entry(entry_id, company_id, user_id=user.id)
         await session.commit()
         return await service.get_entry(entry.id, company_id)
     except ValueError as exc:

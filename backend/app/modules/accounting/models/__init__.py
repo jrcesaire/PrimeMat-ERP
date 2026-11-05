@@ -6,6 +6,7 @@ from app.modules.accounting.models.account import Account
 from app.modules.accounting.models.credit_note import CreditNote
 from app.modules.accounting.models.exchange_rate import ExchangeRate
 from app.modules.accounting.models.fiscal_year import FiscalYear
+from app.modules.accounting.models.fixed_asset import Depreciation, FixedAsset
 from app.modules.accounting.models.invoice_allocation import InvoiceAllocation
 from app.modules.accounting.models.journal import Journal
 from app.modules.accounting.models.journal_entry import (
@@ -13,6 +14,7 @@ from app.modules.accounting.models.journal_entry import (
     JournalEntryLine,
 )
 from app.modules.accounting.models.ohada import OHADAParameter
+from app.modules.accounting.models.vat_return import VATLine, VATReturn
 
 # Importer les modèles liés pour résoudre les relationships inter-modules
 # (Invoice, Payment référencés par InvoiceAllocation ; Partner par Invoice, etc.)
@@ -23,8 +25,10 @@ from app.modules.payments.models.payment import Payment  # noqa: F401
 __all__ = [
     "Account",
     "CreditNote",
+    "Depreciation",
     "ExchangeRate",
     "FiscalYear",
+    "FixedAsset",
     "InvoiceAllocation",
     "Invoice",
     "Journal",
@@ -33,4 +37,6 @@ __all__ = [
     "OHADAParameter",
     "Partner",
     "Payment",
+    "VATLine",
+    "VATReturn",
 ]

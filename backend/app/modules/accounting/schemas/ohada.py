@@ -98,3 +98,43 @@ class OHADACheckConstraint(BaseModel):
 
     can_open: bool
     message: str
+
+
+# ------------------------------------------------------------------ #
+# Clôture d'exercice — aperçu (écran « Clôture d'exercice »)
+# ------------------------------------------------------------------ #
+class FiscalYearClosingLine(BaseModel):
+    """Compte de charges/produits soldé par l'écriture de clôture."""
+
+    account_code: str
+    account_name: str
+    class_no: str
+    #: Solde de l'exercice sur ce compte (débit − crédit).
+    balance: float
+    #: Sens de la ligne de soldage (inverse du solde).
+    debit: float
+    credit: float
+
+
+class FiscalYearClosingPreview(BaseModel):
+    """Aperçu de la clôture : soldes à solder, résultat et exercice de report."""
+
+    fiscal_year: FiscalYearRead
+    #: Comptes de charges/produits qui seront soldés.
+    lines: list[FiscalYearClosingLine] = []
+    #: Résultat de l'exercice (positif = bénéfice, négatif = perte).
+    result: float
+    #: ``profit`` | ``loss`` | ``none``
+    result_type: str
+    #: Compte de résultat utilisé (121 bénéfice / 129 perte), ``None`` si nul.
+    result_account: Optional[str] = None
+    total_debit: float
+    total_credit: float
+    #: Exercice qui recevra le report à nouveau.
+    next_year: Optional[FiscalYearRead] = None
+    #: Vrai si l'exercice suivant sera créé par la clôture (année civile).
+    next_year_will_be_created: bool = False
+    #: Références des écritures déjà générées (clôture / affectation).
+    closing_entry_reference: Optional[str] = None
+    opening_entry_reference: Optional[str] = None
+    already_closed: bool = False

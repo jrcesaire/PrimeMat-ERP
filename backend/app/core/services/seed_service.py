@@ -105,6 +105,12 @@ ROLES: list[dict] = [
             "purchase_invoice": ["view", "edit", "post", "pay"],
             "delivery": ["view", "create", "confirm", "delete"],
             "expense": ["view", "create"],
+            # Trésorerie : comptes, relevés bancaires et rapprochement
+            "treasury": ["view", "create", "edit"],
+            # Comptabilité : états, écritures et clôture d'exercice
+            "account": ["view", "create", "edit"],
+            "journal_entry": ["view", "create", "edit", "post"],
+            "fiscal_year": ["view", "create", "edit", "close"],
             "report": ["view"],
             "pos": ["view", "create", "edit", "close"],
         },
@@ -141,6 +147,14 @@ ROLES: list[dict] = [
             "purchase": ["view"],
             "purchase_invoice": ["view", "edit", "post", "pay"],
             "expense": ["view", "create", "edit"],
+            # Trésorerie : comptes, relevés bancaires et rapprochement
+            "treasury": ["view", "create", "edit"],
+            # Comptabilité : états, écritures et clôture d'exercice
+            "account": ["view", "create", "edit"],
+            "journal_entry": ["view", "create", "edit", "post"],
+            "fiscal_year": ["view", "create", "edit", "close"],
+            # Journal d'audit comptable (lecture seule)
+            "audit_log": ["view"],
             "tax": ["view"],
             "currency": ["view"],
             "report": ["view"],

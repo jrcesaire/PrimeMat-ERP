@@ -19,6 +19,7 @@ from app.core.models.user import User
 from app.core.dependencies.permissions import require_permission
 from app.modules.purchases.schemas import (
     MatchingResult,
+    PosPurchaseCreate,
     SupplierInvoiceCreate,
     SupplierInvoicePay,
     SupplierInvoiceRead,
@@ -32,6 +33,9 @@ require_view = require_permission("purchase_invoice", "view")
 require_edit = require_permission("purchase_invoice", "edit")
 require_post = require_permission("purchase_invoice", "post")
 require_pay = require_permission("purchase_invoice", "pay")
+# Achat comptoir saisi depuis le PoS : c'est une action de caisse, ouverte aux
+# rôles disposant de « pos:create » (vendeur/caissier, manager, comptable).
+require_pos_create = require_permission("pos", "create")
 
 
 # ------------------------------------------------------------------ #
@@ -50,6 +54,30 @@ async def list_invoices(
     return await service.list_invoices(
         skip=skip, limit=limit, status=status, supplier_id=supplier_id
     )
+
+
+@router.post(
+    "/invoices/pos-purchase",
+    response_model=SupplierInvoiceRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_pos_purchase(
+    body: PosPurchaseCreate,
+    session: SessionDep,
+    current_user: User = Depends(get_current_active_user),
+    _: None = Depends(require_pos_create),
+):
+    """Achat de quincaillerie saisi depuis le Point de Vente (PRD US5).
+
+    Enregistre l'achat comptoir dans le module Achats global (facture
+    fournisseur) puis le comptabilise et, par défaut, le règle sur la caisse
+    du PoS. L'achat est donc visible dans le grand livre de l'entreprise.
+    """
+    service = SupplierInvoiceService(session)
+    try:
+        return await service.create_pos_purchase(body, current_user.company_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.get("/invoices/{invoice_id}", response_model=SupplierInvoiceRead)

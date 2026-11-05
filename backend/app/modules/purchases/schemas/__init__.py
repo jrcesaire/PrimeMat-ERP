@@ -367,6 +367,41 @@ class SupplierInvoicePay(BaseModel):
     method: Literal["cash", "bank_transfer", "check", "mobile_money"] = "cash"
 
 
+class PosPurchaseCreate(BaseModel):
+    """Achat de quincaillerie saisi depuis le Point de Vente (PRD US5).
+
+    Le caissier saisit un **montant TTC** et un libellé : la facture
+    fournisseur correspondante est créée, comptabilisée puis — par défaut —
+    réglée immédiatement sur la caisse. L'achat apparaît donc dans le module
+    Achats global **et** dans le grand livre de l'entreprise.
+    """
+
+    supplier_id: int
+    label: str = Field(
+        min_length=1, max_length=200, description="ex. « Quincaillerie — vis, pointes »"
+    )
+    amount_total: float = Field(gt=0, description="Montant TTC payé")
+    tax_rate: float = Field(
+        default=0, ge=0, le=100, description="Taux de TVA appliqué (0 = pas de TVA)"
+    )
+    purchase_date: date | None = None
+    supplier_invoice_number: str | None = Field(
+        default=None, max_length=60, description="N° de la facturette du fournisseur"
+    )
+    notes: str | None = None
+    #: Règle l'achat immédiatement (cas normal d'un achat comptoir en espèces).
+    paid: bool = True
+    #: Mode de règlement — détermine le compte de trésorerie décaissé
+    #: (caisse ``531`` pour ``cash``, banque ``511`` sinon).
+    payment_method: Literal["cash", "bank_transfer", "check", "mobile_money"] = (
+        "cash"
+    )
+    #: Surcharge facultative du compte de trésorerie (sinon déduit du mode).
+    treasury_account: str | None = Field(default=None, max_length=10)
+    #: Surcharge facultative du journal de règlement (``CAI`` caisse, ``BAN`` banque).
+    journal_code: str | None = Field(default=None, max_length=10)
+
+
 class MatchingLineDetail(BaseModel):
     """Détail du rapprochement 3 voies pour une ligne."""
 

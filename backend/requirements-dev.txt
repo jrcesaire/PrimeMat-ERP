@@ -8,3 +8,6 @@ faker==33.3.0
 ruff==0.8.6
 mypy==1.13.0
 debugpy==1.8.10
+# Pilote SQLite asynchrone — requis par les suites de tests
+# (backend/test_*.py et backend/tests/) qui utilisent `sqlite+aiosqlite`.
+aiosqlite==0.22.1

@@ -189,8 +189,13 @@ async def issue_credit_note(
         cn.notes = body.notes
 
     # Comptabiliser via PostingService (idempotent par source_type/source_id)
-    result = await PostingService(session).post_credit_note(cn)
-    await session.commit()
+    try:
+        result = await PostingService(session).post_credit_note(cn)
+        await session.commit()
+    except ValueError as exc:
+        # Exercice clôturé, compte absent… : l'avoir reste au brouillon.
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc))
 
     if result is None:
         raise HTTPException(

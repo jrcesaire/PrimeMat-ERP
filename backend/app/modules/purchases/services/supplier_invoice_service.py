@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date, datetime, timedelta
+from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,12 +33,22 @@ from app.modules.purchases.models import (
 from app.modules.purchases.schemas import (
     MatchingLineDetail,
     MatchingResult,
+    PosPurchaseCreate,
     SupplierInvoiceCreate,
+    SupplierInvoiceLineCreate,
     SupplierInvoiceUpdate,
 )
 from app.shared.enums import SupplierInvoiceStatus
 
 logger = logging.getLogger(__name__)
+
+#: Pas de conversion monétaire (centime).
+CENTS = Decimal("0.01")
+
+
+def _cents(value: float | str | None) -> Decimal:
+    """Convertit un montant en ``Decimal`` arrondi au centime."""
+    return Decimal(str(value or 0)).quantize(CENTS, rounding=ROUND_HALF_UP)
 
 
 def _recompute_totals(invoice: SupplierInvoice) -> None:
@@ -293,9 +304,20 @@ class SupplierInvoiceService:
         return invoice
 
     async def pay(
-        self, invoice_id: int, amount: float, payment_date: date | None = None
+        self,
+        invoice_id: int,
+        amount: float,
+        payment_date: date | None = None,
+        *,
+        treasury_account: str = "511",
+        journal_code: str = "BAN",
     ) -> SupplierInvoice | None:
-        """Enregistre un règlement fournisseur (décaissement)."""
+        """Enregistre un règlement fournisseur (décaissement).
+
+        ``treasury_account`` / ``journal_code`` permettent de choisir le compte
+        décaissé : banque (``511``/``BAN``) par défaut, caisse (``531``/``CAI``)
+        pour un achat comptoir saisi depuis le PoS.
+        """
         invoice = await self.get_invoice(invoice_id)
         if invoice is None:
             return None
@@ -320,7 +342,11 @@ class SupplierInvoiceService:
             from app.modules.accounting.services.posting_service import PostingService
 
             await PostingService(self.session).post_supplier_payment(
-                invoice, amount, payment_date or date.today()
+                invoice,
+                amount,
+                payment_date or date.today(),
+                treasury_account=treasury_account,
+                journal_code=journal_code,
             )
             await self.session.commit()
         except Exception:
@@ -333,6 +359,105 @@ class SupplierInvoiceService:
         await self.attach_tva_warning(invoice)
         logger.info("Règlement %.2f enregistré sur %s", amount, invoice.reference)
         return invoice
+
+    # ------------------------------------------------------------------ #
+    # Achat de quincaillerie saisi depuis le Point de Vente (PRD US5)
+    # ------------------------------------------------------------------ #
+    async def create_pos_purchase(
+        self, data: PosPurchaseCreate, company_id: int
+    ) -> SupplierInvoice:
+        """Crée, comptabilise et règle un achat comptoir saisi depuis le PoS.
+
+        Le montant saisi est **TTC** : la base hors taxes et la TVA en sont
+        déduites au centime, de sorte que ``HT + TVA == TTC`` exactement (les
+        écritures comptables exigent un équilibre au centime près). La facture
+        fournisseur générée suit le workflow standard (``draft → posted →
+        paid``) afin d'apparaître dans le module Achats global (liste des
+        factures fournisseur) et dans le grand livre
+        (``D 601 + D 4452 / C 401`` puis ``D 401 / C trésorerie``).
+
+        Une facture non réglée (``paid=False``) reste enregistrée en attente de
+        règlement dans le module Achats.
+        """
+        total = _cents(data.amount_total)
+        if total <= 0:
+            raise ValueError("Le montant de l'achat doit être supérieur à zéro.")
+
+        rate = Decimal(str(data.tax_rate or 0))
+        # Montant TTC → base hors taxes ; la TVA est le complément exact du TTC,
+        # ce qui absorbe l'arrondi et garantit l'équilibre de l'écriture.
+        untaxed = (
+            (total / (1 + rate / 100)).quantize(CENTS, rounding=ROUND_HALF_UP)
+            if rate > 0
+            else total
+        )
+        tax = total - untaxed
+        purchase_date = data.purchase_date or date.today()
+
+        # Compte de trésorerie décaissé : déduit du mode de règlement (caisse
+        # 531 pour un paiement en espèces, banque 511 sinon), sauf surcharge.
+        from app.modules.accounting.services.posting_service import TREASURY_ACCOUNTS
+
+        treasury_account = data.treasury_account or TREASURY_ACCOUNTS.get(
+            data.payment_method, "531"
+        )
+        journal_code = data.journal_code or (
+            "CAI" if treasury_account == "531" else "BAN"
+        )
+
+        invoice = await self.create_invoice(
+            SupplierInvoiceCreate(
+                supplier_id=data.supplier_id,
+                supplier_invoice_number=data.supplier_invoice_number,
+                invoice_date=purchase_date,
+                due_date=purchase_date,
+                notes=data.notes or "Achat de quincaillerie saisi depuis le PoS",
+                lines=[
+                    SupplierInvoiceLineCreate(
+                        description=data.label,
+                        quantity=1,
+                        unit_price=float(untaxed),
+                        tax_rate=float(rate),
+                    )
+                ],
+            ),
+            company_id,
+        )
+
+        # Fige les totaux recalculés par la ligne : la ventilation HT / TVA est
+        # celle saisie au comptoir (HT + TVA == TTC au centime).
+        invoice.amount_untaxed = float(untaxed)
+        invoice.tax_amount = float(tax)
+        invoice.amount_total = float(total)
+        await self.session.commit()
+        await self.session.refresh(invoice)
+
+        posted = await self.post(invoice.id)
+        if posted is None:
+            raise ValueError("Comptabilisation de l'achat impossible.")
+
+        if not data.paid:
+            return posted
+
+        due = float(posted.amount_due)
+        if due <= 0:
+            return posted
+
+        paid = await self.pay(
+            posted.id,
+            due,
+            purchase_date,
+            treasury_account=treasury_account,
+            journal_code=journal_code,
+        )
+        logger.info(
+            "Achat PoS %s enregistré et réglé (%.2f %s)",
+            posted.reference,
+            due,
+            posted.currency_code,
+        )
+        return paid or posted
+
 
     async def cancel(self, invoice_id: int) -> SupplierInvoice | None:
         invoice = await self.get_invoice(invoice_id)

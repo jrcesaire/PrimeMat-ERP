@@ -254,9 +254,19 @@ class PostingService:
         return await self._post(invoice.company_id, "supplier_invoice", invoice.id, data)
 
     async def post_supplier_payment(
-        self, invoice, amount: float, payment_date: date | None = None
+        self,
+        invoice,
+        amount: float,
+        payment_date: date | None = None,
+        *,
+        treasury_account: str = "511",
+        journal_code: str = "BAN",
     ) -> tuple[JournalEntry, bool] | None:
-        """Règlement fournisseur : D 401 / C 511 (journal BAN).
+        """Règlement fournisseur : D 401 / C trésorerie.
+
+        Par défaut la banque (``511``, journal ``BAN``). Un achat comptoir
+        saisi depuis le Point de Vente décaisse en revanche la **caisse**
+        (``531``, journal ``CAI``).
 
         Idempotence via ``source_type="supplier_payment"`` /
         ``source_id=invoice.id`` (un règlement cumulé par facture).
@@ -277,7 +287,7 @@ class PostingService:
                 partner_id=invoice.supplier_id,
             ),
             JournalEntryLineCreate(
-                account_code="511",
+                account_code=treasury_account,
                 label=f"Decaissement {number}",
                 debit=0,
                 credit=float(total),
@@ -286,7 +296,7 @@ class PostingService:
 
         data = JournalEntryCreate(
             entry_date=payment_date or date.today(),
-            journal_code="BAN",
+            journal_code=journal_code,
             source_type="supplier_payment",
             source_id=invoice.id,
             description=f"Paiement fournisseur - {number}",

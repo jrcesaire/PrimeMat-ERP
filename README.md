@@ -46,12 +46,14 @@ L'application est conçue comme un ensemble de **modules indépendants et démon
 - Catalogue (produits, services, tôles BAC, unités de mesure)
 - CRM (clients, contacts, chantiers)
 - Ventes (devis, commandes, ventes comptoir)
+- Point de vente / PoS (sessions de caisse, clôture automatique, mode immersif, achats de quincaillerie)
 - Stock (entrepôts, mouvements, seuils)
-- Achats (fournisseurs, bons de commande, réceptions)
+- Achats (fournisseurs, bons de commande, réceptions, factures fournisseur)
 - Livraison (bons de livraison, transport)
 - Facturation (factures, avoirs, PDF)
 - Paiements (espèces, virement, chèque, Mobile Money)
-- Finance / Trésorerie
+- Finance / Trésorerie (comptes, relevés, rapprochement bancaire)
+- Comptabilité OHADA (plan comptable, journaux, grand livre, balance, clôture d'exercice, amortissements, déclarations de TVA, grand livre auxiliaire, journal d'audit)
 - Reporting / BI
 
 ## Démarrage rapide
@@ -114,8 +116,14 @@ Vérification complète du bootstrap : `python backend/test_bootstrap_e2e.py`
 | **Ventes** | 6 | Devis avec lignes BAC, devis→commande (coupes préservées), analyse fulfillment hybride |
 | **Stock** | 4 | Entrepôts, niveaux (réel/réservé/dispo), mouvements (entrée/sortie/transfert/ajustement/perte), réservations |
 
-### 🚧 Modules à venir
-Achats, Livraison, Facturation, Paiements, Finance, Reporting — squelettes en place, routeurs chargés dynamiquement.
+### ✅ Achats, Livraison, Facturation, Paiements, Finance, Reporting
+Implémentés (routeurs chargés dynamiquement) : demandes d'achat, bons de commande, réceptions, factures fournisseur avec rapprochement 3 voies, bons de livraison, factures et avoirs, paiements multi-modes, trésorerie et rapports.
+
+### ✅ Comptabilité OHADA & Point de vente (phase 2)
+| Domaine | Fonctionnalités clés |
+|---|---|
+| **Comptabilité** | Plan comptable SYSCOHADA, journaux, écritures, grand livre, balance, compte de résultat, bilan, trésorerie, lettrage, clôture / réouverture d'exercice avec à-nouveaux, amortissements (linéaire + dégressif SYSCOHADA), déclarations de TVA, grand livre auxiliaire par tiers, échéancier de paiement, journal d'audit |
+| **Point de vente** | Sessions de caisse (solde initial repris de la veille, clôture automatique, rapport de clôture), mode immersif plein écran, écran d'accueil à 6 tuiles, achats de quincaillerie consolidés dans le module Achats et le grand livre |
 
 ## Test du scénario métier (validé ✔)
 
@@ -139,6 +147,84 @@ analyze_fulfillment() [mode hybride] :
 ```
 
 Exécuter : `python backend/test_smoke.py`
+
+## 🧪 Tests & intégration continue
+
+### Backend — suites fonctionnelles (pytest)
+
+Les suites sont des scripts autonomes (base SQLite temporaire, aucune dépendance
+à PostgreSQL) réunis sous un même rapport pytest :
+
+```bash
+cd backend
+pip install -r requirements.txt -r requirements-dev.txt
+
+python -m pytest                     # toutes les suites
+python -m pytest -k pos              # seulement l'achat de quincaillerie du PoS
+python -m pytest -m slow             # suites longues uniquement
+```
+
+| Suite | Couverture |
+|---|---|
+| `test_fiscal_closing.py` | Clôture d'exercice : écritures de clôture (6/7/8 → 121/129), affectation du résultat (111/119), création de l'exercice suivant, réouverture, refus d'écriture sur exercice clôturé |
+| `test_depreciation.py` | Amortissements : linéaire annuel / mensuel, dégressif SYSCOHADA avec bascule, arrondi absorbé par la dernière période, idempotence de l'écriture `D 681 / C 28x` |
+| `test_vat_return.py` | TVA : calcul collectée / déductible, liquidation (`441`), stabilité de l'aperçu après liquidation, règlement `D 441 / C 521`, crédit reportable, garde-fous |
+| `test_auxiliary_reports.py` | Grand livre par tiers (solde courant) et échéancier de paiement (tranches d'ancienneté) |
+| `test_accounting_audit.py` | Journal d'audit comptable : traçabilité `created` / `posted`, filtres, lecture seule |
+| `test_pos_purchase.py` | Achat de quincaillerie depuis le PoS : facture fournisseur réglée, ventilation HT / TVA au centime, dette ouverte si non réglé, décaissement caisse vs banque, rattachement au tiers, garde-fous |
+
+Chaque suite est également exécutable seule : `python backend/test_vat_return.py`
+(affiche le détail des vérifications et retourne un code de sortie exploitable).
+
+### Frontend — tests unitaires (Jest)
+
+```bash
+cd frontend
+npm install
+npm test              # jest
+npm test -- --watch   # mode interactif
+npm run type-check    # tsc --noEmit
+npm run lint          # ESLint 9 (flat config)
+```
+
+Les suites vivent à côté du code testé (`src/lib/*.test.ts`) et couvrent les
+utilitaires de formatage, le store du mode immersif du PoS (`pos-focus`) et le
+modèle de navigation — ce dernier vérifie notamment qu'aucun sous-menu ne pointe
+deux fois vers la même route.
+
+> Les tests tournent en environnement `node` (logique pure). Pour tester des
+> composants React, installer `jest-environment-jsdom`, `@testing-library/react`
+> et `@testing-library/jest-dom`, puis passer `testEnvironment` à `"jsdom"` dans
+> `frontend/jest.config.js`.
+
+### Intégration continue
+
+Le workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) s'exécute sur
+chaque push (`main`, `develop`), chaque pull request et à la demande :
+
+| Job | Contenu |
+|---|---|
+| **backend** | `ruff check app` puis `python -m pytest` |
+| **frontend** | `npm run lint`, `npm run type-check`, `npm test -- --ci` |
+| **frontend-build** | `npm run build` (informatif, non bloquant) |
+
+### Dette technique connue
+
+- **ESLint** : les règles `@typescript-eslint/no-explicit-any` et
+  `no-unused-vars` sont en **avertissement** — ~50 occurrences historiques
+  restent à résorber (`src/lib/types.ts`, `src/hooks/useCatalogue.ts`,
+  `src/components/settings/*`…). Les repasser en `error` dans
+  `frontend/eslint.config.mjs` une fois nettoyées.
+- **Ruff** : `backend/ruff.toml` ne sélectionne que `E9` (erreurs de syntaxe /
+  runtime) ; ~188 diagnostics historiques (imports non triés, variables
+  inutilisées, réimports locaux) restent à traiter. Élargir `select` au fil de
+  l'eau (`["E", "F", "I", "UP", "B"]`).
+- **Build frontend** : `next build` n'a jamais pu être validé sur poste Windows
+  (échec au spawn des workers de génération statique, `spawn UNKNOWN`). La
+  compilation et la vérification de types passent ; le job CI
+  `frontend-build` sert à confirmer le comportement sous Linux.
+- **Versions** : l'environnement de développement peut dériver des fichiers
+  `requirements*.txt` (ex. `fastapi` plus récent que le `0.115.6` épinglé).
 
 ## 🏷️ Modes de vente par catégorie (logique métier)
 

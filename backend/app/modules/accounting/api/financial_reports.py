@@ -180,6 +180,61 @@ async def aged_balance(
 
 
 # ------------------------------------------------------------------ #
+# Grand livre auxiliaire (par tiers)
+# ------------------------------------------------------------------ #
+@router.get("/financial/partner-ledger")
+async def partner_ledger(
+    session: SessionDep,
+    company_id: int = Depends(get_current_company_id),
+    partner_id: int = Query(..., description="Identifiant du tiers"),
+    date_from: str | None = Query(default=None, description="Début (YYYY-MM-DD)"),
+    date_to: str | None = Query(default=None, description="Fin (YYYY-MM-DD)"),
+    _: User = Depends(require_permission("account", "view")),
+):
+    """Grand livre auxiliaire d'un tiers : mouvements et solde progressif."""
+    service = FinancialService(session)
+    try:
+        return await service.partner_ledger(
+            company_id,
+            partner_id,
+            date_from=await _parse_date(date_from),
+            date_to=await _parse_date(date_to),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+# ------------------------------------------------------------------ #
+# Chéancier
+# ------------------------------------------------------------------ #
+@router.get("/financial/payment-schedule")
+async def payment_schedule(
+    session: SessionDep,
+    company_id: int = Depends(get_current_company_id),
+    partner_type: str = Query(
+        default="customer", description="'customer' ou 'supplier'"
+    ),
+    as_of: str | None = Query(default=None, description="Situation au (YYYY-MM-DD)"),
+    horizon_days: int = Query(
+        default=90, ge=0, le=3650, description="Horizon en jours"
+    ),
+    _: User = Depends(require_permission("account", "view")),
+):
+    """Chéancier : échéances à venir et retards des factures non soldées."""
+    if partner_type not in ("customer", "supplier"):
+        raise HTTPException(
+            status_code=400, detail="partner_type doit être customer ou supplier"
+        )
+    service = FinancialService(session)
+    return await service.payment_schedule(
+        company_id,
+        partner_type=partner_type,
+        as_of=await _parse_date(as_of),
+        horizon_days=horizon_days,
+    )
+
+
+# ------------------------------------------------------------------ #
 # Cash-flow
 # ------------------------------------------------------------------ #
 @router.get("/financial/cash-flow")

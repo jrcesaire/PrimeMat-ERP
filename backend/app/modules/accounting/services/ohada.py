@@ -6,6 +6,8 @@ Service OHADA — configuration par pays et gestion de l'exercice comptable.
 from __future__ import annotations
 
 import logging
+from datetime import date, timedelta
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import select
@@ -156,21 +158,405 @@ class OHADAService:
         return year
 
     async def close_fiscal_year(self, company_id: int, year_id: int) -> FiscalYear:
-        """Clôture un exercice comptable s'il est ouvert."""
+        """Clôture un exercice : verrouillage + report à nouveau automatique.
+
+        Déroulé SYSCOHADA :
+
+        1. **Écriture de clôture** (à la date de fin d'exercice) : les comptes
+           de charges et de produits (classes 6, 7, 8) sont soldés ; le résultat
+           net est porté au crédit de **121** (bénéfice) ou au débit de **129**
+           (perte).
+        2. **Écriture d'affectation** (premier jour de l'exercice suivant) : le
+           résultat est viré au **report à nouveau** — débit 121 / crédit
+           **111** pour un bénéfice, débit **119** / crédit 129 pour une perte.
+        3. L'exercice passe au statut ``closed`` : toute nouvelle écriture y est
+           refusée (verrouillage porté par ``LedgerService``).
+
+        L'exercice suivant est créé automatiquement (année civile) s'il n'existe
+        pas encore. Les écritures générées sont idempotentes
+        (``source_type``/``source_id``) : rejouer la clôture ne les duplique
+        pas. Utilisez ``reopen_fiscal_year`` pour corriger puis re-clôturer.
+        """
+        from app.modules.accounting.services.journal_service import LedgerService
+
         year = await self._get_fiscal_year(company_id, year_id)
         if year.status != "open":
             raise ValueError(
-                f"L'exercice {year_id} est déjà {'fermé' if year.status == 'closed' else 'dans un état non gérable'}"
+                f"L'exercice « {year.name} » est déjà clôturé."
+                if year.status == "closed"
+                else f"L'exercice « {year.name} » n'est pas ouvert "
+                f"(statut {year.status})."
             )
+
+        ledger = LedgerService(self.session)
+        plan = await self._pnl_closing_plan(company_id, year)
+
+        # Exercice de report : créé au besoin sur l'année civile suivante.
+        next_year = await self._next_fiscal_year(company_id, year)
+        if next_year is None:
+            next_start = year.end_date + timedelta(days=1)
+            next_year = FiscalYear(
+                name=f"Exercice {next_start.year}",
+                start_date=next_start,
+                end_date=date(next_start.year, 12, 31),
+                status="open",
+                company_id=company_id,
+            )
+            self.session.add(next_year)
+            await self.session.flush()
+            logger.info(
+                "Exercice suivant créé automatiquement : %s (%s → %s)",
+                next_year.name, next_year.start_date, next_year.end_date,
+            )
+        elif next_year.status == "closed":
+            raise ValueError(
+                f"L'exercice suivant « {next_year.name} » est déjà clôturé : "
+                "impossible d'y reporter le résultat."
+            )
+
+        # 1. Clôture (soldage des charges et produits) puis 2. affectation
+        await self._post_closing_entry(company_id, year, plan, ledger)
+        await self._post_retained_entry(
+            company_id, year, plan, next_year, ledger
+        )
+
+        # 3. Verrouillage de l'exercice
         year.status = "closed"
         await self.session.commit()
         await self.session.refresh(year)
+        logger.info(
+            "Exercice %s clôturé (résultat %s, report sur %s)",
+            year.name, plan["result"], next_year.name,
+        )
+        return year
+
+    async def reopen_fiscal_year(self, company_id: int, year_id: int) -> FiscalYear:
+        """Réouvre un exercice clôturé pour permettre une correction.
+
+        Les écritures générées par la clôture (soldage des charges/produits et
+        affectation du résultat) sont supprimées : une nouvelle clôture les
+        régénérera à partir des soldes à jour, sans doublon. Même logique que
+        la remise au brouillon d'un document métier, qui retire son écriture.
+        """
+        year = await self._get_fiscal_year(company_id, year_id)
+        if year.status != "closed":
+            raise ValueError(f"L'exercice « {year.name} » n'est pas clôturé.")
+
+        next_year = await self._next_fiscal_year(company_id, year)
+        if next_year is not None and next_year.status == "closed":
+            raise ValueError(
+                f"L'exercice suivant « {next_year.name} » est clôturé : "
+                "réouvrez d'abord celui-ci."
+            )
+
+        removed = 0
+        for source_type in ("fiscal_year_closing", "fiscal_year_opening"):
+            entry = await self._find_generated_entry(
+                company_id, source_type, year.id
+            )
+            if entry is not None:
+                await self.session.delete(entry)
+                removed += 1
+
+        year.status = "open"
+        await self.session.commit()
+        await self.session.refresh(year)
+        logger.info(
+            "Exercice %s réouvert (%d écriture(s) de clôture retirée(s))",
+            year.name, removed,
+        )
         return year
 
     async def is_fiscal_year_closed(self, company_id: int, year_id: int) -> bool:
         """Vérifie si un exercice comptable est clôturé."""
         year = await self._get_fiscal_year(company_id, year_id)
         return year.status == "closed"
+
+    # ------------------------------------------------------------------ #
+    # Clôture d'exercice — verrouillage + report à nouveau automatique
+    # ------------------------------------------------------------------ #
+    #: Comptes SYSCOHADA utilisés par la clôture (plan de ``ohada_chart``).
+    RESULT_PROFIT_ACCOUNT = "121"    # Résultat net de l'exercice (bénéfice)
+    RESULT_LOSS_ACCOUNT = "129"      # Résultat net de l'exercice (perte)
+    RETAINED_CREDIT_ACCOUNT = "111"  # Report à nouveau créditeur
+    RETAINED_DEBIT_ACCOUNT = "119"   # Report à nouveau débiteur
+    #: Journal des opérations diverses (créé par ``seed_default_journals``).
+    CLOSING_JOURNAL = "OD"
+    #: Classes soldées à la clôture (charges et produits).
+    PNL_CLASSES = ("6", "7", "8")
+
+    async def year_pnl_balances(
+        self, company_id: int, year: FiscalYear
+    ) -> list[dict]:
+        """Soldes des comptes de charges/produits (classes 6, 7, 8) de l'exercice."""
+        from app.modules.accounting.services.journal_service import LedgerService
+
+        balances = await LedgerService(self.session).account_balances(
+            company_id, date_from=year.start_date, date_to=year.end_date
+        )
+        return [
+            b for b in balances if b["account_code"][:1] in self.PNL_CLASSES
+        ]
+
+    async def _pnl_closing_plan(self, company_id: int, year: FiscalYear) -> dict:
+        """Plan de clôture : lignes de soldage, total et résultat de l'exercice.
+
+        Chaque compte de charges/produits non soldé produit une ligne de sens
+        **inverse** de son solde (le solde d'un compte = débit − crédit). La
+        contrepartie nette est le **résultat** de l'exercice : le solde des
+        classes 6/7/8 est l'opposé du résultat (charges débitrices, produits
+        créditeurs), d'où ``result = -Σ(soldes)``.
+        """
+        from app.modules.accounting.services.account_service import AccountService
+
+        balances = await self.year_pnl_balances(company_id, year)
+        accounts = {
+            a.code: a
+            for a in await AccountService(self.session).list_accounts(
+                company_id, active_only=False, limit=2000
+            )
+        }
+
+        lines: list[dict] = []
+        raw_result = Decimal("0")
+        for b in balances:
+            balance = Decimal(str(b["balance"]))
+            if balance == 0:
+                continue
+            acc = accounts.get(b["account_code"])
+            lines.append(
+                {
+                    "account_code": b["account_code"],
+                    "account_name": acc.name if acc else b["account_code"],
+                    "class_no": b["account_code"][:1],
+                    "balance": float(balance),
+                    "debit": float(-balance) if balance < 0 else 0.0,
+                    "credit": float(balance) if balance > 0 else 0.0,
+                }
+            )
+            raw_result += balance
+
+        result = -raw_result
+        result_account = (
+            self.RESULT_PROFIT_ACCOUNT
+            if result > 0
+            else self.RESULT_LOSS_ACCOUNT
+            if result < 0
+            else None
+        )
+        return {
+            "lines": lines,
+            "result": result,
+            "result_account": result_account,
+            "total_debit": sum(Decimal(str(l["debit"])) for l in lines),
+            "total_credit": sum(Decimal(str(l["credit"])) for l in lines),
+        }
+
+    async def _next_fiscal_year(
+        self, company_id: int, year: FiscalYear
+    ) -> Optional[FiscalYear]:
+        """Exercice qui commence après ``year`` (le plus proche), s'il existe."""
+        result = await self.session.execute(
+            select(FiscalYear)
+            .where(
+                FiscalYear.company_id == company_id,
+                FiscalYear.start_date > year.end_date,
+            )
+            .order_by(FiscalYear.start_date.asc())
+        )
+        return result.scalars().first()
+
+    async def _find_generated_entry(
+        self, company_id: int, source_type: str, source_id: int
+    ):
+        """Écriture déjà générée pour cette source (``None`` si absente)."""
+        from app.modules.accounting.models.journal_entry import JournalEntry
+
+        result = await self.session.execute(
+            select(JournalEntry).where(
+                JournalEntry.company_id == company_id,
+                JournalEntry.source_type == source_type,
+                JournalEntry.source_id == source_id,
+            )
+        )
+        return result.scalars().first()
+
+    async def _ensure_generated_entry(
+        self,
+        company_id: int,
+        source_type: str,
+        source_id: int,
+        data,
+        ledger,
+    ) -> Optional[str]:
+        """Crée l'écriture générée si elle n'existe pas (idempotent).
+
+        Retourne sa référence (celle de l'écriture existante le cas échéant).
+        """
+        existing = await self._find_generated_entry(
+            company_id, source_type, source_id
+        )
+        if existing is not None:
+            return existing.reference
+        entry = await ledger.create_entry(company_id, data, post=True)
+        return entry.reference
+
+    async def closing_preview(self, company_id: int, year_id: int) -> dict:
+        """Aperçu de la clôture : soldes à solder, résultat et exercice suivant.
+
+        Alimente l'écran de clôture : l'utilisateur voit le résultat de
+        l'exercice, les comptes qui seront soldés et l'exercice de report
+        (créé automatiquement s'il n'existe pas encore).
+        """
+        year = await self._get_fiscal_year(company_id, year_id)
+        plan = await self._pnl_closing_plan(company_id, year)
+        next_year = await self._next_fiscal_year(company_id, year)
+        closing = await self._find_generated_entry(
+            company_id, "fiscal_year_closing", year.id
+        )
+        opening = await self._find_generated_entry(
+            company_id, "fiscal_year_opening", year.id
+        )
+        result = plan["result"]
+        return {
+            "fiscal_year": year,
+            "lines": plan["lines"],
+            "result": float(result),
+            "result_type": (
+                "profit" if result > 0 else "loss" if result < 0 else "none"
+            ),
+            "result_account": plan["result_account"],
+            "total_debit": float(plan["total_debit"]),
+            "total_credit": float(plan["total_credit"]),
+            "next_year": next_year,
+            "next_year_will_be_created": next_year is None,
+            "closing_entry_reference": closing.reference if closing else None,
+            "opening_entry_reference": opening.reference if opening else None,
+            "already_closed": year.status == "closed",
+        }
+
+    async def _post_closing_entry(
+        self, company_id: int, year: FiscalYear, plan: dict, ledger
+    ) -> Optional[str]:
+        """Écriture de clôture : soldage des charges/produits → résultat (121/129)."""
+        if not plan["lines"]:
+            return None
+
+        from app.modules.accounting.schemas import (
+            JournalEntryCreate,
+            JournalEntryLineCreate,
+        )
+
+        result = plan["result"]
+        lines = [
+            JournalEntryLineCreate(
+                account_code=l["account_code"],
+                label=f"Solde de clôture — {l['account_name']}",
+                debit=l["debit"],
+                credit=l["credit"],
+            )
+            for l in plan["lines"]
+        ]
+        if result > 0:
+            lines.append(
+                JournalEntryLineCreate(
+                    account_code=self.RESULT_PROFIT_ACCOUNT,
+                    label=f"Résultat net de l'exercice {year.name} (bénéfice)",
+                    debit=0,
+                    credit=float(result),
+                )
+            )
+        elif result < 0:
+            lines.append(
+                JournalEntryLineCreate(
+                    account_code=self.RESULT_LOSS_ACCOUNT,
+                    label=f"Résultat net de l'exercice {year.name} (perte)",
+                    debit=float(-result),
+                    credit=0,
+                )
+            )
+
+        return await self._ensure_generated_entry(
+            company_id,
+            "fiscal_year_closing",
+            year.id,
+            JournalEntryCreate(
+                entry_date=year.end_date,
+                journal_code=self.CLOSING_JOURNAL,
+                source_type="fiscal_year_closing",
+                source_id=year.id,
+                description=f"Clôture de l'exercice {year.name}",
+                lines=lines,
+            ),
+            ledger,
+        )
+
+    async def _post_retained_entry(
+        self,
+        company_id: int,
+        year: FiscalYear,
+        plan: dict,
+        next_year: FiscalYear,
+        ledger,
+    ) -> Optional[str]:
+        """Affectation du résultat au report à nouveau (121→111 ou 119→129)."""
+        result = plan["result"]
+        if result == 0:
+            return None
+
+        from app.modules.accounting.schemas import (
+            JournalEntryCreate,
+            JournalEntryLineCreate,
+        )
+
+        if result > 0:
+            lines = [
+                JournalEntryLineCreate(
+                    account_code=self.RESULT_PROFIT_ACCOUNT,
+                    label=f"Affectation du résultat {year.name}",
+                    debit=float(result),
+                    credit=0,
+                ),
+                JournalEntryLineCreate(
+                    account_code=self.RETAINED_CREDIT_ACCOUNT,
+                    label=f"Report à nouveau — résultat {year.name}",
+                    debit=0,
+                    credit=float(result),
+                ),
+            ]
+        else:
+            lines = [
+                JournalEntryLineCreate(
+                    account_code=self.RETAINED_DEBIT_ACCOUNT,
+                    label=f"Report à nouveau — perte {year.name}",
+                    debit=float(-result),
+                    credit=0,
+                ),
+                JournalEntryLineCreate(
+                    account_code=self.RESULT_LOSS_ACCOUNT,
+                    label=f"Affectation de la perte {year.name}",
+                    debit=0,
+                    credit=float(-result),
+                ),
+            ]
+
+        return await self._ensure_generated_entry(
+            company_id,
+            "fiscal_year_opening",
+            year.id,
+            JournalEntryCreate(
+                entry_date=next_year.start_date,
+                journal_code=self.CLOSING_JOURNAL,
+                source_type="fiscal_year_opening",
+                source_id=year.id,
+                description=(
+                    f"Affectation du résultat {year.name} au report à nouveau"
+                ),
+                lines=lines,
+            ),
+            ledger,
+        )
+
     # ------------------------------------------------------------------ #
     # Taux de change
     # ------------------------------------------------------------------ #

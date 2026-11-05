@@ -1,0 +1,19 @@
+# Configuration Ruff — backend FastAPI.
+#
+# Le code historique n'est pas encore conforme à l'ensemble des règles Ruff
+# (188 diagnostics : imports non triés, variables inutilisées, réimports
+# locaux…). Tant que cette dette n'est pas résorbée, la CI ne fait échouer que
+# les erreurs de **syntaxe / runtime** (E9), qui sont bloquantes à juste titre.
+#
+# Pour durcir progressivement, remplacer `select` par une sélection plus large :
+#     select = ["E", "F", "I", "UP", "B"]
+# puis corriger les fichiers au fil de l'eau.
+
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E9"]
+
+[format]
+quote-style = "double"

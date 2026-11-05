@@ -32,8 +32,13 @@ async def post_invoice(
     invoice = await session.get(Invoice, invoice_id)
     if invoice is None or invoice.company_id != company_id:
         raise HTTPException(404, f"Facture {invoice_id} introuvable")
-    result = await PostingService(session).post_invoice(invoice)
-    await session.commit()
+    try:
+        result = await PostingService(session).post_invoice(invoice)
+        await session.commit()
+    except ValueError as exc:
+        # Exercice clôturé, écriture non équilibrée, compte absent…
+        await session.rollback()
+        raise HTTPException(400, str(exc))
     if result is None:
         raise HTTPException(
             422, f"Facture {invoice.reference} non comptabilisable (statut {invoice.status})"
@@ -55,8 +60,12 @@ async def post_payment(
     payment = await session.get(Payment, payment_id)
     if payment is None or payment.company_id != company_id:
         raise HTTPException(404, f"Paiement {payment_id} introuvable")
-    result = await PostingService(session).post_payment(payment)
-    await session.commit()
+    try:
+        result = await PostingService(session).post_payment(payment)
+        await session.commit()
+    except ValueError as exc:
+        await session.rollback()
+        raise HTTPException(400, str(exc))
     if result is None:
         raise HTTPException(
             422, f"Paiement {payment.reference} non comptabilisable (statut {payment.status})"
@@ -78,8 +87,12 @@ async def post_expense(
     expense = await session.get(Expense, expense_id)
     if expense is None or expense.company_id != company_id:
         raise HTTPException(404, f"Dépense {expense_id} introuvable")
-    result = await PostingService(session).post_expense(expense)
-    await session.commit()
+    try:
+        result = await PostingService(session).post_expense(expense)
+        await session.commit()
+    except ValueError as exc:
+        await session.rollback()
+        raise HTTPException(400, str(exc))
     if result is None:
         raise HTTPException(422, "Dépense vide ou déjà annulée")
     entry, _created = result
@@ -108,6 +121,7 @@ async def backfill(
 
     service = PostingService(session)
     created = {"invoices": 0, "payments": 0, "expenses": 0}
+    skipped = 0
 
     # Factures comptabilisables (exclut proforma/brouillon/annulée/avoir)
     result = await session.execute(
@@ -116,7 +130,13 @@ async def backfill(
         )
     )
     for invoice in result.scalars():
-        posted = await service.post_invoice(invoice)
+        try:
+            posted = await service.post_invoice(invoice)
+        except ValueError:
+            # Exercice clôturé : la source est ignorée, le rattrapage continue.
+            # Aucune écriture n'a été produite (le refus précède la création).
+            skipped += 1
+            continue
         if posted is not None and posted[1]:
             created["invoices"] += 1
 
@@ -125,26 +145,40 @@ async def backfill(
         select(Payment).where(Payment.status.in_(["paid", "pending"]))
     )
     for payment in result.scalars():
-        posted = await service.post_payment(payment)
+        try:
+            posted = await service.post_payment(payment)
+        except ValueError:
+            skipped += 1
+            continue
         if posted is not None and posted[1]:
             created["payments"] += 1
 
     # Dépenses
     result = await session.execute(select(Expense))
     for expense in result.scalars():
-        posted = await service.post_expense(expense)
+        try:
+            posted = await service.post_expense(expense)
+        except ValueError:
+            skipped += 1
+            continue
         if posted is not None and posted[1]:
             created["expenses"] += 1
 
     await session.commit()
     total = sum(created.values())
+    skipped_note = (
+        f" {skipped} source(s) ignorée(s) (exercice clôturé ou non comptabilisable)."
+        if skipped
+        else ""
+    )
     return {
         "created": created,
         "total": total,
+        "skipped": skipped,
         "date": date_type.today().isoformat(),
         "message": (
             f"{total} écriture(s) créée(s) : "
             f"{created['invoices']} facture(s), {created['payments']} paiement(s), "
-            f"{created['expenses']} dépense(s)."
-        ) if total else "Aucun flux restant à comptabiliser.",
+            f"{created['expenses']} dépense(s)." + skipped_note
+        ) if total or skipped else "Aucun flux restant à comptabiliser.",
     }

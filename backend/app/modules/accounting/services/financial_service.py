@@ -18,7 +18,7 @@ Principes :
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -495,6 +495,203 @@ class FinancialService:
             "lines": lines,
             "totals": totals,
             "total_due": totals["total_due"],
+        }
+
+    # ------------------------------------------------------------------ #
+    # Grand livre auxiliaire (par tiers)
+    # ------------------------------------------------------------------ #
+    async def partner_ledger(
+        self,
+        company_id: int,
+        partner_id: int,
+        date_from: date | None = None,
+        date_to: date | None = None,
+    ) -> dict:
+        """Grand livre auxiliaire d'un tiers : mouvements + solde progressif.
+
+        Les mouvements proviennent des lignes d'écriture portant le tiers
+        (``JournalEntryLine.partner_id``), renseigné par la comptabilisation
+        automatique des factures (411/401) et des règlements.
+        """
+        partner = await self.session.get(Partner, partner_id)
+        if partner is None or partner.company_id != company_id:
+            raise ValueError(f"Tiers {partner_id} introuvable.")
+
+        base_conditions = [
+            JournalEntry.company_id == company_id,
+            JournalEntry.status == "posted",
+            JournalEntryLine.partner_id == partner_id,
+        ]
+
+        async def _rows(*extra) -> list:
+            stmt = (
+                select(JournalEntryLine, JournalEntry)
+                .join(JournalEntry, JournalEntry.id == JournalEntryLine.entry_id)
+                .where(*base_conditions, *extra)
+                .order_by(JournalEntry.entry_date, JournalEntry.id)
+            )
+            return list((await self.session.execute(stmt)).all())
+
+        # Solde d'ouverture : mouvements strictement antérieurs à la période.
+        opening = 0.0
+        if date_from:
+            prior = await _rows(JournalEntry.entry_date < date_from)
+            opening = sum(
+                float(line.debit or 0) - float(line.credit or 0)
+                for line, _ in prior
+            )
+
+        extra = []
+        if date_from:
+            extra.append(JournalEntry.entry_date >= date_from)
+        if date_to:
+            extra.append(JournalEntry.entry_date <= date_to)
+        rows = await _rows(*extra)
+        account_map = await self._account_map(company_id)
+
+        lines: list[dict] = []
+        running = opening
+        total_debit = total_credit = 0.0
+        for line, entry in rows:
+            debit = float(line.debit or 0)
+            credit = float(line.credit or 0)
+            running += debit - credit
+            total_debit += debit
+            total_credit += credit
+            account = account_map.get(line.account_code)
+            lines.append(
+                {
+                    "entry_id": entry.id,
+                    "reference": entry.reference,
+                    "entry_date": entry.entry_date,
+                    "journal_code": entry.journal_code,
+                    "account_code": line.account_code,
+                    "account_name": (
+                        account.name if account else line.account_code
+                    ),
+                    "label": line.label,
+                    "debit": round(debit, 2),
+                    "credit": round(credit, 2),
+                    "balance": round(running, 2),
+                }
+            )
+
+        return {
+            "company_id": company_id,
+            "partner_id": partner_id,
+            "partner_name": partner.name,
+            "partner_code": partner.code,
+            "date_from": date_from,
+            "date_to": date_to,
+            "opening_balance": round(opening, 2),
+            "total_debit": round(total_debit, 2),
+            "total_credit": round(total_credit, 2),
+            "closing_balance": round(running, 2),
+            "lines": lines,
+        }
+
+    # ------------------------------------------------------------------ #
+    # Chéancier (échéances à venir)
+    # ------------------------------------------------------------------ #
+    async def payment_schedule(
+        self,
+        company_id: int,
+        partner_type: str = "customer",
+        as_of: date | None = None,
+        horizon_days: int = 90,
+    ) -> dict:
+        """Chéancier : échéances à venir (et retards) des factures non soldées.
+
+        Chaque échéance est mesurée en **jours restants** par rapport à
+        ``as_of`` (négatif = en retard) et rangée dans une tranche :
+        ``overdue``, ``d0_30``, ``d31_60``, ``d61_90``, ``d90_plus``.
+        """
+        as_of = as_of or date.today()
+        horizon = as_of + timedelta(days=max(horizon_days, 0))
+        excluded = ("draft", "proforma", "cancelled", "credit")
+
+        if partner_type == "supplier":
+            residual = SupplierInvoice.amount_total - SupplierInvoice.paid_amount
+            stmt = (
+                select(SupplierInvoice, Partner.name.label("partner_name"))
+                .join(Partner, Partner.id == SupplierInvoice.supplier_id)
+                .where(
+                    SupplierInvoice.company_id == company_id,
+                    ~SupplierInvoice.status.in_(excluded),
+                    residual > 0.005,
+                    func.coalesce(
+                        SupplierInvoice.due_date, SupplierInvoice.invoice_date
+                    )
+                    <= horizon,
+                )
+            )
+        else:
+            partner_type = "customer"
+            residual = Invoice.amount_total - Invoice.paid_amount
+            stmt = (
+                select(Invoice, Partner.name.label("partner_name"))
+                .join(Partner, Partner.id == Invoice.partner_id)
+                .where(
+                    Invoice.company_id == company_id,
+                    ~Invoice.status.in_(excluded),
+                    residual > 0.005,
+                    func.coalesce(Invoice.due_date, Invoice.invoice_date)
+                    <= horizon,
+                )
+            )
+
+        rows = (await self.session.execute(stmt)).all()
+        lines: list[dict] = []
+        for obj, partner_name in rows:
+            due = obj.due_date or obj.invoice_date
+            remaining_days = (due - as_of).days
+            if remaining_days < 0:
+                bucket = "overdue"
+            elif remaining_days <= 30:
+                bucket = "d0_30"
+            elif remaining_days <= 60:
+                bucket = "d31_60"
+            elif remaining_days <= 90:
+                bucket = "d61_90"
+            else:
+                bucket = "d90_plus"
+            lines.append(
+                {
+                    "partner_id": (
+                        obj.partner_id
+                        if partner_type == "customer"
+                        else obj.supplier_id
+                    ),
+                    "partner_name": partner_name,
+                    "reference": obj.reference,
+                    "invoice_date": obj.invoice_date,
+                    "due_date": due,
+                    "amount_due": round(
+                        max(
+                            float(obj.amount_total) - float(obj.paid_amount), 0.0
+                        ),
+                        2,
+                    ),
+                    "days_remaining": remaining_days,
+                    "bucket": bucket,
+                }
+            )
+
+        lines.sort(key=lambda line: (line["due_date"], line["partner_name"]))
+        keys = ("overdue", "d0_30", "d31_60", "d61_90", "d90_plus")
+        totals = {k: 0.0 for k in keys}
+        for line in lines:
+            totals[line["bucket"]] += line["amount_due"]
+        totals = {k: round(v, 2) for k, v in totals.items()}
+
+        return {
+            "company_id": company_id,
+            "partner_type": partner_type,
+            "as_of": as_of,
+            "horizon_days": horizon_days,
+            "lines": lines,
+            "totals": totals,
+            "total": round(sum(totals.values()), 2),
         }
 
     # ------------------------------------------------------------------ #

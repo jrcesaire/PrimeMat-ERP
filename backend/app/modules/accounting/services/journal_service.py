@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.services.sequence_service import SequenceService
+from app.modules.accounting.models.fiscal_year import FiscalYear
 from app.modules.accounting.models.invoice_allocation import InvoiceAllocation
 from app.modules.accounting.models.journal_entry import (
     JournalEntry,
@@ -41,12 +42,102 @@ class LedgerService:
         self.accounts = AccountService(session)
 
     # ------------------------------------------------------------------ #
+    # Exercice comptable — rattachement et verrouillage
+    # ------------------------------------------------------------------ #
+    async def resolve_fiscal_year(
+        self, company_id: int, entry_date: date
+    ) -> FiscalYear | None:
+        """Exercice comptable couvrant ``entry_date`` (``None`` si aucun déclaré).
+
+        Un exercice est défini par sa plage de dates ; c'est ce rattachement
+        qui rend possible le verrouillage d'une période clôturée.
+        """
+        result = await self.session.execute(
+            select(FiscalYear)
+            .where(
+                FiscalYear.company_id == company_id,
+                FiscalYear.start_date <= entry_date,
+                FiscalYear.end_date >= entry_date,
+            )
+            .order_by(FiscalYear.start_date.desc())
+        )
+        return result.scalars().first()
+
+    async def _assert_year_open(
+        self, company_id: int, entry_date: date
+    ) -> int | None:
+        """Refuse la saisie si l'exercice couvrant la date est clôturé.
+
+        Retourne l'``id`` de l'exercice (``None`` si l'entreprise n'a encore
+        déclaré aucun exercice : la comptabilité reste utilisable, un
+        verrouillage sans exercice n'ayant pas de sens).
+        """
+        year = await self.resolve_fiscal_year(company_id, entry_date)
+        if year is None:
+            return None
+        if year.status == "closed":
+            raise ValueError(
+                f"Exercice « {year.name} » ({year.start_date} → "
+                f"{year.end_date}) clôturé : aucune écriture ne peut y être "
+                "saisie. Utilisez la réouverture d'exercice pour corriger."
+            )
+        return year.id
+
+    # ------------------------------------------------------------------ #
+    # Audit comptable
+    # ------------------------------------------------------------------ #
+    async def _audit(
+        self,
+        entry: JournalEntry,
+        company_id: int,
+        action: str,
+        user_id: int | None = None,
+    ) -> None:
+        """Trace l'opération dans le journal d'audit (jamais bloquant).
+
+        La traçabilité est un confort d'exploitation : si elle échoue, la
+        comptabilisation reste valide et l'erreur est seulement journalisée.
+        """
+        try:
+            from app.core.services.audit_service import AuditService
+
+            await AuditService(self.session).log(
+                action=action,
+                entity_type="journal_entry",
+                entity_id=entry.id,
+                company_id=company_id,
+                user_id=user_id,
+                new_values={
+                    "reference": entry.reference,
+                    "entry_date": str(entry.entry_date),
+                    "journal_code": entry.journal_code,
+                    "description": entry.description,
+                    "total_debit": float(entry.total_debit or 0),
+                    "total_credit": float(entry.total_credit or 0),
+                    "status": entry.status,
+                    "source_type": entry.source_type,
+                    "source_id": entry.source_id,
+                    "fiscal_year_id": entry.fiscal_year_id,
+                },
+            )
+        except Exception:  # pragma: no cover — défensif
+            logger.exception(
+                "Journalisation d'audit impossible pour l'écriture %s",
+                entry.reference,
+            )
+
+    # ------------------------------------------------------------------ #
     # Création / publication
     # ------------------------------------------------------------------ #
     async def create_entry(
-        self, company_id: int, data: JournalEntryCreate, *, post: bool = True
+        self,
+        company_id: int,
+        data: JournalEntryCreate,
+        *,
+        post: bool = True,
+        user_id: int | None = None,
     ) -> JournalEntry:
-        """Crée une écriture. Lève ``ValueError`` si non équilibrée."""
+        """Crée une écriture. Lève ``ValueError`` si non équilibrée ou verrouillée."""
         total_debit = sum(Decimal(str(l.debit)) for l in data.lines)
         total_credit = sum(Decimal(str(l.credit)) for l in data.lines)
         if total_debit != total_credit:
@@ -66,6 +157,9 @@ class LedgerService:
             if line.account_code not in accounts:
                 raise ValueError(f"Compte inconnu : {line.account_code}")
 
+        # Exercice comptable : rattachement (et refus si l'exercice est clôturé)
+        fiscal_year_id = await self._assert_year_open(company_id, data.entry_date)
+
         reference = await self.sequences.next_value(
             "journal_entry", "EC", company_id=company_id
         )
@@ -74,6 +168,7 @@ class LedgerService:
             reference=reference,
             entry_date=data.entry_date,
             journal_code=data.journal_code,
+            fiscal_year_id=fiscal_year_id,
             source_type=data.source_type,
             source_id=data.source_id,
             description=data.description,
@@ -96,18 +191,31 @@ class LedgerService:
             )
         self.session.add(entry)
         await self.session.flush()
+        await self._audit(entry, company_id, "journal_entry.created", user_id)
 
         if post:
-            await self.post_entry(entry.id, company_id)
+            await self.post_entry(entry.id, company_id, user_id=user_id)
         return entry
 
-    async def post_entry(self, entry_id: int, company_id: int) -> JournalEntry:
+    async def post_entry(
+        self, entry_id: int, company_id: int, *, user_id: int | None = None
+    ) -> JournalEntry:
         """Valide et publie une écriture (draft → posted)."""
         entry = await self.get_entry(entry_id, company_id)
         if entry is None:
             raise ValueError(f"Écriture {entry_id} introuvable")
         if entry.status == "posted":
             return entry
+        # Verrouillage : une écriture restée en brouillon ne peut plus être
+        # publiée si son exercice a été clôturé entre-temps.
+        if entry.fiscal_year_id:
+            year = await self.session.get(FiscalYear, entry.fiscal_year_id)
+            if year is not None and year.status == "closed":
+                raise ValueError(
+                    f"Exercice « {year.name} » clôturé : publication impossible."
+                )
+        else:
+            await self._assert_year_open(company_id, entry.entry_date)
         total_debit = sum(Decimal(str(l.debit)) for l in entry.lines)
         total_credit = sum(Decimal(str(l.credit)) for l in entry.lines)
         if abs(total_debit - total_credit) > BALANCE_EPSILON:
@@ -117,6 +225,7 @@ class LedgerService:
             )
         entry.status = "posted"
         await self.session.flush()
+        await self._audit(entry, company_id, "journal_entry.posted", user_id)
         return entry
 
     # ------------------------------------------------------------------ #

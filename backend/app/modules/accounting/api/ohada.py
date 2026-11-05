@@ -18,6 +18,7 @@ from app.core.models.user import User
 from app.modules.accounting.schemas.ohada import (
     ExchangeRateCreate,
     ExchangeRateRead,
+    FiscalYearClosingPreview,
     FiscalYearRead,
     OHADACheckConstraint,
     OHADAParameterCreate,
@@ -110,17 +111,51 @@ async def get_current_fiscal_year(
     return await OHADAService(session).get_fiscal_year(company_id)
 
 
+@router.get(
+    "/fiscal-years/{year_id}/closing-preview",
+    response_model=FiscalYearClosingPreview,
+)
+async def fiscal_year_closing_preview(
+    year_id: int,
+    session: SessionDep,
+    company_id: int = Depends(get_current_company_id),
+    _: User = Depends(require_permission("fiscal_year", "view")),
+):
+    """Aperçu de la clôture : comptes à solder, résultat, exercice de report."""
+    try:
+        return await OHADAService(session).closing_preview(company_id, year_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
 @router.post("/fiscal-years/{year_id}/close", response_model=FiscalYearRead)
 async def close_fiscal_year(
     year_id: int,
     session: SessionDep,
     company_id: int = Depends(get_current_company_id),
-    _: User = Depends(require_permission("account", "edit")),
+    _: User = Depends(require_permission("fiscal_year", "close")),
 ):
-    """Clôture un exercice comptable ouvert."""
-    service = OHADAService(session)
+    """Clôture l'exercice : solde les charges/produits et reporte le résultat.
+
+    L'exercice est ensuite verrouillé : plus aucune écriture ne peut y être
+    saisie (cf. ``LedgerService``). Les écritures générées sont idempotentes.
+    """
     try:
-        return await service.close_fiscal_year(company_id, year_id)
+        return await OHADAService(session).close_fiscal_year(company_id, year_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/fiscal-years/{year_id}/reopen", response_model=FiscalYearRead)
+async def reopen_fiscal_year(
+    year_id: int,
+    session: SessionDep,
+    company_id: int = Depends(get_current_company_id),
+    _: User = Depends(require_permission("fiscal_year", "close")),
+):
+    """Réouvre un exercice clôturé (retire les écritures de clôture générées)."""
+    try:
+        return await OHADAService(session).reopen_fiscal_year(company_id, year_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
