@@ -2,6 +2,7 @@
  * Page Dépenses — liste et enregistrement rapide.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
@@ -106,11 +107,10 @@ export default function ExpensesPage() {
             <option value="mobile_money">Mobile Money</option>
             <option value="bank">Virement</option>
           </select>
-          <Input
-            type="number"
+          <NumberInput
             min={0}
             value={amount || ""}
-            onChange={(e) => setAmount(Number(e.target.value))}
+            onChange={(v) => setAmount(v)}
             placeholder="Montant"
           />
         </div>

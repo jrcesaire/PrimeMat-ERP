@@ -7,6 +7,7 @@
  * → facture (draft → posted → paid, rapprochement 3 voies).
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
@@ -155,14 +156,13 @@ function LineEditor({
             onChange={(productId, product) => pickProduct(i, product)}
             allowCreate
           />
-          <input
+          <NumberInput
             className="w-20 rounded-md border border-line px-2 py-2 text-right text-sm"
-            type="number"
             min="0"
             step="any"
             title="Quantité"
             value={l.quantity}
-            onChange={(e) => update(i, { quantity: e.target.value })}
+            onChange={(v, raw) => update(i, { quantity: (raw === "" ? "" : String(v)) })}
           />
           <input
             className="w-20 rounded-md border border-line px-2 py-2 text-sm"
@@ -171,15 +171,14 @@ function LineEditor({
             value={l.unit}
             onChange={(e) => update(i, { unit: e.target.value })}
           />
-          <input
+          <NumberInput
             className="w-32 rounded-md border border-line px-2 py-2 text-right text-sm"
-            type="number"
             min="0"
             step="any"
             title={priceLabel}
             placeholder={priceLabel}
             value={l.price}
-            onChange={(e) => update(i, { price: e.target.value })}
+            onChange={(v, raw) => update(i, { price: (raw === "" ? "" : String(v)) })}
           />
           <Button
             type="button"
@@ -1406,16 +1405,13 @@ function ReceptionsTab() {
                   <span className="text-xs text-faint">
                     restant : {l.quantity_remaining} {l.unit ?? ""}
                   </span>
-                  <input
+                  <NumberInput
                     className="w-24 rounded-md border border-line px-2 py-1.5 text-right text-sm"
-                    type="number"
                     min="0"
                     step="any"
                     title="Quantité reçue"
                     value={qtys[l.id] ?? String(l.quantity_remaining)}
-                    onChange={(e) =>
-                      setQtys({ ...qtys, [l.id]: e.target.value })
-                    }
+                    onChange={(v, raw) => setQtys({ ...qtys, [l.id]: (raw === "" ? "" : String(v)) })}
                   />
                 </div>
               ))}
@@ -1713,25 +1709,21 @@ function InvoicesTab() {
                   <span className="min-w-52 flex-1 text-ink">
                     {l.description ?? `Ligne #${l.id}`}
                   </span>
-                  <input
+                  <NumberInput
                     className="w-24 rounded-md border border-line px-2 py-1.5 text-right text-sm"
-                    type="number"
                     min="0"
                     step="any"
                     title="Quantité facturée"
                     value={qtys[l.id] ?? String(l.quantity)}
-                    onChange={(e) => setQtys({ ...qtys, [l.id]: e.target.value })}
+                    onChange={(v, raw) => setQtys({ ...qtys, [l.id]: (raw === "" ? "" : String(v)) })}
                   />
-                  <input
+                  <NumberInput
                     className="w-32 rounded-md border border-line px-2 py-1.5 text-right text-sm"
-                    type="number"
                     min="0"
                     step="any"
                     title="Prix unitaire facturé"
                     value={prices[l.id] ?? String(l.unit_price)}
-                    onChange={(e) =>
-                      setPrices({ ...prices, [l.id]: e.target.value })
-                    }
+                    onChange={(v, raw) => setPrices({ ...prices, [l.id]: (raw === "" ? "" : String(v)) })}
                   />
                 </div>
               ))}
@@ -1883,14 +1875,13 @@ function InvoicesTab() {
                     </div>
                     {payId === inv.id && (
                       <div className="mt-1 flex justify-end gap-1">
-                        <input
+                        <NumberInput
                           className="w-28 rounded-md border border-line px-2 py-1 text-right text-xs"
-                          type="number"
                           min="0"
                           step="any"
                           title="Montant réglé"
                           value={payAmount}
-                          onChange={(e) => setPayAmount(e.target.value)}
+                          onChange={(v, raw) => setPayAmount(raw === "" ? "" : String(v))}
                         />
                         <Button
                           size="sm"
@@ -2072,21 +2063,19 @@ function SuppliersTab() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <input
+            <NumberInput
               className="w-36 rounded-md border border-line px-3 py-2 text-sm"
               placeholder="Délai paiement (j)"
-              type="number"
               min="0"
               value={terms}
-              onChange={(e) => setTerms(e.target.value)}
+              onChange={(v, raw) => setTerms(raw === "" ? "" : String(v))}
             />
-            <input
+            <NumberInput
               className="w-36 rounded-md border border-line px-3 py-2 text-sm"
               placeholder="Délai livraison (j)"
-              type="number"
               min="0"
               value={delay}
-              onChange={(e) => setDelay(e.target.value)}
+              onChange={(v, raw) => setDelay(raw === "" ? "" : String(v))}
             />
           </div>
           <Button onClick={handleSave} disabled={create.isPending || update.isPending}>

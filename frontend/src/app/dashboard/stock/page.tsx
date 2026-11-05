@@ -2,6 +2,7 @@
  * Page Stock — entrepôts, niveaux (réel / réservé / disponible), mouvements.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
@@ -121,7 +122,7 @@ export default function StockPage() {
               <option key={w.id} value={w.id}>{w.name}</option>
             ))}
           </select>
-          <Input type="number" min={0} value={mvQty || ""} onChange={(e) => setMvQty(Number(e.target.value))} placeholder="Qté" />
+          <NumberInput min={0} value={mvQty || ""} onChange={(v) => setMvQty(v)} placeholder="Qté" />
         </div>
         <Button onClick={handleAddMovement} disabled={createMovement.isPending}>
           {createMovement.isPending ? "Enregistrement…" : "Enregistrer le mouvement"}

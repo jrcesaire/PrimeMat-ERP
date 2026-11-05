@@ -10,6 +10,7 @@
  * (D 601 + D 4452 / C 401, puis D 401 / C 531).
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -285,28 +286,26 @@ export function PosQuickPurchase() {
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="pos-purchase-amount">Montant TTC</Label>
-                    <Input
+                    <NumberInput
                       id="pos-purchase-amount"
-                      type="number"
                       min="0"
                       step="1"
                       inputMode="decimal"
                       placeholder="0"
                       value={amountTotal}
-                      onChange={(e) => setAmountTotal(e.target.value)}
+                      onChange={(v, raw) => setAmountTotal(raw === "" ? "" : String(v))}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="pos-purchase-tax">Taux de TVA (%)</Label>
-                    <Input
+                    <NumberInput
                       id="pos-purchase-tax"
-                      type="number"
                       min="0"
                       max="100"
                       step="0.5"
                       value={taxRate}
-                      onChange={(e) => setTaxRate(e.target.value)}
+                      onChange={(v, raw) => setTaxRate(raw === "" ? "" : String(v))}
                     />
                   </div>
                 </div>

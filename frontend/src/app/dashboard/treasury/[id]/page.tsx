@@ -14,6 +14,7 @@
  * des autres pour éviter les allers-retours.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -386,14 +387,11 @@ export default function TreasuryAccountPage() {
               <label className="mb-1 block text-xs text-muted">
                 Solde d&apos;ouverture
               </label>
-              <Input
-                type="number"
+              <NumberInput
                 min={0}
                 step="0.01"
                 value={stForm.opening_balance}
-                onChange={(e) =>
-                  setStForm((p) => ({ ...p, opening_balance: e.target.value }))
-                }
+                onChange={(v, raw) => setStForm((p) => ({ ...p, opening_balance: (raw === "" ? "" : String(v)) }))}
                 placeholder="0"
               />
             </div>
@@ -401,14 +399,11 @@ export default function TreasuryAccountPage() {
               <label className="mb-1 block text-xs text-muted">
                 Solde de clôture
               </label>
-              <Input
-                type="number"
+              <NumberInput
                 min={0}
                 step="0.01"
                 value={stForm.closing_balance}
-                onChange={(e) =>
-                  setStForm((p) => ({ ...p, closing_balance: e.target.value }))
-                }
+                onChange={(v, raw) => setStForm((p) => ({ ...p, closing_balance: (raw === "" ? "" : String(v)) }))}
                 placeholder="0"
               />
             </div>
@@ -605,13 +600,10 @@ export default function TreasuryAccountPage() {
               <label className="mb-1 block text-xs text-muted">
                 Montant signé *
               </label>
-              <Input
-                type="number"
+              <NumberInput
                 step="0.01"
                 value={lnForm.amount}
-                onChange={(e) =>
-                  setLnForm((p) => ({ ...p, amount: e.target.value }))
-                }
+                onChange={(v, raw) => setLnForm((p) => ({ ...p, amount: (raw === "" ? "" : String(v)) }))}
                 placeholder="ex. 250000 ou -15000"
                 required
               />

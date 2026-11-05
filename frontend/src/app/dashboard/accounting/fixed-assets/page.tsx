@@ -8,6 +8,7 @@
  * des dotations) est sur `/dashboard/accounting/fixed-assets/[id]`.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -330,12 +331,11 @@ export default function FixedAssetsPage() {
               <label className="mb-1 block text-xs text-muted">
                 Valeur d&apos;acquisition *
               </label>
-              <Input
-                type="number"
+              <NumberInput
                 min={0}
                 step="0.01"
                 value={form.acquisition_cost}
-                onChange={(e) => setField("acquisition_cost", e.target.value)}
+                onChange={(v, raw) => setField("acquisition_cost", (raw === "" ? "" : String(v)))}
                 placeholder="0"
                 required
               />
@@ -344,12 +344,11 @@ export default function FixedAssetsPage() {
               <label className="mb-1 block text-xs text-muted">
                 Valeur résiduelle
               </label>
-              <Input
-                type="number"
+              <NumberInput
                 min={0}
                 step="0.01"
                 value={form.residual_value}
-                onChange={(e) => setField("residual_value", e.target.value)}
+                onChange={(v, raw) => setField("residual_value", (raw === "" ? "" : String(v)))}
                 placeholder="0"
               />
             </div>
@@ -358,12 +357,11 @@ export default function FixedAssetsPage() {
               <label className="mb-1 block text-xs text-muted">
                 Durée (années) *
               </label>
-              <Input
-                type="number"
+              <NumberInput
                 min={1}
                 max={100}
                 value={form.useful_life_years}
-                onChange={(e) => setField("useful_life_years", e.target.value)}
+                onChange={(v, raw) => setField("useful_life_years", (raw === "" ? "" : String(v)))}
                 required
               />
             </div>

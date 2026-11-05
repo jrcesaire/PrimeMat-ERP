@@ -2,10 +2,10 @@
  * Éditeurs de ligne de devis — coupes BAC multi-longueurs et pièce standard.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
@@ -66,22 +66,20 @@ export function CutsEditor({ line, onLineChange }: CutsEditorProps) {
           {line.cuts.map((cut) => (
             <tr key={cut.key}>
               <td className="py-1 pr-2">
-                <Input
-                  type="number"
+                <NumberInput
                   min={1}
                   className="h-8 w-24"
                   value={cut.quantity}
-                  onChange={(e) => updateCut(cut.key, { quantity: Number(e.target.value) })}
+                  onChange={(v) => updateCut(cut.key, { quantity: v })}
                 />
               </td>
               <td className="py-1 pr-2">
-                <Input
-                  type="number"
+                <NumberInput
                   min={0}
                   step="0.01"
                   className="h-8 w-28"
                   value={cut.length}
-                  onChange={(e) => updateCut(cut.key, { length: Number(e.target.value) })}
+                  onChange={(v) => updateCut(cut.key, { length: v })}
                 />
               </td>
               <td className="py-1 text-right text-muted">
@@ -136,11 +134,10 @@ export function StandardPieceEditor({
         <label className="mb-1 block text-xs font-medium text-muted">
           Nombre de pièces
         </label>
-        <Input
-          type="number"
+        <NumberInput
           min={1}
           value={line.quantity}
-          onChange={(e) => onLineChange({ quantity: Number(e.target.value) })}
+          onChange={(v) => onLineChange({ quantity: v })}
         />
       </div>
       <p className="pb-2.5 text-xs text-muted">

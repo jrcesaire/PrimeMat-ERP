@@ -9,6 +9,7 @@
  * quantité (pièces ou mètres) et suppression.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { Minus, Package, Plus, Trash2 } from "lucide-react";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
@@ -106,23 +107,21 @@ export function PosCartTable({
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex items-center gap-1">
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   value={line.unit_price}
-                  onChange={(e) => onPrice(line.key, Number(e.target.value))}
+                  onChange={(v) => onPrice(line.key, v)}
                   aria-label={`Prix unitaire — ${line.name}`}
                   title={
                     line.sell_by_length ? "Prix au mètre linéaire" : "Prix unitaire"
                   }
                   className="h-7 w-[62px] rounded-chip border border-line bg-surface px-1.5 text-right text-[11px] tabular-nums text-ink"
                 />
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   max={100}
                   value={line.discount_percent}
-                  onChange={(e) => onDiscount(line.key, Number(e.target.value))}
+                  onChange={(v) => onDiscount(line.key, v)}
                   aria-label={`Remise en pourcentage — ${line.name}`}
                   title="Remise sur la ligne (%)"
                   className="h-7 w-[36px] rounded-chip border border-line bg-surface px-1 text-center text-[11px] tabular-nums text-ink"
@@ -144,12 +143,11 @@ export function PosCartTable({
                 >
                   <Minus className="h-3.5 w-3.5" />
                 </button>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   step={line.sell_by_length ? "0.5" : "1"}
                   value={line.quantity}
-                  onChange={(e) => onQuantity(line.key, Number(e.target.value))}
+                  onChange={(v) => onQuantity(line.key, v)}
                   aria-label={`Quantité — ${line.name}`}
                   className="h-7 w-[46px] rounded-chip border border-line bg-surface px-1 text-center text-[11px] font-semibold tabular-nums text-ink"
                 />

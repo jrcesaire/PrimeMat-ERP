@@ -2,6 +2,7 @@
  * Page Paiements — encaissements, reçus imprimables.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
@@ -9,7 +10,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   usePayments,
   useCreatePayment,
@@ -186,11 +186,10 @@ export default function PaymentsPage() {
             <option value="bank">Virement</option>
             <option value="check">Chèque</option>
           </select>
-          <Input
-            type="number"
+          <NumberInput
             min={0}
             value={amount || ""}
-            onChange={(e) => setAmount(Number(e.target.value))}
+            onChange={(v) => setAmount(v)}
             placeholder="Montant"
           />
           <Button onClick={handleCreate} disabled={createPayment.isPending}>

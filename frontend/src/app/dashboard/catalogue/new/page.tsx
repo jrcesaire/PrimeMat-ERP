@@ -2,6 +2,7 @@
  * Création / édition d'un produit — mode de vente dérivé de la catégorie.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -242,19 +243,19 @@ function NewProductPageInner() {
         {mode === "unit" && (
           <div className="w-48">
             <label className="mb-1 block text-sm font-medium text-muted">Prix de vente (pièce)</label>
-            <Input type="number" min={0} value={sellingPrice} onChange={(e) => setSellingPrice(Number(e.target.value))} />
+            <NumberInput min={0} value={sellingPrice} onChange={(v) => setSellingPrice(v)} />
           </div>
         )}
         {(mode === "length" || mode === "dual") && (
           <div className="w-48">
             <label className="mb-1 block text-sm font-medium text-muted">Prix au mètre linéaire</label>
-            <Input type="number" min={0} value={pricePerMeter} onChange={(e) => setPricePerMeter(Number(e.target.value))} />
+            <NumberInput min={0} value={pricePerMeter} onChange={(v) => setPricePerMeter(v)} />
           </div>
         )}
         {mode === "dual" && (
           <div className="w-48">
             <label className="mb-1 block text-sm font-medium text-muted">Longueur standard pièce (m)</label>
-            <Input type="number" step="0.01" min={0} value={unitLength} onChange={(e) => setUnitLength(Number(e.target.value))} />
+            <NumberInput step="0.01" min={0} value={unitLength} onChange={(v) => setUnitLength(v)} />
           </div>
         )}
 

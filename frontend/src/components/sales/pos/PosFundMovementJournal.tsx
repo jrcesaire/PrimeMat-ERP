@@ -5,6 +5,7 @@
  * Conforme au PRD §4.1.2 §5 — Journal des mouvements de fonds manuels.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
@@ -259,14 +260,11 @@ export function PosFundMovementJournal({ sessionId, onBack, readOnly = false }: 
 
             <div className="space-y-2">
               <Label>Montant</Label>
-              <Input
-                type="number"
+              <NumberInput
                 min="0"
                 step="0.01"
                 value={formData.amount}
-                onChange={(e) =>
-                  setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
-                }
+                onChange={(v, raw) => setFormData({ ...formData, amount: parseFloat((raw === "" ? "" : String(v))) || 0 })}
                 placeholder="0,00"
               />
             </div>

@@ -1,4 +1,5 @@
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -340,28 +341,25 @@ export default function CreditNotesPage() {
             </div>
             <div className="col-span-1 md:col-span-1">
               <label className="block text-xs text-muted mb-1">Montant HT</label>
-              <Input
-                type="number"
+              <NumberInput
                 value={amountUntaxed}
-                onChange={(e) => setAmountUntaxed(e.target.value)}
+                onChange={(v, raw) => setAmountUntaxed(raw === "" ? "" : String(v))}
                 placeholder="0,00"
               />
             </div>
             <div className="col-span-1 md:col-span-1">
               <label className="block text-xs text-muted mb-1">TVA</label>
-              <Input
-                type="number"
+              <NumberInput
                 value={taxAmount}
-                onChange={(e) => setTaxAmount(e.target.value)}
+                onChange={(v, raw) => setTaxAmount(raw === "" ? "" : String(v))}
                 placeholder="0,00"
               />
             </div>
             <div className="col-span-1 md:col-span-1">
               <label className="block text-xs text-muted mb-1">Montant TTC</label>
-              <Input
-                type="number"
+              <NumberInput
                 value={amountTotal}
-                onChange={(e) => setAmountTotal(e.target.value)}
+                onChange={(v, raw) => setAmountTotal(raw === "" ? "" : String(v))}
                 placeholder="0,00"
               />
             </div>
@@ -424,10 +422,9 @@ export default function CreditNotesPage() {
               <label className="block text-xs text-muted mb-1">
                 Montant à imputer
               </label>
-              <Input
-                type="number"
+              <NumberInput
                 value={applyAmount}
-                onChange={(e) => setApplyAmount(e.target.value)}
+                onChange={(v, raw) => setApplyAmount(raw === "" ? "" : String(v))}
                 placeholder="vide = total"
               />
             </div>

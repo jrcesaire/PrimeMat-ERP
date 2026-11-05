@@ -6,6 +6,7 @@
  * la référence étant générée automatiquement par le backend.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -61,11 +62,10 @@ export function QuickProductDialog({ initialName, onClose, onCreated }: Props) {
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted">Prix de vente *</label>
-            <Input
-              type="number"
+            <NumberInput
               min={0}
               value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              onChange={(v, raw) => setPrice(raw === "" ? "" : String(v))}
               placeholder="0"
             />
           </div>

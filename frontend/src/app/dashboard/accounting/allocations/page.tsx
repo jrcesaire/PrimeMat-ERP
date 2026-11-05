@@ -5,6 +5,7 @@
  * et de créer des lettrages (allocations) liant un paiement à une facture.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { useState } from "react";
 import {
@@ -232,24 +233,17 @@ export default function AllocationsPage() {
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label>ID du paiement</Label>
-              <Input
-                type="number"
+              <NumberInput
                 value={paymentId ?? ""}
-                onChange={(e) =>
-                  setPaymentId(e.target.value ? Number(e.target.value) : null)
-                }
+                onChange={(v, raw) => setPaymentId(raw === "" ? null : v)}
                 placeholder="Ex: 42"
               />
             </div>
             <div className="space-y-2">
               <Label>Montant à allouer</Label>
-              <Input
-                type="number"
-                step="0.01"
+              <NumberInput
                 value={allocatedAmount ?? ""}
-                onChange={(e) =>
-                  setAllocatedAmount(e.target.value ? Number(e.target.value) : null)
-                }
+                onChange={(v, raw) => setAllocatedAmount(raw === "" ? null : v)}
                 placeholder="0,00"
               />
             </div>

@@ -9,6 +9,7 @@
  *   réglable, pages A4 uniquement).
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -110,13 +111,11 @@ export function DocumentsTab() {
                       <label className="mb-1 block text-xs font-medium text-muted">
                         Longueur de la série
                       </label>
-                      <Input
-                        type="number"
+                      <NumberInput
                         min={3}
                         max={8}
                         value={cfg.padding}
-                        onChange={(e) =>
-                          update(key, { padding: Number(e.target.value) || 6 })
+                        onChange={(v) => update(key, { padding: v || 6 })
                         }
                       />
                     </div>

@@ -2,6 +2,7 @@
  * Page Ventes — liste des devis et commandes client.
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import Link from "next/link";
@@ -1102,12 +1103,11 @@ function CreateInvoiceDialog({
             <label className="text-xs font-medium text-muted">
               {mode === "down_payment_percent" ? "Pourcentage (%)" : "Montant"}
             </label>
-            <input
-              type="number"
+            <NumberInput
               min="0"
               step="any"
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={(v, raw) => setValue(raw === "" ? "" : String(v))}
               className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
             />
             {valueNum > 0 && (
@@ -1122,11 +1122,10 @@ function CreateInvoiceDialog({
           <label className="text-xs font-medium text-muted">
             Délai de paiement (jours)
           </label>
-          <input
-            type="number"
+          <NumberInput
             min="0"
             value={dueDays}
-            onChange={(e) => setDueDays(e.target.value)}
+            onChange={(v, raw) => setDueDays(raw === "" ? "" : String(v))}
             className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
           />
         </div>

@@ -8,6 +8,7 @@
  * - Remise par ligne, remise globale et TVA — totaux HT / TVA / Total
  */
 "use client";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { Suspense, Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -877,14 +878,12 @@ function NewQuotePageInner() {
                               {formatNumber(totals.totalLength, 2)}
                             </span>
                           ) : (
-                            <Input
-                              type="number"
+                            <NumberInput
                               min={0}
                               className="h-8 text-right"
                               value={line.quantity}
-                              onChange={(e) =>
-                                updateLine(line.key, {
-                                  quantity: Number(e.target.value),
+                              onChange={(v) => updateLine(line.key, {
+                                  quantity: v,
                                 })
                               }
                             />
@@ -898,28 +897,24 @@ function NewQuotePageInner() {
                               : (product as unknown as { unit?: string } | null)?.unit ?? "u"}
                         </td>
                         <td className="px-3 py-2">
-                          <Input
-                            type="number"
+                          <NumberInput
                             min={0}
                             className="h-8 text-right"
                             value={line.unit_price}
-                            onChange={(e) =>
-                              updateLine(line.key, {
-                                unit_price: Number(e.target.value),
+                            onChange={(v) => updateLine(line.key, {
+                                unit_price: v,
                               })
                             }
                           />
                         </td>
                         <td className="px-3 py-2">
-                          <Input
-                            type="number"
+                          <NumberInput
                             min={0}
                             max={100}
                             className="h-8 text-right"
                             value={line.discount_percent}
-                            onChange={(e) =>
-                              updateLine(line.key, {
-                                discount_percent: Number(e.target.value),
+                            onChange={(v) => updateLine(line.key, {
+                                discount_percent: v,
                               })
                             }
                           />
@@ -1143,23 +1138,21 @@ function NewQuotePageInner() {
           </div>
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted">Remise globale :</span>
-            <Input
-              type="number"
+            <NumberInput
               min={0}
               className="h-8 w-28 text-right"
               value={globalDiscount}
-              onChange={(e) => setGlobalDiscount(Number(e.target.value) || 0)}
+              onChange={(v) => setGlobalDiscount(v || 0)}
             />
           </div>
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted">TVA % :</span>
-            <Input
-              type="number"
+            <NumberInput
               min={0}
               max={100}
               className="h-8 w-16 text-right"
               value={taxPercent}
-              onChange={(e) => setTaxPercent(Number(e.target.value) || 0)}
+              onChange={(v) => setTaxPercent(v || 0)}
             />
             <span className="font-medium text-ink">
               {formatCurrency(taxAmount)}
