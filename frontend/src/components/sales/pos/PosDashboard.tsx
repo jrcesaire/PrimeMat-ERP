@@ -1,13 +1,13 @@
 /**
- * Dashboard d'accueil du module Point de Vente (PoS).
+ * Menu d'accueil du module Point de Vente.
  *
- * Conforme au PRD « Improvements module PoS » :
- * - §4.2.1 Mode immersif : sidebar + header masqués, bouton « Quitter » en haut à gauche.
- * - §4.2.2 Écran d'accueil : 6 boutons centrés (Nouvelle Vente, Historique des Ventes,
- *   Ajout de Produits, Modifier Catalogue, Achats, Réglages), padding 80px à droite et
- *   à gauche (réduit à 20px sous 768px — §5.2).
- * - §7 Sécurité : la tuile « Réglages » n'est visible que pour les rôles
- *   Administrateur / Manager (ou superutilisateur).
+ * Les six entrées sont présentées en **cartes sur 2 lignes et 3 colonnes**,
+ * dans le même esprit que les tuiles du catalogue et des contacts : icône
+ * encadrée, libellé et description, le tout centré dans la carte.
+ *
+ * Le mode immersif (sidebar + header masqués) reste porté par `setPosFocus`,
+ * et la tuile « Réglages » demeure réservée aux rôles Administrateur /
+ * Manager (PRD « Improvements module PoS » §7).
  */
 "use client";
 
@@ -29,32 +29,59 @@ import { setPosFocus } from "@/lib/pos-focus";
 import { cn } from "@/lib/utils";
 
 interface MenuTile {
-  /** Libellé affiché sur le bouton. */
+  /** Libellé affiché sur la carte. */
   label: string;
-  /** Icône Lucide associée. */
+  /** Phrase d'accompagnement. */
+  description: string;
+  /** Icône associée. */
   icon: React.ElementType;
   /** Destination au clic. */
   href: string;
-  /** Bouton mis en avant (action principale du caissier). */
+  /** Carte mise en avant (action principale du caissier). */
   primary?: boolean;
-  /** Réservé aux rôles Administrateur / Manager (§7 du PRD). */
+  /** Réservée aux rôles Administrateur / Manager (§7 du PRD). */
   restricted?: boolean;
 }
 
 const MENU_TILES: MenuTile[] = [
   {
     label: "Nouvelle Vente",
+    description: "Encaisser une vente comptoir",
     icon: Plus,
     href: "/dashboard/sales/pos/vente?action=new",
     primary: true,
   },
-  { label: "Historique des Ventes", icon: History, href: "/dashboard/sales/pos/vente" },
-  { label: "Ajout de Produits", icon: PackagePlus, href: "/dashboard/catalogue/new" },
-  { label: "Modifier Catalogue", icon: FolderCog, href: "/dashboard/catalogue" },
-  // §4.2.2.5 / US5 — achat de quincaillerie saisi depuis le PoS puis consolidé
-  // dans le module Achats global (facture fournisseur + grand livre).
-  { label: "Achats", icon: ShoppingBag, href: "/dashboard/sales/pos/achats" },
-  { label: "Réglages", icon: Settings, href: "/dashboard/sales/pos/reglages", restricted: true },
+  {
+    label: "Historique des Ventes",
+    description: "Consulter et réimprimer les tickets",
+    icon: History,
+    href: "/dashboard/sales/pos/vente",
+  },
+  {
+    label: "Ajout de Produits",
+    description: "Créer un article au catalogue",
+    icon: PackagePlus,
+    href: "/dashboard/catalogue/new",
+  },
+  {
+    label: "Modifier Catalogue",
+    description: "Parcourir et corriger les articles",
+    icon: FolderCog,
+    href: "/dashboard/catalogue",
+  },
+  {
+    label: "Achats",
+    description: "Saisir un achat de quincaillerie",
+    icon: ShoppingBag,
+    href: "/dashboard/sales/pos/achats",
+  },
+  {
+    label: "Réglages",
+    description: "Paramétrer la caisse et les tickets",
+    icon: Settings,
+    href: "/dashboard/sales/pos/reglages",
+    restricted: true,
+  },
 ];
 
 export function PosDashboard() {
@@ -84,46 +111,80 @@ export function PosDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-subtle flex flex-col px-[20px] md:px-[80px] py-6">
-      {/* Bandeau : bouton « Quitter » en haut à gauche + info caisse en haut à droite */}
-      <header className="flex items-center justify-between gap-4">
+    <div className="flex min-h-screen flex-col bg-canvas px-8 py-6">
+      {/* Bandeau : bouton « Quitter » à gauche, caisse courante à droite */}
+      <header className="flex shrink-0 items-center justify-between gap-4">
         <Button
           variant="outline"
           size="sm"
           onClick={handleQuit}
-          title="Quitter le mode PoS et revenir à l'ERP standard"
+          title="Quitter le mode Point de vente et revenir à l'ERP"
         >
           <LogOut className="h-4 w-4" />
           Quitter
         </Button>
-        <div className="flex items-center gap-2 text-muted">
-          <Store className="h-5 w-5" />
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-control bg-primary-soft">
+            <Store className="h-5 w-5 text-primary" />
+          </div>
           <div className="text-right leading-tight">
-            <div className="text-sm font-semibold text-ink">
+            <p className="text-[13px] font-semibold text-ink">
               {company?.name ?? "Point de vente"}
-            </div>
-            <div className="text-xs text-muted">Caisse comptoir</div>
+            </p>
+            <p className="text-[11px] text-muted">Caisse comptoir</p>
           </div>
         </div>
       </header>
 
-      {/* Menu centralisé : centré horizontalement et verticalement (§4.2.2) */}
-      <main className="flex-1 flex flex-col items-center justify-center gap-4 py-10">
-        {tiles.map((tile) => (
-          <Button
-            key={tile.label}
-            variant={tile.primary ? "default" : "outline"}
-            size="lg"
-            onClick={() => router.push(tile.href)}
-            className={cn(
-              "w-full max-w-[360px] h-14 justify-start gap-3 text-base",
-              !tile.primary && "bg-surface",
-            )}
-          >
-            <tile.icon className="h-5 w-5" />
-            {tile.label}
-          </Button>
-        ))}
+      {/* Les six entrées, centrées dans la page */}
+      <main className="flex flex-1 items-center justify-center py-8">
+        <div className="grid w-full max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {tiles.map((tile) => (
+            <button
+              key={tile.label}
+              type="button"
+              onClick={() => router.push(tile.href)}
+              className={cn(
+                "group flex min-h-[190px] flex-col items-center justify-center gap-4 rounded-card border p-6 text-center transition-colors",
+                tile.primary
+                  ? "border-primary bg-primary text-white hover:bg-primary-hover"
+                  : "border-line bg-surface hover:border-primary/40",
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-14 w-14 shrink-0 items-center justify-center rounded-control",
+                  tile.primary ? "bg-white/15" : "bg-primary-soft",
+                )}
+              >
+                <tile.icon
+                  className={cn(
+                    "h-7 w-7",
+                    tile.primary ? "text-white" : "text-primary",
+                  )}
+                />
+              </span>
+              <span className="min-w-0">
+                <span
+                  className={cn(
+                    "block text-[15px] font-semibold",
+                    tile.primary ? "text-white" : "text-ink",
+                  )}
+                >
+                  {tile.label}
+                </span>
+                <span
+                  className={cn(
+                    "mt-1 block text-[12px] leading-snug",
+                    tile.primary ? "text-white/80" : "text-muted",
+                  )}
+                >
+                  {tile.description}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
       </main>
     </div>
   );
