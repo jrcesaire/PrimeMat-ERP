@@ -56,20 +56,11 @@ import { apiClient } from "@/lib/api/client";
 import { printPosTicket } from "@/lib/api/pdf";
 import { attachHidScanner } from "@/lib/hid-scanner";
 import { setPosFocus } from "@/lib/pos-focus";
+import { addProductToCart, type PosCartLine, type PosCartProduct } from "@/lib/pos-cart";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 
-interface PosLine {
-  key: number;
-  product_id: number;
-  name: string;
-  reference?: string | null;
-  variant_name?: string | null;
-  sell_by_length: boolean;
-  quantity: number; // pièces ou mètres selon le produit
-  unit_price: number;
-  discount_percent: number; // remise par ligne (%)
-  category_id?: number | null;
-}
+/** Ligne du ticket — voir `lib/pos-cart.ts` pour la règle d'ajout. */
+type PosLine = PosCartLine;
 
 const METHOD_LABELS: Record<string, string> = {
   cash: "Espèces",
@@ -205,39 +196,20 @@ function PosPageInner() {
   }, []);
 
 
-  const addProduct = (p: {
-    id: number;
-    name: string;
-    reference?: string | null;
-    category_id?: number | null;
-    sell_by_length?: boolean;
-    price_per_meter?: number | null;
-    selling_price?: number | null;
-  }) => {
-    const existing = lines.find((l) => l.product_id === p.id);
-    if (existing && !p.sell_by_length) {
-      setLines((ls) =>
-        ls.map((l) => (l.product_id === p.id ? { ...l, quantity: l.quantity + 1 } : l)),
-      );
-      setSelectedKey(existing.key);
-      return;
-    }
-    const key = lineKey++;
-    setLines((ls) => [
-      ...ls,
-      {
-        key,
-        product_id: p.id,
-        name: p.name,
-        reference: p.reference ?? null,
-        category_id: p.category_id ?? null,
-        sell_by_length: !!p.sell_by_length,
-        quantity: 1,
-        unit_price: p.sell_by_length ? (p.price_per_meter ?? 0) : (p.selling_price ?? 0),
-        discount_percent: 0,
-      },
-    ]);
-    setSelectedKey(key);
+  /**
+   * Ajoute un produit au ticket.
+   *
+   * Un clic répété sur la même tuile **incrémente la quantité** de la ligne
+   * existante (pièces ou mètres) au lieu d'empiler des lignes identiques.
+   * La règle est portée par `lib/pos-cart.ts`, où elle est couverte par des
+   * tests unitaires.
+   */
+  const addProduct = (p: PosCartProduct) => {
+    const result = addProductToCart(lines, p, lineKey);
+    // La clé n'est consommée que si une nouvelle ligne a réellement été créée.
+    if (result.lines.length > lines.length) lineKey += 1;
+    setLines(result.lines);
+    setSelectedKey(result.selectedKey);
   };
 
   const updateLine = (key: number, patch: Partial<PosLine>) =>
