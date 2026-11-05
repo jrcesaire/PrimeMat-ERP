@@ -2,6 +2,7 @@
  * Détail d'un produit — lecture + lien d'édition.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import Link from "next/link";
 import { use } from "react";
@@ -42,7 +43,7 @@ function flattenTree(
 }
 
 const MODE_LABELS: Record<string, { label: string; cls: string }> = {
-  unit: { label: "À l'unité", cls: "bg-gray-100 text-gray-700" },
+  unit: { label: "À l'unité", cls: "bg-subtle text-muted" },
   length: { label: "Au mètre (BAC)", cls: "bg-blue-100 text-blue-700" },
   dual: { label: "Unité + mètre", cls: "bg-purple-100 text-purple-700" },
 };
@@ -51,7 +52,7 @@ const STORAGE_TYPE_BADGES: Record<string, { label: string; cls: string }> = {
   stockable: { label: "En stock", cls: "bg-emerald-100 text-emerald-700" },
   on_demand: { label: "Production", cls: "bg-orange-100 text-orange-700" },
   hybrid: { label: "Stock + Production", cls: "bg-violet-100 text-violet-700" },
-  service: { label: "Service", cls: "bg-gray-100 text-gray-600" },
+  service: { label: "Service", cls: "bg-subtle text-muted" },
 };
 
 export default function ProductDetailPage({
@@ -65,10 +66,10 @@ export default function ProductDetailPage({
   const { data: tree = [] } = useCategoryTree();
 
   if (isLoading)
-    return <p className="p-6 text-sm text-gray-500">Chargement…</p>;
+    return <RowsSkeleton />;
   if (!product)
     return (
-      <p className="p-6 text-sm text-gray-500">
+      <p className="p-6 text-sm text-muted">
         Produit introuvable (ou accès refusé).
       </p>
     );
@@ -81,11 +82,11 @@ export default function ProductDetailPage({
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/dashboard/catalogue" className="text-sm text-gray-500 hover:text-primary">
+          <Link href="/dashboard/catalogue" className="text-sm text-muted hover:text-primary">
             <ArrowLeft className="mr-1 inline h-4 w-4" /> Retour au catalogue
           </Link>
-          <h1 className="mt-1 text-2xl font-bold text-gray-900">{product.name}</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="mt-1 text-[28px] font-semibold leading-tight text-ink">{product.name}</h1>
+          <p className="text-sm text-muted">
             {product.reference}
             {category ? ` · ${category.name}` : ""}
           </p>
@@ -99,13 +100,13 @@ export default function ProductDetailPage({
 
       <Card className="grid grid-cols-2 gap-6 p-4 sm:grid-cols-3">
         <div>
-          <p className="text-xs text-gray-500">Mode de vente</p>
+          <p className="text-xs text-muted">Mode de vente</p>
           <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${mode.cls}`}>
             {mode.label}
           </span>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Type</p>
+          <p className="text-xs text-muted">Type</p>
           {(() => {
             const b = STORAGE_TYPE_BADGES[product.storage_type] ?? STORAGE_TYPE_BADGES.stockable;
             return (
@@ -116,14 +117,14 @@ export default function ProductDetailPage({
           })()}
         </div>
         <div>
-          <p className="text-xs text-gray-500">Statut</p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-xs text-muted">Statut</p>
+          <p className="text-sm font-medium text-ink">
             {product.status === "active" ? "Actif" : product.status}
           </p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Code-barres</p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-xs text-muted">Code-barres</p>
+          <p className="text-sm font-medium text-ink">
             {product.barcode ?? "—"}
           </p>
         </div>
@@ -131,26 +132,26 @@ export default function ProductDetailPage({
 
       <Card className="grid grid-cols-1 gap-6 p-4 sm:grid-cols-3">
         <div>
-          <p className="text-xs text-gray-500">Prix de vente unitaire</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-xs text-muted">Prix de vente unitaire</p>
+          <p className="text-lg font-bold text-ink">
             {product.selling_price != null && product.selling_price > 0
               ? formatCurrency(product.selling_price)
               : "—"}
           </p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Prix au mètre linéaire</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-xs text-muted">Prix au mètre linéaire</p>
+          <p className="text-lg font-bold text-ink">
             {product.price_per_meter != null && product.price_per_meter > 0
               ? formatCurrency(product.price_per_meter)
               : "—"}
           </p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             {product.sale_mode === "dual" ? "Longueur standard pièce" : "Longueur standard"}
           </p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-lg font-bold text-ink">
             {product.unit_length != null ? `${product.unit_length} m` : "—"}
           </p>
         </div>
@@ -163,8 +164,8 @@ export default function ProductDetailPage({
 
       {product.description && (
         <Card className="p-4">
-          <p className="text-xs text-gray-500">Description</p>
-          <p className="mt-1 text-sm text-gray-700">{product.description}</p>
+          <p className="text-xs text-muted">Description</p>
+          <p className="mt-1 text-sm text-muted">{product.description}</p>
         </Card>
       )}
     </div>

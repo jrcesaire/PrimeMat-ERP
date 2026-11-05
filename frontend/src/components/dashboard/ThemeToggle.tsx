@@ -26,7 +26,7 @@ export function ThemeToggle() {
     >
       <span
         className={cn(
-          "flex h-5.5 w-5.5 items-center justify-center rounded-full bg-white shadow transition-transform duration-200",
+          "flex h-5.5 w-5.5 items-center justify-center rounded-full bg-surface shadow transition-transform duration-200",
           isDark ? "translate-x-7" : "translate-x-1"
         )}
         style={{ height: 22, width: 22 }}

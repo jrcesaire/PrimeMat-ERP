@@ -85,40 +85,40 @@ function NewContactPageInner() {
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">
           {isEdit ? "Modifier le contact" : "Nouveau contact"}
         </h1>
-        <p className="text-sm text-gray-600">Client ou fournisseur</p>
+        <p className="text-sm text-muted">Client ou fournisseur</p>
       </div>
 
       <Card className="space-y-4 p-4">
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Nom *</label>
+          <label className="mb-1 block text-sm font-medium text-muted">Nom *</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex : Boutique Chez Fatou" />
         </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Téléphone</label>
+            <label className="mb-1 block text-sm font-medium text-muted">Téléphone</label>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+225 …" />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">E-mail</label>
+            <label className="mb-1 block text-sm font-medium text-muted">E-mail</label>
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Ville</label>
+            <label className="mb-1 block text-sm font-medium text-muted">Ville</label>
             <Input value={city} onChange={(e) => setCity(e.target.value)} />
           </div>
           <div className="flex items-center pt-6">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 text-sm text-muted">
               <input
                 type="checkbox"
                 checked={isSupplier}
                 onChange={(e) => setIsSupplier(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
+                className="h-4 w-4 rounded border-line"
               />
               Fournisseur
             </label>

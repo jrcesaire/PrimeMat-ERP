@@ -1,4 +1,5 @@
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { use } from "react";
 import Link from "next/link";
@@ -87,10 +88,10 @@ export default function DeliveryDetailPage({
   };
 
   if (isLoading)
-    return <p className="p-6 text-sm text-gray-500">Chargement…</p>;
+    return <RowsSkeleton />;
   if (!d)
     return (
-      <p className="p-6 text-sm text-gray-500">
+      <p className="p-6 text-sm text-muted">
         Bon de livraison introuvable (ou accès refusé).
       </p>
     );
@@ -102,11 +103,11 @@ export default function DeliveryDetailPage({
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/dashboard/delivery" className="text-sm text-gray-500 hover:text-primary">
+          <Link href="/dashboard/delivery" className="text-sm text-muted hover:text-primary">
             <ArrowLeft className="mr-1 inline h-4 w-4" /> Retour aux livraisons
           </Link>
-          <h1 className="mt-1 text-2xl font-bold text-gray-900">{d.reference}</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="mt-1 text-[28px] font-semibold leading-tight text-ink">{d.reference}</h1>
+          <p className="text-sm text-muted">
             {client?.name ?? `Client #${d.partner_id}`}
             {d.order_id ? ` · Commande #${d.order_id}` : ""}
           </p>
@@ -156,18 +157,18 @@ export default function DeliveryDetailPage({
 
       <Card className="grid grid-cols-2 gap-6 p-4 sm:grid-cols-3">
         <div>
-          <p className="text-xs text-gray-500">Statut</p>
+          <p className="text-xs text-muted">Statut</p>
           <StatusBadge status={d.status} />
         </div>
         <div>
-          <p className="text-xs text-gray-500">Date prévue</p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-xs text-muted">Date prévue</p>
+          <p className="text-sm font-medium text-ink">
             {d.expected_date ? formatDate(d.expected_date) : "—"}
           </p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Expédié</p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-xs text-muted">Expédié</p>
+          <p className="text-sm font-medium text-ink">
             {d.shipped_date ? formatDate(d.shipped_date) : "—"}
           </p>
         </div>
@@ -176,7 +177,7 @@ export default function DeliveryDetailPage({
       <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+            <tr className="border-b border-line text-left text-xs uppercase text-muted">
               <th className="px-4 py-3">Produit</th>
               <th className="px-4 py-3 text-right">Commandé</th>
               <th className="px-4 py-3 text-right">Livré</th>
@@ -185,8 +186,8 @@ export default function DeliveryDetailPage({
           </thead>
           <tbody>
             {d.lines?.map((l) => (
-              <tr key={l.id} className="border-b border-gray-100">
-                <td className="px-4 py-3 font-medium text-gray-900">
+              <tr key={l.id} className="border-b border-line">
+                <td className="px-4 py-3 font-medium text-ink">
                   {l.description ?? `Produit #${l.product_id}`}
                   {l.variant_name && (
                     <span className="ml-2 inline-block rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 align-middle text-[11px] font-semibold text-blue-700">
@@ -198,12 +199,12 @@ export default function DeliveryDetailPage({
                 <td className="px-4 py-3 text-right font-semibold">
                   {l.quantity_delivered}
                 </td>
-                <td className="px-4 py-3 text-gray-600">{l.unit ?? "—"}</td>
+                <td className="px-4 py-3 text-muted">{l.unit ?? "—"}</td>
               </tr>
             ))}
             {(!d.lines || d.lines.length === 0) && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
+                <td colSpan={4} className="px-4 py-6 text-center text-sm text-muted">
                   Aucune ligne.
                 </td>
               </tr>

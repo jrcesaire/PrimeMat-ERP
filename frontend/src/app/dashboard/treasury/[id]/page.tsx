@@ -249,14 +249,14 @@ export default function TreasuryAccountPage() {
       <div>
         <Link
           href="/dashboard/treasury"
-          className="text-sm text-gray-500 hover:text-gray-800"
+          className="text-sm text-muted hover:text-ink"
         >
           ← Trésorerie
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900">
+        <h1 className="mt-2 text-[28px] font-semibold leading-tight text-ink">
           {account ? account.name : `Compte #${accountId ?? "?"}`}
         </h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           {account
             ? `Compte comptable ${account.account_code} · ${account.code}${
                 account.bank_name ? ` · ${account.bank_name}` : ""
@@ -285,43 +285,43 @@ export default function TreasuryAccountPage() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardDescription>Solde comptable</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {report
               ? formatCurrency(report.accounting_balance)
               : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Écritures publiées sur le compte {report?.account_code ?? "—"}
           </p>
         </Card>
         <Card>
           <CardDescription>Solde du dernier relevé</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {report ? formatCurrency(report.statement_balance) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Solde de clôture du relevé le plus récent
           </p>
         </Card>
         <Card>
           <CardDescription>Déjà rapproché</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {report ? formatCurrency(report.reconciled_amount) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Cumul des lignes de relevé appariées
           </p>
         </Card>
         <Card>
           <CardDescription>Écart comptable / relevé</CardDescription>
           <p
-            className={`mt-1 text-2xl font-bold tabular-nums ${
+            className={`mt-1 text-[28px] font-semibold leading-tight tabular-nums ${
               Math.abs(variance) < 0.01 ? "text-green-600" : "text-amber-600"
             }`}
           >
             {report ? formatCurrency(variance) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             {report && Math.abs(variance) < 0.01
               ? "Soldes concordants"
               : `${report?.unreconciled_lines.length ?? 0} ligne(s) de relevé et ${
@@ -332,10 +332,10 @@ export default function TreasuryAccountPage() {
       </div>
 
       <Card className="overflow-x-auto p-0">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
           <div>
-            <h2 className="font-semibold text-gray-900">Relevés bancaires</h2>
-            <p className="text-xs text-gray-500">
+            <h2 className="font-semibold text-ink">Relevés bancaires</h2>
+            <p className="text-xs text-muted">
               Saisissez les lignes du relevé, puis rapprochez-les des écritures
               du compte {account?.account_code ?? ""}.
             </p>
@@ -354,10 +354,10 @@ export default function TreasuryAccountPage() {
         {openNewStatement && (
           <form
             onSubmit={handleCreateStatement}
-            className="grid grid-cols-1 gap-4 border-b border-gray-100 bg-gray-50 px-4 py-4 md:grid-cols-4"
+            className="grid grid-cols-1 gap-4 border-b border-line bg-subtle px-4 py-4 md:grid-cols-4"
           >
             <div className="md:col-span-2">
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Libellé *
               </label>
               <Input
@@ -370,7 +370,7 @@ export default function TreasuryAccountPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Date du relevé *
               </label>
               <Input
@@ -383,7 +383,7 @@ export default function TreasuryAccountPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Solde d&apos;ouverture
               </label>
               <Input
@@ -398,7 +398,7 @@ export default function TreasuryAccountPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Solde de clôture
               </label>
               <Input
@@ -432,7 +432,7 @@ export default function TreasuryAccountPage() {
 
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-2">Date</th>
               <th className="px-3 py-2">Libellé</th>
               <th className="px-3 py-2 text-right">Ouverture</th>
@@ -446,14 +446,14 @@ export default function TreasuryAccountPage() {
           <tbody className="divide-y divide-gray-50">
             {loadingStatements && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Chargement…
                 </td>
               </tr>
             )}
             {!loadingStatements && statements.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Aucun relevé — créez un relevé pour saisir ses lignes et
                   commencer le rapprochement.
                 </td>
@@ -467,21 +467,21 @@ export default function TreasuryAccountPage() {
               return (
                 <tr
                   key={s.id}
-                  className={isSelected ? "bg-primary/5" : "hover:bg-gray-50"}
+                  className={isSelected ? "bg-primary/5" : "hover:bg-subtle"}
                 >
-                  <td className="px-4 py-2 tabular-nums text-gray-700">
+                  <td className="px-4 py-2 tabular-nums text-muted">
                     {formatDate(s.statement_date)}
                   </td>
-                  <td className="px-3 py-2 font-medium text-gray-900">
+                  <td className="px-3 py-2 font-medium text-ink">
                     {s.label}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-600">
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">
                     {formatCurrency(s.opening_balance)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-600">
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">
                     {formatCurrency(s.closing_balance)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-600">
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">
                     {s.lines.length}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
@@ -489,7 +489,7 @@ export default function TreasuryAccountPage() {
                       className={
                         s.lines.length > 0 && done === s.lines.length
                           ? "font-semibold text-green-700"
-                          : "text-gray-600"
+                          : "text-muted"
                       }
                     >
                       {done}/{s.lines.length}
@@ -499,7 +499,7 @@ export default function TreasuryAccountPage() {
                     <span
                       className={`rounded px-2 py-0.5 text-xs font-medium ${
                         s.status === "closed"
-                          ? "bg-gray-200 text-gray-700"
+                          ? "bg-gray-200 text-muted"
                           : "bg-blue-100 text-blue-800"
                       }`}
                     >
@@ -523,12 +523,12 @@ export default function TreasuryAccountPage() {
       </Card>
 
       <Card className="overflow-x-auto p-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
           <div>
-            <h2 className="font-semibold text-gray-900">
+            <h2 className="font-semibold text-ink">
               Rapprochement{statement ? ` — ${statement.label}` : ""}
             </h2>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               {statement
                 ? `${reconciledCount}/${statement.lines.length} ligne(s) rapprochée(s). L'appariement automatique exige un montant identique à ±5 jours.`
                 : "Sélectionnez un relevé ci-dessus pour rapprocher ses lignes."}
@@ -573,10 +573,10 @@ export default function TreasuryAccountPage() {
         {statement && openAddLine && (
           <form
             onSubmit={handleAddLine}
-            className="grid grid-cols-1 gap-4 border-b border-gray-100 bg-gray-50 px-4 py-4 md:grid-cols-4"
+            className="grid grid-cols-1 gap-4 border-b border-line bg-subtle px-4 py-4 md:grid-cols-4"
           >
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Date de l&apos;opération *
               </label>
               <Input
@@ -589,7 +589,7 @@ export default function TreasuryAccountPage() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Libellé *
               </label>
               <Input
@@ -602,7 +602,7 @@ export default function TreasuryAccountPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Montant signé *
               </label>
               <Input
@@ -630,7 +630,7 @@ export default function TreasuryAccountPage() {
               >
                 Annuler
               </Button>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted">
                 Positif = encaissement, négatif = décaissement (même convention
                 que le relevé bancaire).
               </span>
@@ -641,7 +641,7 @@ export default function TreasuryAccountPage() {
         {statement && (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-2">Date</th>
                 <th className="px-3 py-2">Libellé du relevé</th>
                 <th className="px-3 py-2 text-right">Montant</th>
@@ -655,7 +655,7 @@ export default function TreasuryAccountPage() {
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-4 py-10 text-center text-gray-400"
+                    className="px-4 py-10 text-center text-faint"
                   >
                     Aucune ligne dans ce relevé — ajoutez les opérations du
                     relevé bancaire.
@@ -666,11 +666,11 @@ export default function TreasuryAccountPage() {
                 const reconciled = l.entry_line_id !== null;
                 const options = sortCandidates(candidates, l.amount);
                 return (
-                  <tr key={l.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 tabular-nums text-gray-700">
+                  <tr key={l.id} className="hover:bg-subtle">
+                    <td className="px-4 py-2 tabular-nums text-muted">
                       {formatDate(l.line_date)}
                     </td>
-                    <td className="px-3 py-2 text-gray-900">{l.label}</td>
+                    <td className="px-3 py-2 text-ink">{l.label}</td>
                     <td
                       className={`px-3 py-2 text-right font-semibold tabular-nums ${
                         l.amount < 0 ? "text-red-600" : "text-green-700"
@@ -678,7 +678,7 @@ export default function TreasuryAccountPage() {
                     >
                       {formatCurrency(l.amount)}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="px-3 py-2 text-muted">
                       {reconciled ? (
                         <span className="font-mono text-xs">
                           écriture #{l.entry_line_id}
@@ -687,7 +687,7 @@ export default function TreasuryAccountPage() {
                             : ""}
                         </span>
                       ) : options.length === 0 ? (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-faint">
                           Aucune écriture en attente sur ce compte
                         </span>
                       ) : (
@@ -700,7 +700,7 @@ export default function TreasuryAccountPage() {
                             }))
                           }
                           disabled={isClosed}
-                          className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm disabled:opacity-50"
+                          className="h-9 w-full rounded-md border border-line bg-surface px-2 text-sm disabled:opacity-50"
                         >
                           <option value="">— choisir une écriture —</option>
                           {options.map((c) => (
@@ -731,7 +731,7 @@ export default function TreasuryAccountPage() {
                             type="button"
                             onClick={() => handleUnreconcile(l.id)}
                             disabled={isClosed || unreconcileLine.isPending}
-                            className="text-sm text-gray-600 hover:underline disabled:opacity-50"
+                            className="text-sm text-muted hover:underline disabled:opacity-50"
                           >
                             Retirer
                           </button>
@@ -765,25 +765,25 @@ export default function TreasuryAccountPage() {
         )}
 
         {!statement && (
-          <p className="px-4 py-10 text-center text-sm text-gray-400">
+          <p className="px-4 py-10 text-center text-sm text-faint">
             Aucun relevé sélectionné.
           </p>
         )}
       </Card>
 
       <Card className="overflow-x-auto p-0">
-        <div className="border-b border-gray-100 px-4 py-3">
-          <h2 className="font-semibold text-gray-900">
+        <div className="border-b border-line px-4 py-3">
+          <h2 className="font-semibold text-ink">
             Écritures de trésorerie non rapprochées
           </h2>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             Lignes publiées sur le compte {report?.account_code ?? "—"} qui
             n&apos;ont encore été appariées à aucune ligne de relevé.
           </p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-2">Référence</th>
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2">Libellé</th>
@@ -793,27 +793,27 @@ export default function TreasuryAccountPage() {
           <tbody className="divide-y divide-gray-50">
             {reportQuery.isLoading && (
               <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={4} className="px-4 py-10 text-center text-faint">
                   Chargement…
                 </td>
               </tr>
             )}
             {!reportQuery.isLoading && candidates.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={4} className="px-4 py-10 text-center text-faint">
                   Toutes les écritures de ce compte sont rapprochées.
                 </td>
               </tr>
             )}
             {candidates.map((c) => (
-              <tr key={c.entry_line_id} className="hover:bg-gray-50">
-                <td className="px-4 py-2 font-mono text-xs font-semibold text-gray-700">
+              <tr key={c.entry_line_id} className="hover:bg-subtle">
+                <td className="px-4 py-2 font-mono text-xs font-semibold text-muted">
                   {c.reference}
                 </td>
-                <td className="px-3 py-2 tabular-nums text-gray-600">
+                <td className="px-3 py-2 tabular-nums text-muted">
                   {formatDate(c.entry_date)}
                 </td>
-                <td className="px-3 py-2 text-gray-600">{c.label ?? "—"}</td>
+                <td className="px-3 py-2 text-muted">{c.label ?? "—"}</td>
                 <td
                   className={`px-4 py-2 text-right font-semibold tabular-nums ${
                     c.amount < 0 ? "text-red-600" : "text-green-700"

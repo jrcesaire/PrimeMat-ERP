@@ -84,19 +84,22 @@ body {
   --danger-soft: 10 32% 17%;
 }
 
-/* Les règles ci-dessous couvrent le code historique écrit en classes Tailwind
-   neutres (`bg-white`, `text-gray-900`…). Le code nouveau utilise les jetons
-   sémantiques ci-dessus et n'en a pas besoin. */
+/* ---------------------------------------------------------------------------
+   Repli pour le code historique
+   ---------------------------------------------------------------------------
+   La quasi-totalité des écrans est désormais écrite avec les jetons
+   sémantiques ci-dessus (`bg-surface`, `text-ink`, `border-line`…), qui
+   basculent tout seuls grâce aux variables redéfinies dans `.dark`.
+   Les règles suivantes ne couvrent plus que les rares classes neutres
+   codées en dur qui subsistent : elles évitent qu'un élément isolé reste
+   blanc ou noir sur le mauvais thème. À retirer quand il n'en restera plus.
+   --------------------------------------------------------------------------- */
 
 /* Surfaces */
 .dark .bg-white { background-color: #1e293b !important; }
 .dark .bg-gray-50 { background-color: #0f172a !important; }
-.dark .bg-gray-100 { background-color: #24324a !important; }
 .dark .bg-gray-200 { background-color: #334155 !important; }
 .dark .bg-gray-900 { background-color: #0b1220 !important; }
-/* Ligne sélectionnée du panier POS — bg-blue-50 n'est pas couvert par les
-   surfaces ci-dessus (uniquement les <tr>, pour préserver les badges bleus). */
-.dark tr.bg-blue-50 { background-color: #172554 !important; }
 
 /* Texte */
 .dark .text-gray-900 { color: #f1f5f9 !important; }

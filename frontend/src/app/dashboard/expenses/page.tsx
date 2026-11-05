@@ -2,6 +2,7 @@
  * Page Dépenses — liste et enregistrement rapide.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -58,8 +59,8 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dépenses</h1>
-        <p className="text-sm text-gray-600">
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">Dépenses</h1>
+        <p className="text-sm text-muted">
           Total enregistré : <strong>{formatCurrency(total)}</strong>
         </p>
       </div>
@@ -75,7 +76,7 @@ export default function ExpensesPage() {
 
       {/* Saisie rapide */}
       <Card className={cn("space-y-3 p-4", view !== "new" && "hidden")}>
-        <h2 className="font-semibold text-gray-800">Enregistrer une dépense</h2>
+        <h2 className="font-semibold text-ink">Enregistrer une dépense</h2>
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
           <Input
@@ -85,7 +86,7 @@ export default function ExpensesPage() {
             className="sm:col-span-2"
           />
           <select
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-md border border-line px-3 py-2 text-sm"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
@@ -97,7 +98,7 @@ export default function ExpensesPage() {
             <option value="achats">Achats</option>
           </select>
           <select
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-md border border-line px-3 py-2 text-sm"
             value={method}
             onChange={(e) => setMethod(e.target.value)}
           >
@@ -121,13 +122,13 @@ export default function ExpensesPage() {
       {/* Liste */}
       <Card className={cn("overflow-hidden p-0", view !== "list" && "hidden")}>
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : expenses.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">Aucune dépense.</p>
+          <p className="p-10 text-center text-sm text-muted">Aucune dépense.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase text-muted">
                 <th className="px-4 py-3">Référence</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Libellé</th>
@@ -141,19 +142,19 @@ export default function ExpensesPage() {
                 <tr
                   key={e.id}
                   onClick={() => router.push(`/dashboard/expenses/${e.id}`)}
-                  className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                  className="cursor-pointer border-b border-line hover:bg-subtle"
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900 hover:text-primary hover:underline">{e.reference}</td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 font-medium text-ink hover:text-primary hover:underline">{e.reference}</td>
+                  <td className="px-4 py-3 text-muted">
                     {e.expense_date ? formatDate(e.expense_date) : "—"}
                   </td>
                   <td className="px-4 py-3">{e.label}</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                    <span className="inline-flex rounded-full bg-subtle px-2.5 py-0.5 text-xs font-medium text-muted">
                       {e.category}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{e.payment_method}</td>
+                  <td className="px-4 py-3 text-muted">{e.payment_method}</td>
                   <td className="px-4 py-3 text-right font-semibold text-red-600">
                     -{formatCurrency(e.amount)}
                   </td>

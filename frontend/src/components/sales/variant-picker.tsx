@@ -38,7 +38,7 @@ export function VariantPicker({
     <select
       aria-label="Variante du produit"
       disabled={disabled}
-      className="mt-1 h-7 w-full max-w-xs rounded-md border border-gray-300 bg-white px-2 text-xs text-gray-700 focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
+      className="mt-1 h-7 w-full max-w-xs rounded-md border border-line bg-surface px-2 text-xs text-muted focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-subtle disabled:text-faint"
       value={value ?? ""}
       onChange={(e) => {
         const raw = e.target.value;

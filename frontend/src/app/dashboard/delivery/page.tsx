@@ -2,6 +2,7 @@
  * Page Livraison — bons de livraison, planning, impression.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -128,8 +129,8 @@ export default function DeliveryPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Livraison</h1>
-          <p className="text-sm text-gray-600">Bons de livraison</p>
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Livraison</h1>
+          <p className="text-sm text-muted">Bons de livraison</p>
         </div>
         <ExportButton
           endpoint="/delivery/notes/export"
@@ -148,11 +149,11 @@ export default function DeliveryPage() {
 
       {/* Créer depuis commande */}
       <Card className={cn("space-y-3 p-4", view !== "new" && "hidden")}>
-        <h2 className="font-semibold text-gray-800">Préparer une livraison</h2>
+        <h2 className="font-semibold text-ink">Préparer une livraison</h2>
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="flex flex-wrap items-center gap-2">
           <select
-            className="min-w-64 rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="min-w-64 rounded-md border border-line px-3 py-2 text-sm"
             value={orderId ?? ""}
             onChange={(e) => setOrderId(e.target.value ? Number(e.target.value) : null)}
           >
@@ -167,7 +168,7 @@ export default function DeliveryPage() {
             {createDelivery.isPending ? "Création…" : "Créer le bon de livraison"}
           </Button>
           {deliverable.length === 0 && (
-            <p className="text-xs text-gray-400">Aucune commande en attente de livraison.</p>
+            <p className="text-xs text-faint">Aucune commande en attente de livraison.</p>
           )}
         </div>
       </Card>
@@ -175,15 +176,15 @@ export default function DeliveryPage() {
       {/* Liste */}
       <Card className={cn("overflow-hidden p-0", view !== "list" && "hidden")}>
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : deliveries.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">
+          <p className="p-10 text-center text-sm text-muted">
             Aucun bon de livraison.
           </p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase text-muted">
                 <th className="px-4 py-3">Référence</th>
                 <th className="px-4 py-3">Client</th>
                 <th className="px-4 py-3">Statut</th>
@@ -198,14 +199,14 @@ export default function DeliveryPage() {
                   <tr
                     key={d.id}
                     onClick={() => router.push(`/dashboard/delivery/${d.id}`)}
-                    className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                    className="cursor-pointer border-b border-line hover:bg-subtle"
                   >
-                    <td className="px-4 py-3 font-medium text-gray-900 hover:text-primary hover:underline">
+                    <td className="px-4 py-3 font-medium text-ink hover:text-primary hover:underline">
                       {d.reference}
                     </td>
                     <td className="px-4 py-3">{clientName(d.partner_id)}</td>
                     <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-muted">
                       {d.expected_date ? formatDate(d.expected_date) : "—"}
                     </td>
                     <td className="px-4 py-3">
@@ -262,7 +263,7 @@ export default function DeliveryPage() {
                               alert("Impossible de générer le PDF.")
                             );
                           }}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-subtle"
                         >
                           🖨
                         </button>

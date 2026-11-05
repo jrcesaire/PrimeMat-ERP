@@ -103,14 +103,14 @@ export default function FixedAssetDetailPage() {
       <div>
         <Link
           href="/dashboard/accounting/fixed-assets"
-          className="text-sm text-gray-500 hover:text-gray-800"
+          className="text-sm text-muted hover:text-ink"
         >
           ← Immobilisations
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900">
+        <h1 className="mt-2 text-[28px] font-semibold leading-tight text-ink">
           {asset ? asset.name : `Immobilisation #${assetId ?? "?"}`}
         </h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           {asset
             ? `${asset.code} · ${
                 CATEGORY_LABELS[asset.category] ?? asset.category
@@ -120,7 +120,7 @@ export default function FixedAssetDetailPage() {
             : "Chargement…"}
         </p>
         {asset && (
-          <p className="mt-1 font-mono text-xs text-gray-500">
+          <p className="mt-1 font-mono text-xs text-muted">
             Comptes {asset.asset_account} (immobilisation) /{" "}
             {asset.depreciation_account} (amortissements) /{" "}
             {asset.expense_account} (dotation) · journal {asset.journal_code} ·
@@ -149,20 +149,20 @@ export default function FixedAssetDetailPage() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardDescription>Valeur d&apos;acquisition</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {summary ? formatCurrency(summary.acquisition_cost) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Base amortissable :{" "}
             {summary ? formatCurrency(summary.depreciable_base) : "—"}
           </p>
         </Card>
         <Card>
           <CardDescription>Amortissements cumulés</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {summary ? formatCurrency(summary.accumulated) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             {summary
               ? `${summary.posted_count}/${summary.periods_count} échéance(s) comptabilisée(s)`
               : "Chargement…"}
@@ -170,22 +170,22 @@ export default function FixedAssetDetailPage() {
         </Card>
         <Card>
           <CardDescription>Valeur nette comptable</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {summary ? formatCurrency(summary.net_value) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Reste à comptabiliser :{" "}
             {summary ? formatCurrency(summary.remaining_to_post) : "—"}
           </p>
         </Card>
         <Card>
           <CardDescription>Prochaine dotation</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {summary?.next_amount != null
               ? formatCurrency(summary.next_amount)
               : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             {summary?.next_period_date
               ? `Échéance du ${formatDate(summary.next_period_date)}`
               : "Plan entièrement comptabilisé"}
@@ -194,13 +194,13 @@ export default function FixedAssetDetailPage() {
       </div>
 
       {asset && (
-        <Card className="border border-gray-200">
+        <Card className="border border-line">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="font-semibold text-gray-900">
+              <h2 className="font-semibold text-ink">
                 Comptabiliser les dotations échues
               </h2>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted">
                 Génère une écriture par échéance arrivée à terme (D{" "}
                 {asset.expense_account} / C {asset.depreciation_account}) —
                 opération idempotente, les dotations déjà comptabilisées sont
@@ -209,7 +209,7 @@ export default function FixedAssetDetailPage() {
             </div>
             <div className="flex flex-wrap items-end gap-2">
               <div>
-                <label className="mb-1 block text-xs text-gray-500">
+                <label className="mb-1 block text-xs text-muted">
                   Échues jusqu&apos;au
                 </label>
                 <Input
@@ -240,11 +240,11 @@ export default function FixedAssetDetailPage() {
 
       {asset && (
         <Card className="overflow-x-auto p-0">
-          <div className="border-b border-gray-100 px-4 py-3">
-            <h2 className="font-semibold text-gray-900">
+          <div className="border-b border-line px-4 py-3">
+            <h2 className="font-semibold text-ink">
               Plan d&apos;amortissement
             </h2>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               {asset.method === "declining"
                 ? "Taux dégressif SYSCOHADA appliqué à la valeur nette comptable, puis basculement en linéaire sur la durée restante."
                 : "Dotation constante sur la base amortissable."}{" "}
@@ -253,7 +253,7 @@ export default function FixedAssetDetailPage() {
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-2">#</th>
                 <th className="px-3 py-2">Échéance</th>
                 <th className="px-3 py-2 text-right">VNC début</th>
@@ -269,7 +269,7 @@ export default function FixedAssetDetailPage() {
                 <tr>
                   <td
                     colSpan={8}
-                    className="px-4 py-10 text-center text-gray-400"
+                    className="px-4 py-10 text-center text-faint"
                   >
                     Chargement…
                   </td>
@@ -279,7 +279,7 @@ export default function FixedAssetDetailPage() {
                 <tr>
                   <td
                     colSpan={8}
-                    className="px-4 py-10 text-center text-gray-400"
+                    className="px-4 py-10 text-center text-faint"
                   >
                     Aucune échéance au plan d&apos;amortissement.
                   </td>
@@ -289,25 +289,25 @@ export default function FixedAssetDetailPage() {
                 <tr
                   key={d.id}
                   className={
-                    d.status === "posted" ? "bg-green-50/40" : "hover:bg-gray-50"
+                    d.status === "posted" ? "bg-green-50/40" : "hover:bg-subtle"
                   }
                 >
-                  <td className="px-4 py-2 tabular-nums text-gray-500">
+                  <td className="px-4 py-2 tabular-nums text-muted">
                     {d.period_index}
                   </td>
-                  <td className="px-3 py-2 tabular-nums text-gray-700">
+                  <td className="px-3 py-2 tabular-nums text-muted">
                     {formatDate(d.period_date)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-600">
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">
                     {formatCurrency(d.opening_value)}
                   </td>
-                  <td className="px-3 py-2 text-right font-semibold tabular-nums text-gray-900">
+                  <td className="px-3 py-2 text-right font-semibold tabular-nums text-ink">
                     {formatCurrency(d.amount)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-600">
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">
                     {formatCurrency(d.accumulated)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-600">
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">
                     {formatCurrency(d.net_value)}
                   </td>
                   <td className="px-3 py-2">
@@ -321,7 +321,7 @@ export default function FixedAssetDetailPage() {
                       {d.status === "posted" ? "comptabilisée" : "à comptabiliser"}
                     </span>
                   </td>
-                  <td className="px-4 py-2 font-mono text-xs text-gray-500">
+                  <td className="px-4 py-2 font-mono text-xs text-muted">
                     {d.journal_entry_id ? `écriture #${d.journal_entry_id}` : "—"}
                   </td>
                 </tr>

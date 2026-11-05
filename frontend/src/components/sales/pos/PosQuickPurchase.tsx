@@ -45,7 +45,7 @@ function todayIso(): string {
 
 /** Style des listes déroulantes, aligné sur le composant Input. */
 const SELECT_CLASS =
-  "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50";
+  "flex h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Formate un montant dans la devise de la facture. */
 function formatAmount(amount: number, currency = "XOF"): string {
@@ -151,7 +151,7 @@ export function PosQuickPurchase() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col px-[20px] md:px-[80px] py-6">
+    <div className="min-h-screen bg-subtle flex flex-col px-[20px] md:px-[80px] py-6">
       {/* Bandeau : retour vers le menu du PoS */}
       <header className="flex items-center justify-between gap-4">
         <Button
@@ -162,13 +162,13 @@ export function PosQuickPurchase() {
         >
           <ArrowLeft className="h-4 w-4" /> Retour
         </Button>
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-muted">
           <ShoppingBag className="h-5 w-5" />
           <div className="text-right leading-tight">
-            <div className="text-sm font-semibold text-gray-900">
+            <div className="text-sm font-semibold text-ink">
               Achats de quincaillerie
             </div>
-            <div className="text-xs text-gray-500">Achat comptoir</div>
+            <div className="text-xs text-muted">Achat comptoir</div>
           </div>
         </div>
       </header>
@@ -312,7 +312,7 @@ export function PosQuickPurchase() {
                 </div>
 
                 {preview && (
-                  <p className="rounded-md bg-gray-100 px-3 py-2 text-xs text-gray-600">
+                  <p className="rounded-md bg-subtle px-3 py-2 text-xs text-muted">
                     Base HT&nbsp;: {formatAmount(preview.untaxed)} · TVA&nbsp;:{" "}
                     {formatAmount(preview.tax)} · Total&nbsp;:{" "}
                     {formatAmount(preview.total)}
@@ -343,10 +343,10 @@ export function PosQuickPurchase() {
                   </div>
                 </div>
 
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 text-sm text-muted">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300"
+                    className="h-4 w-4 rounded border-line"
                     checked={paid}
                     onChange={(e) => setPaid(e.target.checked)}
                   />

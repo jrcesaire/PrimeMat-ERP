@@ -89,8 +89,8 @@ export default function TreasuryPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trésorerie</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Trésorerie</h1>
+          <p className="text-sm text-muted">
             Comptes de banque, de caisse et de mobile money — relevés et
             rapprochement bancaire
           </p>
@@ -117,28 +117,28 @@ export default function TreasuryPage() {
       <div className="grid gap-6 sm:grid-cols-3">
         <Card>
           <CardDescription>Comptes de trésorerie</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {accounts.length}
           </p>
         </Card>
         <Card>
           <CardDescription>Comptes actifs</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {activeCount}
           </p>
         </Card>
         <Card>
           <CardDescription>Comptes désactivés</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-500">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-muted">
             {accounts.length - activeCount}
           </p>
         </Card>
       </div>
 
       {openCreate && (
-        <Card className="border border-gray-200">
-          <div className="mb-4 border-b border-gray-100 pb-3">
-            <h2 className="font-semibold text-gray-900">
+        <Card className="border border-line">
+          <div className="mb-4 border-b border-line pb-3">
+            <h2 className="font-semibold text-ink">
               Nouveau compte de trésorerie
             </h2>
           </div>
@@ -147,7 +147,7 @@ export default function TreasuryPage() {
             className="grid grid-cols-1 gap-4 md:grid-cols-3"
           >
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Code interne *
               </label>
               <Input
@@ -158,7 +158,7 @@ export default function TreasuryPage() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Libellé *
               </label>
               <Input
@@ -169,7 +169,7 @@ export default function TreasuryPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Compte comptable *
               </label>
               <Input
@@ -180,7 +180,7 @@ export default function TreasuryPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Banque</label>
+              <label className="mb-1 block text-xs text-muted">Banque</label>
               <Input
                 value={form.bank_name}
                 onChange={(e) => setField("bank_name", e.target.value)}
@@ -188,7 +188,7 @@ export default function TreasuryPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Numéro de compte
               </label>
               <Input
@@ -198,7 +198,7 @@ export default function TreasuryPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Devise</label>
+              <label className="mb-1 block text-xs text-muted">Devise</label>
               <Input
                 value={form.currency}
                 onChange={(e) => setField("currency", e.target.value)}
@@ -220,7 +220,7 @@ export default function TreasuryPage() {
               >
                 Annuler
               </Button>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted">
                 Le compte comptable doit exister dans le plan OHADA (511, 512,
                 531…), sans quoi les lignes de relevé ne pourront pas être
                 rapprochées.
@@ -231,10 +231,10 @@ export default function TreasuryPage() {
       )}
 
       <Card className="overflow-x-auto p-0">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
           <div>
-            <h2 className="font-semibold text-gray-900">Comptes</h2>
-            <p className="text-xs text-gray-500">
+            <h2 className="font-semibold text-ink">Comptes</h2>
+            <p className="text-xs text-muted">
               Cliquez sur « Relevés » pour saisir un relevé et rapprocher les
               écritures du compte.
             </p>
@@ -242,7 +242,7 @@ export default function TreasuryPage() {
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-2">Code</th>
               <th className="px-3 py-2">Libellé</th>
               <th className="px-3 py-2">Compte</th>
@@ -256,39 +256,39 @@ export default function TreasuryPage() {
           <tbody className="divide-y divide-gray-50">
             {isLoading && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Chargement…
                 </td>
               </tr>
             )}
             {!isLoading && accounts.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Aucun compte de trésorerie — créez un compte de banque, de
                   caisse ou de mobile money pour commencer.
                 </td>
               </tr>
             )}
             {accounts.map((a) => (
-              <tr key={a.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2 font-mono text-xs font-semibold text-gray-700">
+              <tr key={a.id} className="hover:bg-subtle">
+                <td className="px-4 py-2 font-mono text-xs font-semibold text-muted">
                   {a.code}
                 </td>
-                <td className="px-3 py-2 font-medium text-gray-900">{a.name}</td>
-                <td className="px-3 py-2 font-mono text-xs text-gray-600">
+                <td className="px-3 py-2 font-medium text-ink">{a.name}</td>
+                <td className="px-3 py-2 font-mono text-xs text-muted">
                   {a.account_code}
                 </td>
-                <td className="px-3 py-2 text-gray-600">{a.bank_name ?? "—"}</td>
-                <td className="px-3 py-2 text-gray-600">
+                <td className="px-3 py-2 text-muted">{a.bank_name ?? "—"}</td>
+                <td className="px-3 py-2 text-muted">
                   {a.account_number ?? "—"}
                 </td>
-                <td className="px-3 py-2 text-gray-600">{a.currency}</td>
+                <td className="px-3 py-2 text-muted">{a.currency}</td>
                 <td className="px-3 py-2">
                   <span
                     className={`rounded px-2 py-0.5 text-xs font-medium ${
                       a.is_active
                         ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600"
+                        : "bg-subtle text-muted"
                     }`}
                   >
                     {a.is_active ? "actif" : "désactivé"}

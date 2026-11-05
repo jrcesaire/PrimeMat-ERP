@@ -1,4 +1,5 @@
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
 import { useConfirm, confirmDeleteOptions } from "@/components/ui/confirm";
@@ -118,7 +119,7 @@ export default function CategoriesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600">{categories.length} catégorie(s)</p>
+        <p className="text-sm text-muted">{categories.length} catégorie(s)</p>
         {canCreateCategory && (
           <Button
             variant="outline"
@@ -138,25 +139,25 @@ export default function CategoriesTab() {
 
       {showForm && (
         <Card className="space-y-3 p-4">
-          <h2 className="font-semibold text-gray-800">
+          <h2 className="font-semibold text-ink">
             {editId ? "Modifier la catégorie" : "Nouvelle catégorie"}
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="col-span-1 sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-gray-700">Nom *</label>
+              <label className="mb-1 block text-sm font-medium text-muted">Nom *</label>
               <Input placeholder="Ex. Ciments, Ferraillage" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Code</label>
+              <label className="mb-1 block text-sm font-medium text-muted">Code</label>
               <Input placeholder="Ex. CIM" value={code} onChange={(e) => setCode(e.target.value)} />
             </div>
             <div className="col-span-1 sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+              <label className="mb-1 block text-sm font-medium text-muted">Description</label>
               <Input placeholder="Optionnel" value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Catégorie parente</label>
-              <select value={parentId ?? ""} onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)} className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm">
+              <label className="mb-1 block text-sm font-medium text-muted">Catégorie parente</label>
+              <select value={parentId ?? ""} onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)} className="rounded-md border border-line bg-surface px-3 py-2 text-sm">
                 <option value="">— Aucune (racine) —</option>
                 {parentOptions.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -164,8 +165,8 @@ export default function CategoriesTab() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Mode de vente</label>
-              <select value={saleMode} onChange={(e) => setSaleMode(e.target.value)} className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm">
+              <label className="mb-1 block text-sm font-medium text-muted">Mode de vente</label>
+              <select value={saleMode} onChange={(e) => setSaleMode(e.target.value)} className="rounded-md border border-line bg-surface px-3 py-2 text-sm">
                 <option value="unit">À l'unité</option>
                 <option value="length">Au mètre linéaire</option>
                 <option value="dual">Au ml ou à la pièce</option>
@@ -183,25 +184,25 @@ export default function CategoriesTab() {
 
       <Card className="overflow-x-auto p-0">
         {loadingCategories ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : categories.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">Aucune catégorie.</p>
+          <p className="p-10 text-center text-sm text-muted">Aucune catégorie.</p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50">
+            <thead className="border-b border-line bg-subtle">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Nom</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Code</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Parente</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Mode de vente</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Actif</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Nom</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Code</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Parente</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Mode de vente</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Actif</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {categories.map((c) => (
-                <tr key={c.id} className="align-top hover:bg-gray-50">
-                  <td className="px-4 py-2.5 font-medium text-gray-900">{c.name}</td>
+                <tr key={c.id} className="align-top hover:bg-subtle">
+                  <td className="px-4 py-2.5 font-medium text-ink">{c.name}</td>
                   <td className="px-4 py-2.5">{c.code ?? "—"}</td>
                   <td className="px-4 py-2.5">{c.parent_id != null ? categories.find((p) => p.id === c.parent_id)?.name ?? "—" : "—"}</td>
                   <td className="px-4 py-2.5">{c.sale_mode === "length" ? "Au ml" : c.sale_mode === "dual" ? "Dual" : "Unité"}</td>

@@ -187,25 +187,25 @@ export function ClientAutocomplete({
         placeholder="Tapez le nom du client…"
       />
       {open && (
-        <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+        <div className="absolute z-20 mt-1 w-full rounded-md border border-line bg-surface shadow-lg">
           {results.length > 0 ? (
             results.map((p) => (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => select(p)}
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50"
+                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-subtle"
               >
-                <span className="font-medium text-gray-800">{p.name}</span>
-                <span className="text-xs text-gray-500">{p.phone ?? ""}</span>
+                <span className="font-medium text-ink">{p.name}</span>
+                <span className="text-xs text-muted">{p.phone ?? ""}</span>
               </button>
             ))
           ) : (
-            <div className="px-3 py-2 text-xs text-gray-400">
+            <div className="px-3 py-2 text-xs text-faint">
               Aucun client trouvé
             </div>
           )}
-          <div className="border-t border-gray-100 p-2">
+          <div className="border-t border-line p-2">
             <Button
               size="sm"
               className="flex w-full items-center gap-2"
@@ -233,31 +233,31 @@ export function ClientAutocomplete({
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+          <div className="w-full max-w-md rounded-lg bg-surface p-5 shadow-xl">
+            <h3 className="mb-4 text-lg font-semibold text-ink">
               Compléter le contact
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">Nom</label>
+                <label className="mb-1 block text-xs font-medium text-muted">Nom</label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">Téléphone</label>
+                  <label className="mb-1 block text-xs font-medium text-muted">Téléphone</label>
                   <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">E-mail</label>
+                  <label className="mb-1 block text-xs font-medium text-muted">E-mail</label>
                   <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">Adresse</label>
+                <label className="mb-1 block text-xs font-medium text-muted">Adresse</label>
                 <Input value={form.line_1} onChange={(e) => setForm({ ...form, line_1: e.target.value })} placeholder="Rue, quartier…" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">Ville</label>
+                <label className="mb-1 block text-xs font-medium text-muted">Ville</label>
                 <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
               </div>
             </div>

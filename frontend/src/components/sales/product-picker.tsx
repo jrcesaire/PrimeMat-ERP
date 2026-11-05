@@ -8,7 +8,7 @@
  * - Option « Ajout rapide » si le produit est introuvable.
  * - Le panneau est rendu dans un portail `document.body` en `position: fixed` :
  *   dans une cellule de tableau, un menu `absolute` est rogné par le Card en
- *   `overflow-hidden`, et les overrides `.dark .bg-white` (en `!important`)
+ *   `overflow-hidden`, et les overrides `.dark .bg-surface` (en `!important`)
  *   le rendent illisible. Le portail sort des deux contraintes.
  */
 "use client";
@@ -231,18 +231,18 @@ export function ProductPicker({
             e.stopPropagation();
             setOpen(true);
           }}
-          className="flex h-8 w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-2 text-left text-sm hover:border-primary focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
+          className="flex h-8 w-full items-center gap-2 rounded-md border border-line bg-surface px-2 text-left text-sm hover:border-primary focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-subtle disabled:text-faint"
         >
           <span className="min-w-0 flex-1 truncate">
             {selected ? (
               <>
-                <span className="text-gray-800">{selected.name}</span>
-                <span className="ml-1.5 text-xs text-gray-400">
+                <span className="text-ink">{selected.name}</span>
+                <span className="ml-1.5 text-xs text-faint">
                   {selected.reference}
                 </span>
               </>
             ) : (
-              <span className="text-gray-400">— Choisir un produit —</span>
+              <span className="text-faint">— Choisir un produit —</span>
             )}
           </span>
           {selected && !disabled && (
@@ -251,7 +251,7 @@ export function ProductPicker({
               tabIndex={-1}
               title="Retirer le produit"
               onClick={clear}
-              className="shrink-0 text-gray-400 hover:text-red-600"
+              className="shrink-0 text-faint hover:text-red-600"
             >
               <X className="h-3.5 w-3.5" />
             </span>
@@ -261,7 +261,7 @@ export function ProductPicker({
       {/* Chevron : bascule l'ouverture / fermeture du panneau. */}
       {open ? (
         <ChevronUp
-          className="h-4 w-4 shrink-0 text-gray-400 cursor-pointer hover:text-gray-600"
+          className="h-4 w-4 shrink-0 text-faint cursor-pointer hover:text-muted"
           onClick={(e) => {
             e.stopPropagation();
             setOpen(false);
@@ -269,7 +269,7 @@ export function ProductPicker({
         />
       ) : (
         <ChevronDown
-          className="h-4 w-4 shrink-0 text-gray-400 cursor-pointer hover:text-gray-600"
+          className="h-4 w-4 shrink-0 text-faint cursor-pointer hover:text-muted"
           onClick={(e) => {
             e.stopPropagation();
             setOpen(true);
@@ -278,7 +278,7 @@ export function ProductPicker({
       )}
 
       {/* Panneau en portail : échappe au `overflow-hidden` du Card et aux
-          overrides `.dark .bg-white`. Position `fixed` calculée depuis le
+          overrides `.dark .bg-surface`. Position `fixed` calculée depuis le
           rectangle du déclencheur, donc jamais contraint par la cellule. */}
       {open &&
         typeof document !== "undefined" &&

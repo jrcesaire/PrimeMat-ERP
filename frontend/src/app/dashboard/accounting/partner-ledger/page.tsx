@@ -38,15 +38,15 @@ export default function PartnerLedgerPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">
             Grand livre auxiliaire
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted">
             Mouvements comptables d&apos;un tiers, avec solde progressif
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
-          <div className="flex rounded-md border border-gray-200">
+          <div className="flex rounded-md border border-line">
             {(["customer", "supplier"] as const).map((t) => (
               <button
                 key={t}
@@ -58,7 +58,7 @@ export default function PartnerLedgerPage() {
                 className={`px-3 py-1.5 text-sm font-medium ${
                   partnerType === t
                     ? "rounded bg-gray-900 text-white"
-                    : "text-gray-500 hover:text-gray-800"
+                    : "text-muted hover:text-ink"
                 }`}
               >
                 {t === "customer" ? "Clients" : "Fournisseurs"}
@@ -66,11 +66,11 @@ export default function PartnerLedgerPage() {
             ))}
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Tiers</label>
+            <label className="mb-1 block text-xs text-muted">Tiers</label>
             <select
               value={partnerId}
               onChange={(e) => setPartnerId(e.target.value)}
-              className="h-10 w-64 rounded-md border border-gray-300 bg-white px-2 text-sm"
+              className="h-10 w-64 rounded-md border border-line bg-surface px-2 text-sm"
             >
               <option value="">— sélectionner un tiers —</option>
               {partners.map((p) => (
@@ -81,7 +81,7 @@ export default function PartnerLedgerPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Du</label>
+            <label className="mb-1 block text-xs text-muted">Du</label>
             <Input
               type="date"
               value={dateFrom}
@@ -90,7 +90,7 @@ export default function PartnerLedgerPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Au</label>
+            <label className="mb-1 block text-xs text-muted">Au</label>
             <Input
               type="date"
               value={dateTo}
@@ -104,43 +104,43 @@ export default function PartnerLedgerPage() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardDescription>Solde d&apos;ouverture</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {data ? formatCurrency(data.opening_balance) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             {data ? data.partner_name : "Sélectionnez un tiers"}
           </p>
         </Card>
         <Card>
           <CardDescription>Débit de la période</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {data ? formatCurrency(data.total_debit) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Factures et débits du tiers
           </p>
         </Card>
         <Card>
           <CardDescription>Crédit de la période</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {data ? formatCurrency(data.total_credit) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Règlements et avoirs
           </p>
         </Card>
         <Card>
           <CardDescription>Solde de clôture</CardDescription>
           <p
-            className={`mt-1 text-2xl font-bold tabular-nums ${
+            className={`mt-1 text-[28px] font-semibold leading-tight tabular-nums ${
               data && data.closing_balance > 0
                 ? "text-amber-600"
-                : "text-gray-900"
+                : "text-ink"
             }`}
           >
             {data ? formatCurrency(data.closing_balance) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             {data
               ? data.closing_balance > 0
                 ? partnerType === "customer"
@@ -155,15 +155,15 @@ export default function PartnerLedgerPage() {
       </div>
 
       <Card className="overflow-x-auto p-0">
-        <div className="border-b border-gray-100 px-4 py-3">
-          <h2 className="font-semibold text-gray-900">Mouvements</h2>
-          <p className="text-xs text-gray-500">
+        <div className="border-b border-line px-4 py-3">
+          <h2 className="font-semibold text-ink">Mouvements</h2>
+          <p className="text-xs text-muted">
             Écritures publiées portant ce tiers, du plus ancien au plus récent.
           </p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-2">Date</th>
               <th className="px-3 py-2">Référence</th>
               <th className="px-3 py-2">Journal</th>
@@ -177,56 +177,56 @@ export default function PartnerLedgerPage() {
           <tbody className="divide-y divide-gray-50">
             {!partnerId && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Sélectionnez un tiers pour afficher son grand livre.
                 </td>
               </tr>
             )}
             {partnerId && query.isLoading && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Chargement…
                 </td>
               </tr>
             )}
             {partnerId && !query.isLoading && (data?.lines.length ?? 0) === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Aucun mouvement comptable pour ce tiers sur la période —
                   vérifiez que ses factures et règlements sont comptabilisés.
                 </td>
               </tr>
             )}
             {data?.lines.map((l) => (
-              <tr key={`${l.entry_id}-${l.account_code}`} className="hover:bg-gray-50">
-                <td className="px-4 py-2 tabular-nums text-gray-700">
+              <tr key={`${l.entry_id}-${l.account_code}`} className="hover:bg-subtle">
+                <td className="px-4 py-2 tabular-nums text-muted">
                   {formatDate(l.entry_date)}
                 </td>
-                <td className="px-3 py-2 font-mono text-xs text-gray-600">
+                <td className="px-3 py-2 font-mono text-xs text-muted">
                   {l.reference}
                 </td>
                 <td className="px-3 py-2">
-                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                  <span className="rounded bg-subtle px-2 py-0.5 text-xs font-medium text-muted">
                     {l.journal_code}
                   </span>
                 </td>
-                <td className="px-3 py-2 font-mono text-xs text-gray-600">
+                <td className="px-3 py-2 font-mono text-xs text-muted">
                   {l.account_code}
                 </td>
-                <td className="px-3 py-2 text-gray-600">{l.label ?? "—"}</td>
-                <td className="px-3 py-2 text-right tabular-nums text-gray-900">
+                <td className="px-3 py-2 text-muted">{l.label ?? "—"}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-ink">
                   {l.debit ? formatCurrency(l.debit) : ""}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-gray-900">
+                <td className="px-3 py-2 text-right tabular-nums text-ink">
                   {l.credit ? formatCurrency(l.credit) : ""}
                 </td>
-                <td className="px-4 py-2 text-right font-semibold tabular-nums text-gray-900">
+                <td className="px-4 py-2 text-right font-semibold tabular-nums text-ink">
                   {formatCurrency(l.balance)}
                 </td>
               </tr>
             ))}
             {data && data.lines.length > 0 && (
-              <tr className="border-t border-gray-200 bg-gray-50 font-semibold">
+              <tr className="border-t border-line bg-subtle font-semibold">
                 <td className="px-4 py-2" colSpan={5}>
                   Total de la période
                 </td>

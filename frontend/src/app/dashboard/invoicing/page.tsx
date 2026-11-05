@@ -2,6 +2,7 @@
  * Page Facturation — factures, facturation depuis commande, impression.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -122,8 +123,8 @@ export default function InvoicingPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Facturation</h1>
-          <p className="text-sm text-gray-600">Factures clients</p>
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Facturation</h1>
+          <p className="text-sm text-muted">Factures clients</p>
         </div>
         <ExportButton
           endpoint="/invoicing/invoices/export"
@@ -142,11 +143,11 @@ export default function InvoicingPage() {
 
       {/* Facturer une commande */}
       <Card className={cn("space-y-3 p-4", view !== "new" && "hidden")}>
-        <h2 className="font-semibold text-gray-800">Facturer une commande confirmée</h2>
+        <h2 className="font-semibold text-ink">Facturer une commande confirmée</h2>
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="flex flex-wrap items-center gap-2">
           <select
-            className="min-w-64 rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="min-w-64 rounded-md border border-line px-3 py-2 text-sm"
             value={orderId ?? ""}
             onChange={(e) => setOrderId(e.target.value ? Number(e.target.value) : null)}
           >
@@ -161,7 +162,7 @@ export default function InvoicingPage() {
             {createInvoice.isPending ? "Création…" : "Créer la facture"}
           </Button>
           {billable.length === 0 && (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-faint">
               Aucune commande confirmée en attente de facturation.
             </p>
           )}
@@ -171,13 +172,13 @@ export default function InvoicingPage() {
       {/* Liste des factures */}
       <Card className={cn("overflow-hidden p-0", view !== "list" && "hidden")}>
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : invoices.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">Aucune facture.</p>
+          <p className="p-10 text-center text-sm text-muted">Aucune facture.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase text-muted">
                 <th className="px-4 py-3">Référence</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Statut</th>
@@ -192,15 +193,15 @@ export default function InvoicingPage() {
                 <tr
                   key={inv.id}
                   onClick={() => router.push(`/dashboard/invoicing/${inv.id}`)}
-                  className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                  className="cursor-pointer border-b border-line hover:bg-subtle"
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900 hover:text-primary hover:underline">
+                  <td className="px-4 py-3 font-medium text-ink hover:text-primary hover:underline">
                     {inv.reference}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{formatDate(inv.invoice_date)}</td>
+                  <td className="px-4 py-3 text-muted">{formatDate(inv.invoice_date)}</td>
                   <td className="px-4 py-3"><StatusBadge status={inv.status} /></td>
                   <td className="px-4 py-3 text-right font-semibold">{formatCurrency(inv.amount_total)}</td>
-                  <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(inv.paid_amount)}</td>
+                  <td className="px-4 py-3 text-right text-muted">{formatCurrency(inv.paid_amount)}</td>
                   <td className="px-4 py-3 text-right font-semibold text-red-600">
                     {formatCurrency(Math.max(inv.amount_total - inv.paid_amount, 0))}
                   </td>
@@ -239,7 +240,7 @@ export default function InvoicingPage() {
                           e.stopPropagation();
                           printInvoice(inv.id).catch(() => alert("Impossible de générer le PDF."));
                         }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-subtle"
                       >
                         <Printer className="h-4 w-4" />
                       </button>

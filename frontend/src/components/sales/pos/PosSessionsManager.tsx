@@ -152,8 +152,8 @@ export function PosSessionsManager({ onBack }: Props) {
           </Button>
         ) : null}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sessions de caisse</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Sessions de caisse</h1>
+          <p className="text-sm text-muted">
             Gestion des sessions journalières du Point de Vente
           </p>
         </div>
@@ -175,7 +175,7 @@ export function PosSessionsManager({ onBack }: Props) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                <tr className="bg-subtle text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3">Référence</th>
                   <th className="px-4 py-3 text-center">Statut</th>
                   <th className="px-4 py-3 text-right">Solde initial</th>
@@ -187,7 +187,7 @@ export function PosSessionsManager({ onBack }: Props) {
               </thead>
               <tbody>
                 {sessions.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Aucune session de caisse pour le moment.</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-faint">Aucune session de caisse pour le moment.</td></tr>
                 ) : (
                   sessions.map((s) => (
                     <tr
@@ -196,19 +196,19 @@ export function PosSessionsManager({ onBack }: Props) {
                         setSelectedSession(s);
                         setSubView(null);
                       }}
-                      className={`cursor-pointer border-b border-gray-100 ${
+                      className={`cursor-pointer border-b border-line ${
                         selectedSession?.id === s.id
                           ? "bg-blue-50"
-                          : "hover:bg-gray-50"
+                          : "hover:bg-subtle"
                       }`}
                       title="Cliquer pour voir le détail de la session"
                     >
-                      <td className="px-4 py-3 font-medium text-gray-900">{s.reference}</td>
+                      <td className="px-4 py-3 font-medium text-ink">{s.reference}</td>
                       <td className="px-4 py-3 text-center"><SessionStatusBadge status={s.status} /></td>
-                      <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(s.initial_balance)}</td>
-                      <td className="px-4 py-3 text-right">{s.closing_balance !== null ? (<span className="font-medium text-gray-900">{formatCurrency(s.closing_balance)}</span>) : (<span className="text-gray-400">—</span>)}</td>
-                      <td className="px-4 py-3 text-gray-600">{formatDate(s.opened_at)}</td>
-                      <td className="px-4 py-3 text-gray-600">{formatDate(s.closed_at)}</td>
+                      <td className="px-4 py-3 text-right text-ink">{formatCurrency(s.initial_balance)}</td>
+                      <td className="px-4 py-3 text-right">{s.closing_balance !== null ? (<span className="font-medium text-ink">{formatCurrency(s.closing_balance)}</span>) : (<span className="text-faint">—</span>)}</td>
+                      <td className="px-4 py-3 text-muted">{formatDate(s.opened_at)}</td>
+                      <td className="px-4 py-3 text-muted">{formatDate(s.closed_at)}</td>
                       <td className="px-4 py-3 text-right">
                         {s.status === "open" && canClose && (
                           <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setPendingCloseId(s.id); setCloseDialog(true); }}>Clôturer</Button>
@@ -354,8 +354,8 @@ export function PosSessionsManager({ onBack }: Props) {
                 <Input name="notes" placeholder="Ex. : Écart de caisse constaté" />
               </div>
               {activeSession && (
-                <div className="space-y-1 p-3 rounded bg-gray-50 border border-gray-200">
-                  <div className="text-xs text-gray-500 uppercase">Solde initial</div>
+                <div className="space-y-1 p-3 rounded bg-subtle border border-line">
+                  <div className="text-xs text-muted uppercase">Solde initial</div>
                   <div className="text-sm font-medium">{formatCurrency(activeSession.initial_balance)}</div>
                 </div>
               )}

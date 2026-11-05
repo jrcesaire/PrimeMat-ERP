@@ -89,7 +89,7 @@ export function PosPartnerDialog({ open, onOpenChange, onCreated }: Props) {
           <div className="space-y-1.5">
             <label
               htmlFor="pos-partner-name"
-              className="text-sm font-medium text-gray-700"
+              className="text-sm font-medium text-muted"
             >
               Nom du client <span className="text-red-600">*</span>
             </label>
@@ -106,7 +106,7 @@ export function PosPartnerDialog({ open, onOpenChange, onCreated }: Props) {
             <div className="space-y-1.5">
               <label
                 htmlFor="pos-partner-phone"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-muted"
               >
                 Téléphone
               </label>
@@ -120,7 +120,7 @@ export function PosPartnerDialog({ open, onOpenChange, onCreated }: Props) {
             <div className="space-y-1.5">
               <label
                 htmlFor="pos-partner-email"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-muted"
               >
                 Email
               </label>

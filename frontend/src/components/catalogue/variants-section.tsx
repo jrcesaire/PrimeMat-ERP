@@ -92,10 +92,10 @@ export function VariantsSection({ productId, productPrice }: VariantsSectionProp
       <Card className="p-4">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-ink">
               <Layers className="h-4 w-4" /> Propriétés du produit
             </h3>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               Ex. « Couleur » avec les valeurs Rouge, Vert, Gris foncé…
             </p>
           </div>
@@ -119,19 +119,19 @@ export function VariantsSection({ productId, productPrice }: VariantsSectionProp
         </div>
 
         {isLoading ? (
-          <p className="text-sm text-gray-500">Chargement…</p>
+          <p className="text-sm text-muted">Chargement…</p>
         ) : properties.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             Aucune propriété — créez-en une pour définir les variantes.
           </p>
         ) : (
           <div className="space-y-3">
             {properties.map((prop) => (
-              <div key={prop.id} className="rounded-lg border border-gray-200 p-3">
+              <div key={prop.id} className="rounded-lg border border-line p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-900">{prop.name}</span>
+                  <span className="text-sm font-medium text-ink">{prop.name}</span>
                   <button
-                    className="text-xs text-gray-400 hover:text-red-600"
+                    className="text-xs text-faint hover:text-red-600"
                     onClick={async () => {
                       const { confirmed } = await confirm({
                         title: `Supprimer la propriété « ${prop.name} » ?`,
@@ -151,11 +151,11 @@ export function VariantsSection({ productId, productPrice }: VariantsSectionProp
                   {prop.values.map((v) => (
                     <span
                       key={v.id}
-                      className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-700"
+                      className="inline-flex items-center gap-1 rounded-full bg-subtle px-2.5 py-0.5 text-xs text-muted"
                     >
                       {v.value}
                       <button
-                        className="text-gray-400 hover:text-red-600"
+                        className="text-faint hover:text-red-600"
                         onClick={() => deleteValue.mutate({ propertyId: prop.id, valueId: v.id })}
                         aria-label={`Supprimer ${v.value}`}
                       >
@@ -187,22 +187,22 @@ export function VariantsSection({ productId, productPrice }: VariantsSectionProp
 
       {/* ---------------- Génération ---------------- */}
       <Card className="p-4">
-        <h3 className="text-sm font-semibold text-gray-900">Générer les variantes</h3>
-        <p className="text-xs text-gray-500">
+        <h3 className="text-sm font-semibold text-ink">Générer les variantes</h3>
+        <p className="text-xs text-muted">
           Cochez les valeurs à combiner — chaque combinaison crée une variante.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {properties.map((prop) => (
-            <div key={prop.id} className="rounded-lg border border-gray-200 p-3">
-              <p className="text-xs font-semibold uppercase text-gray-500">{prop.name}</p>
+            <div key={prop.id} className="rounded-lg border border-line p-3">
+              <p className="text-xs font-semibold uppercase text-muted">{prop.name}</p>
               <div className="mt-2 space-y-1.5">
                 {prop.values.map((v) => (
-                  <label key={v.id} className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                  <label key={v.id} className="flex cursor-pointer items-center gap-2 text-sm text-muted">
                     <input
                       type="checkbox"
                       checked={(selected[prop.id] ?? []).includes(v.id)}
                       onChange={() => toggleValue(prop.id, v.id)}
-                      className="h-4 w-4 rounded border-gray-300"
+                      className="h-4 w-4 rounded border-line"
                     />
                     {v.value}
                   </label>
@@ -224,7 +224,7 @@ export function VariantsSection({ productId, productPrice }: VariantsSectionProp
             )}
             Générer {totalCombos > 0 ? `${totalCombos} variante${totalCombos > 1 ? "s" : ""}` : ""}
           </Button>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted">
             Les combinaisons existantes sont ignorées (aucun doublon).
           </span>
         </div>
@@ -232,19 +232,19 @@ export function VariantsSection({ productId, productPrice }: VariantsSectionProp
 
       {/* ---------------- Tableau des variantes ---------------- */}
       <Card className="overflow-hidden p-0">
-        <div className="border-b border-gray-200 px-4 py-3">
-          <h3 className="text-sm font-semibold text-gray-900">
+        <div className="border-b border-line px-4 py-3">
+          <h3 className="text-sm font-semibold text-ink">
             Variantes ({variants.length})
           </h3>
         </div>
         {variants.length === 0 ? (
-          <p className="p-6 text-center text-sm text-gray-500">
+          <p className="p-6 text-center text-sm text-muted">
             Aucune variante — générez-en depuis les propriétés ci-dessus.
           </p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase text-muted">
                 <th className="px-4 py-2">Réf.</th>
                 <th className="px-4 py-2">Combinaison</th>
                 <th className="px-4 py-2">Caractéristiques</th>
@@ -256,10 +256,10 @@ export function VariantsSection({ productId, productPrice }: VariantsSectionProp
             </thead>
             <tbody>
               {variants.map((v: ProductVariant) => (
-                <tr key={v.id} className="border-b border-gray-100">
-                  <td className="px-4 py-2 text-xs text-gray-500">{v.reference ?? "—"}</td>
-                  <td className="px-4 py-2 font-medium text-gray-900">{v.name_suffix}</td>
-                  <td className="px-4 py-2 text-xs text-gray-600">
+                <tr key={v.id} className="border-b border-line">
+                  <td className="px-4 py-2 text-xs text-muted">{v.reference ?? "—"}</td>
+                  <td className="px-4 py-2 font-medium text-ink">{v.name_suffix}</td>
+                  <td className="px-4 py-2 text-xs text-muted">
                     {v.properties.map((pp) => `${pp.property_name}: ${pp.value}`).join(" · ")}
                   </td>
                   <td className="px-4 py-2 text-right">
@@ -284,13 +284,13 @@ export function VariantsSection({ productId, productPrice }: VariantsSectionProp
                       type="checkbox"
                       checked={v.is_active}
                       onChange={(e) => updateVariant.mutate({ id: v.id, data: { is_active: e.target.checked } })}
-                      className="h-4 w-4 rounded border-gray-300"
+                      className="h-4 w-4 rounded border-line"
                       aria-label={`Activer ${v.name_suffix}`}
                     />
                   </td>
                   <td className="px-4 py-2 text-right">
                     <button
-                      className="text-gray-400 hover:text-red-600"
+                      className="text-faint hover:text-red-600"
                       onClick={async () => {
                       const { confirmed } = await confirm(
                         confirmDeleteOptions(`la variante ${v.name_suffix}`),
@@ -356,7 +356,7 @@ function PriceCell({
         </button>
         <button
           onClick={() => setEditing(false)}
-          className="text-gray-400 hover:text-gray-600"
+          className="text-faint hover:text-muted"
           aria-label="Annuler"
         >
           <X className="h-4 w-4" />
@@ -367,7 +367,7 @@ function PriceCell({
 
   return (
     <button
-      className="text-sm text-gray-900 hover:text-primary hover:underline"
+      className="text-sm text-ink hover:text-primary hover:underline"
       onClick={() => {
         setDraft(value != null ? String(value) : "");
         setEditing(true);
@@ -377,7 +377,7 @@ function PriceCell({
       {value != null ? (
         formatCurrency(value)
       ) : fallback != null ? (
-        <span className="text-gray-400">{formatCurrency(fallback)} (base)</span>
+        <span className="text-faint">{formatCurrency(fallback)} (base)</span>
       ) : (
         "—"
       )}

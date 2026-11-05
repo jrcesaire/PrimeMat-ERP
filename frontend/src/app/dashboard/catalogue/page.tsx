@@ -23,7 +23,7 @@ import { useStockLevels } from "@/hooks/useStock";
 import { cn, formatCurrency, formatNumber, lastRouteSegment } from "@/lib/utils";
 
 const SALE_MODE_LABELS: Record<string, { label: string; cls: string }> = {
-  unit: { label: "À l'unité", cls: "bg-gray-100 text-gray-700" },
+  unit: { label: "À l'unité", cls: "bg-subtle text-muted" },
   length: { label: "Au mètre (BAC)", cls: "bg-blue-100 text-blue-700" },
   dual: { label: "Unité + mètre", cls: "bg-purple-100 text-purple-700" },
 };
@@ -32,7 +32,7 @@ const STORAGE_TYPE_BADGES: Record<string, { label: string; cls: string }> = {
   stockable: { label: "En stock", cls: "bg-emerald-100 text-emerald-700" },
   on_demand: { label: "Production", cls: "bg-orange-100 text-orange-700" },
   hybrid: { label: "Stock + Production", cls: "bg-violet-100 text-violet-700" },
-  service: { label: "Service", cls: "bg-gray-100 text-gray-600" },
+  service: { label: "Service", cls: "bg-subtle text-muted" },
 };
 
 export default function CataloguePage() {
@@ -84,8 +84,8 @@ export default function CataloguePage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Catalogue</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Catalogue</h1>
+          <p className="text-sm text-muted">
             Le mode de vente est défini par la catégorie
           </p>
         </div>

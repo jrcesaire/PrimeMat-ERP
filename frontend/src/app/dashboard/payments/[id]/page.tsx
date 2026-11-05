@@ -2,6 +2,7 @@
  * Détail d'un paiement — lecture + reçu imprimable.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -106,10 +107,10 @@ export default function PaymentDetailPage({
   };
 
   if (isLoading)
-    return <p className="p-6 text-sm text-gray-500">Chargement…</p>;
+    return <RowsSkeleton />;
   if (!payment)
     return (
-      <p className="p-6 text-sm text-gray-500">
+      <p className="p-6 text-sm text-muted">
         Paiement introuvable (ou accès refusé).
       </p>
     );
@@ -121,11 +122,11 @@ export default function PaymentDetailPage({
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/dashboard/payments" className="text-sm text-gray-500 hover:text-primary">
+          <Link href="/dashboard/payments" className="text-sm text-muted hover:text-primary">
             <ArrowLeft className="mr-1 inline h-4 w-4" /> Retour aux paiements
           </Link>
-          <h1 className="mt-1 text-2xl font-bold text-gray-900">{payment.reference}</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="mt-1 text-[28px] font-semibold leading-tight text-ink">{payment.reference}</h1>
+          <p className="text-sm text-muted">
             {client?.name ?? `Client #${payment.partner_id ?? "?"}`} ·{" "}
             {formatDate(payment.payment_date)}
           </p>
@@ -177,32 +178,32 @@ export default function PaymentDetailPage({
 
       <Card className="grid grid-cols-2 gap-6 p-4 sm:grid-cols-4">
         <div>
-          <p className="text-xs text-gray-500">Statut</p>
+          <p className="text-xs text-muted">Statut</p>
           <StatusBadge status={payment.status} />
         </div>
         <div>
-          <p className="text-xs text-gray-500">Mode</p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-xs text-muted">Mode</p>
+          <p className="text-sm font-medium text-ink">
             {METHOD_LABELS[payment.method] ?? payment.method}
           </p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Direction</p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-xs text-muted">Direction</p>
+          <p className="text-sm font-medium text-ink">
             {payment.direction === "in" ? "Entrant" : "Sortant"}
           </p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Facture liée</p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-xs text-muted">Facture liée</p>
+          <p className="text-sm font-medium text-ink">
             {invoice?.reference ?? (payment.invoice_id ? `#${payment.invoice_id}` : "—")}
           </p>
         </div>
       </Card>
 
       <Card className="flex justify-between p-5">
-        <span className="text-sm text-gray-500">Montant</span>
-        <span className="text-2xl font-bold text-green-700">
+        <span className="text-sm text-muted">Montant</span>
+        <span className="text-[28px] font-semibold leading-tight text-green-700">
           {formatCurrency(payment.amount)}
         </span>
       </Card>

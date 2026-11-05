@@ -22,7 +22,7 @@ type CnStatus = "draft" | "issued" | "applied";
 type CnType = "customer" | "supplier";
 
 const STATUS_LABEL: Record<string, { label: string; className: string }> = {
-  draft: { label: "Brouillon", className: "bg-gray-100 text-gray-700" },
+  draft: { label: "Brouillon", className: "bg-subtle text-muted" },
   issued: { label: "Émis", className: "bg-blue-100 text-blue-800" },
   applied: { label: "Imputé", className: "bg-green-100 text-green-800" },
 };
@@ -130,8 +130,8 @@ export default function CreditNotesPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Avoirs / notes de crédit</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Avoirs / notes de crédit</h1>
+          <p className="text-sm text-muted">
             Notes de crédit client et fournisseur (SYSCOHADA / OHADA)
           </p>
         </div>
@@ -151,9 +151,9 @@ export default function CreditNotesPage() {
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-4 text-sm">
-          <span className="font-medium text-gray-700">Filtres :</span>
+          <span className="font-medium text-muted">Filtres :</span>
           <div className="flex items-center gap-2">
-            <span className="text-gray-500">Statut</span>
+            <span className="text-muted">Statut</span>
             {["", "draft", "issued", "applied"].map((s) => (
               <button
                 key={s}
@@ -161,7 +161,7 @@ export default function CreditNotesPage() {
                 className={`px-3 py-1 text-xs rounded border ${
                   statusFilter === s
                     ? "bg-gray-900 text-white border-gray-900"
-                    : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                    : "bg-surface text-muted border-line hover:bg-subtle"
                 }`}
               >
                 {s ? STATUS_LABEL[s]?.label ?? s : "Tous"}
@@ -169,7 +169,7 @@ export default function CreditNotesPage() {
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-gray-500">Type</span>
+            <span className="text-muted">Type</span>
             {["", "customer", "supplier"].map((t) => (
               <button
                 key={t}
@@ -177,7 +177,7 @@ export default function CreditNotesPage() {
                 className={`px-3 py-1 text-xs rounded border ${
                   typeFilter === t
                     ? "bg-gray-900 text-white border-gray-900"
-                    : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                    : "bg-surface text-muted border-line hover:bg-subtle"
                 }`}
               >
                 {t ? TYPE_LABEL[t] : "Tous"}
@@ -189,32 +189,32 @@ export default function CreditNotesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="p-4">
-          <p className="text-xs text-gray-500">Total avoirs</p>
-          <p className="text-lg font-semibold text-gray-900">
+          <p className="text-xs text-muted">Total avoirs</p>
+          <p className="text-lg font-semibold text-ink">
             {formatCurrency(total)} ({notes.length})
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-gray-500">À imputer (émis)</p>
-          <p className="text-lg font-semibold text-gray-900">
+          <p className="text-xs text-muted">À imputer (émis)</p>
+          <p className="text-lg font-semibold text-ink">
             {formatCurrency(issuedTotal)}
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-gray-500">Déjà imputés</p>
-          <p className="text-lg font-semibold text-gray-900">
+          <p className="text-xs text-muted">Déjà imputés</p>
+          <p className="text-lg font-semibold text-ink">
             {notes.filter((n) => n.status === "applied").length}
           </p>
         </Card>
       </div>
       <Card className="overflow-hidden">
-        <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-900">Liste des avoirs</h2>
+        <div className="border-b border-line bg-subtle px-4 py-3">
+          <h2 className="text-sm font-semibold text-ink">Liste des avoirs</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
+              <tr className="border-b border-line text-left text-xs text-muted">
                 <th className="px-4 py-3 font-mono">Référence</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Type</th>
@@ -226,45 +226,45 @@ export default function CreditNotesPage() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-gray-400">
+                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-faint">
                     Chargement…
                   </td>
                 </tr>
               ) : notes.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-gray-400">
+                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-faint">
                     Aucun avoir trouvé.
                   </td>
                 </tr>
               ) : (
                 notes.map((n) => (
-                  <tr key={n.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono text-xs font-medium text-gray-900">
+                  <tr key={n.id} className="hover:bg-subtle">
+                    <td className="px-4 py-3 font-mono text-xs font-medium text-ink">
                       {n.reference}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-muted">
                       {formatDate(n.credit_date)}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-muted">
                       {TYPE_LABEL[n.type]}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-muted">
                       {n.partner_id ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-600">
+                    <td className="px-4 py-3 text-right tabular-nums text-muted">
                       {formatCurrency(n.amount_untaxed)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-600">
+                    <td className="px-4 py-3 text-right tabular-nums text-muted">
                       {formatCurrency(n.tax_amount)}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums font-medium">
                       {formatCurrency(n.amount_total)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_LABEL[n.status]?.className ?? "bg-gray-100 text-gray-700"}`}>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_LABEL[n.status]?.className ?? "bg-subtle text-muted"}`}>
                         {STATUS_LABEL[n.status]?.label ?? n.status}
                       </span>
                     </td>
@@ -307,31 +307,31 @@ export default function CreditNotesPage() {
         </div>
       </Card>
       {openCreate && (
-        <Card className="border border-gray-200">
-          <div className="border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Nouvel avoir (brouillon)</h2>
+        <Card className="border border-line">
+          <div className="border-b border-line px-4 py-3 flex items-center justify-between">
+            <h2 className="font-semibold text-ink">Nouvel avoir (brouillon)</h2>
             <Button
               size="sm"
               onClick={() => setOpenCreate(false)}
-              className="text-gray-500 hover:text-gray-900"
+              className="text-muted hover:text-ink"
             >
               Fermer
             </Button>
           </div>
           <form onSubmit={handleCreate} className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="col-span-1 md:col-span-1">
-              <label className="block text-xs text-gray-500 mb-1">Type</label>
+              <label className="block text-xs text-muted mb-1">Type</label>
               <select
                 value={cnType}
                 onChange={(e) => setCnType(e.target.value as CnType)}
-                className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 text-sm"
+                className="w-full h-10 rounded-md border border-line bg-surface px-3 text-sm"
               >
                 <option value="customer">Client</option>
                 <option value="supplier">Fournisseur</option>
               </select>
             </div>
             <div className="col-span-1 md:col-span-1">
-              <label className="block text-xs text-gray-500 mb-1">ID partenaire</label>
+              <label className="block text-xs text-muted mb-1">ID partenaire</label>
               <Input
                 value={partnerId}
                 onChange={(e) => setPartnerId(e.target.value)}
@@ -339,7 +339,7 @@ export default function CreditNotesPage() {
               />
             </div>
             <div className="col-span-1 md:col-span-1">
-              <label className="block text-xs text-gray-500 mb-1">Montant HT</label>
+              <label className="block text-xs text-muted mb-1">Montant HT</label>
               <Input
                 type="number"
                 value={amountUntaxed}
@@ -348,7 +348,7 @@ export default function CreditNotesPage() {
               />
             </div>
             <div className="col-span-1 md:col-span-1">
-              <label className="block text-xs text-gray-500 mb-1">TVA</label>
+              <label className="block text-xs text-muted mb-1">TVA</label>
               <Input
                 type="number"
                 value={taxAmount}
@@ -357,7 +357,7 @@ export default function CreditNotesPage() {
               />
             </div>
             <div className="col-span-1 md:col-span-1">
-              <label className="block text-xs text-gray-500 mb-1">Montant TTC</label>
+              <label className="block text-xs text-muted mb-1">Montant TTC</label>
               <Input
                 type="number"
                 value={amountTotal}
@@ -366,7 +366,7 @@ export default function CreditNotesPage() {
               />
             </div>
             <div className="col-span-1 md:col-span-1">
-              <label className="block text-xs text-gray-500 mb-1">Date</label>
+              <label className="block text-xs text-muted mb-1">Date</label>
               <Input
                 type="date"
                 value={creditDate}
@@ -374,7 +374,7 @@ export default function CreditNotesPage() {
               />
             </div>
             <div className="col-span-4">
-              <label className="block text-xs text-gray-500 mb-1">Motif</label>
+              <label className="block text-xs text-muted mb-1">Motif</label>
               <Input
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -394,26 +394,26 @@ export default function CreditNotesPage() {
       )}
 
       {openApply && (
-        <Card className="border border-gray-200">
-          <div className="border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">
+        <Card className="border border-line">
+          <div className="border-b border-line px-4 py-3 flex items-center justify-between">
+            <h2 className="font-semibold text-ink">
               Imputer un avoir sur une facture
             </h2>
             <Button
               size="sm"
               onClick={() => setOpenApply(false)}
-              className="text-gray-500 hover:text-gray-900"
+              className="text-muted hover:text-ink"
             >
               Fermer
             </Button>
           </div>
           <form onSubmit={handleApply} className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="col-span-1 md:col-span-1">
-              <label className="block text-xs text-gray-500 mb-1">Avoir (ID)</label>
-              <Input value={applyId} readOnly className="bg-gray-50" />
+              <label className="block text-xs text-muted mb-1">Avoir (ID)</label>
+              <Input value={applyId} readOnly className="bg-subtle" />
             </div>
             <div className="col-span-1 md:col-span-1">
-              <label className="block text-xs text-gray-500 mb-1">Facture (ID)</label>
+              <label className="block text-xs text-muted mb-1">Facture (ID)</label>
               <Input
                 value={applyInvoiceId}
                 onChange={(e) => setApplyInvoiceId(e.target.value)}
@@ -421,7 +421,7 @@ export default function CreditNotesPage() {
               />
             </div>
             <div className="col-span-1 md:col-span-1">
-              <label className="block text-xs text-gray-500 mb-1">
+              <label className="block text-xs text-muted mb-1">
                 Montant à imputer
               </label>
               <Input
@@ -432,8 +432,8 @@ export default function CreditNotesPage() {
               />
             </div>
             <div className="col-span-1 md:col-span-1">
-              <label className="block text-xs text-gray-500 mb-1">‎</label>
-              <span className="text-xs text-gray-500">
+              <label className="block text-xs text-muted mb-1">‎</label>
+              <span className="text-xs text-muted">
                 Par défaut le montant total de l’avoir est imputé (plafonné par le solde de la facture).
               </span>
             </div>

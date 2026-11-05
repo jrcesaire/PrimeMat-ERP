@@ -143,10 +143,10 @@ export default function FiscalYearClosingPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">
             Clôture d&apos;exercice
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted">
             Soldage des charges et produits, report à nouveau automatique et
             verrouillage de l&apos;exercice
           </p>
@@ -180,16 +180,16 @@ export default function FiscalYearClosingPage() {
       )}
 
       {openCreate && (
-        <Card className="border border-gray-200">
-          <div className="mb-4 border-b border-gray-100 pb-3">
-            <h2 className="font-semibold text-gray-900">Nouvel exercice</h2>
+        <Card className="border border-line">
+          <div className="mb-4 border-b border-line pb-3">
+            <h2 className="font-semibold text-ink">Nouvel exercice</h2>
           </div>
           <form
             onSubmit={handleCreateYear}
             className="grid grid-cols-1 gap-4 md:grid-cols-4"
           >
             <div className="md:col-span-2">
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Libellé *
               </label>
               <Input
@@ -200,7 +200,7 @@ export default function FiscalYearClosingPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Début *</label>
+              <label className="mb-1 block text-xs text-muted">Début *</label>
               <Input
                 type="date"
                 value={form.start_date}
@@ -211,7 +211,7 @@ export default function FiscalYearClosingPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Fin *</label>
+              <label className="mb-1 block text-xs text-muted">Fin *</label>
               <Input
                 type="date"
                 value={form.end_date}
@@ -241,19 +241,19 @@ export default function FiscalYearClosingPage() {
       )}
 
       <Card className="p-0">
-        <div className="border-b border-gray-100 px-4 py-3">
-          <h2 className="font-semibold text-gray-900">Exercices comptables</h2>
-          <p className="text-xs text-gray-500">
+        <div className="border-b border-line px-4 py-3">
+          <h2 className="font-semibold text-ink">Exercices comptables</h2>
+          <p className="text-xs text-muted">
             Sélectionnez l&apos;exercice à clôturer. Un exercice clôturé est
             verrouillé : ses écritures ne peuvent plus être saisies ni publiées.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 px-4 py-3">
           {isLoading && (
-            <span className="text-sm text-gray-400">Chargement…</span>
+            <span className="text-sm text-faint">Chargement…</span>
           )}
           {!isLoading && sortedYears.length === 0 && (
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-faint">
               Aucun exercice comptable — créez-en un pour commencer.
             </span>
           )}
@@ -271,17 +271,17 @@ export default function FiscalYearClosingPage() {
                 className={`flex flex-col items-start rounded-md border px-3 py-2 text-left text-sm transition-colors ${
                   active
                     ? "border-primary bg-primary/5"
-                    : "border-gray-200 hover:bg-gray-50"
+                    : "border-line hover:bg-subtle"
                 }`}
               >
-                <span className="font-medium text-gray-900">{y.name}</span>
-                <span className="text-xs text-gray-500">
+                <span className="font-medium text-ink">{y.name}</span>
+                <span className="text-xs text-muted">
                   {formatDate(y.start_date)} → {formatDate(y.end_date)}
                 </span>
                 <span
                   className={`mt-1 rounded px-2 py-0.5 text-xs font-medium ${
                     y.status === "closed"
-                      ? "bg-gray-200 text-gray-700"
+                      ? "bg-gray-200 text-muted"
                       : "bg-green-100 text-green-700"
                   }`}
                 >
@@ -299,17 +299,17 @@ export default function FiscalYearClosingPage() {
             <Card>
               <CardDescription>Résultat de l&apos;exercice</CardDescription>
               <p
-                className={`mt-1 text-2xl font-bold tabular-nums ${
+                className={`mt-1 text-[28px] font-semibold leading-tight tabular-nums ${
                   preview?.result_type === "profit"
                     ? "text-green-600"
                     : preview?.result_type === "loss"
                     ? "text-red-600"
-                    : "text-gray-900"
+                    : "text-ink"
                 }`}
               >
                 {preview ? formatCurrency(preview.result) : "—"}
               </p>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted">
                 {preview?.result_type === "profit"
                   ? `Bénéfice — comptabilisé au compte ${preview.result_account}`
                   : preview?.result_type === "loss"
@@ -319,33 +319,33 @@ export default function FiscalYearClosingPage() {
             </Card>
             <Card>
               <CardDescription>Comptes à solder</CardDescription>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+              <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
                 {preview ? preview.lines.length : "—"}
               </p>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted">
                 Charges (classe 6) et produits (classes 7 et 8)
               </p>
             </Card>
             <Card>
               <CardDescription>Total du soldage</CardDescription>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+              <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
                 {preview ? formatCurrency(preview.total_debit) : "—"}
               </p>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted">
                 Débit = crédit ={" "}
                 {preview ? formatCurrency(preview.total_credit) : "—"}
               </p>
             </Card>
             <Card>
               <CardDescription>Report à nouveau</CardDescription>
-              <p className="mt-1 text-lg font-bold text-gray-900">
+              <p className="mt-1 text-lg font-bold text-ink">
                 {preview?.next_year
                   ? preview.next_year.name
                   : preview?.next_year_will_be_created
                   ? "Exercice suivant (créé par la clôture)"
                   : "—"}
               </p>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted">
                 {preview?.result_type === "profit"
                   ? "Bénéfice viré au compte 111 (report à nouveau créditeur)"
                   : preview?.result_type === "loss"
@@ -356,18 +356,18 @@ export default function FiscalYearClosingPage() {
           </div>
 
           <Card className="overflow-x-auto p-0">
-            <div className="border-b border-gray-100 px-4 py-3">
-              <h2 className="font-semibold text-gray-900">
+            <div className="border-b border-line px-4 py-3">
+              <h2 className="font-semibold text-ink">
                 Comptes de charges et de produits de {selectedYear.name}
               </h2>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted">
                 Chaque solde est annulé par une ligne de sens inverse ; la
                 contrepartie nette est le résultat de l&apos;exercice.
               </p>
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+                <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-2">Compte</th>
                   <th className="px-3 py-2">Libellé</th>
                   <th className="px-3 py-2">Classe</th>
@@ -381,7 +381,7 @@ export default function FiscalYearClosingPage() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-4 py-10 text-center text-gray-400"
+                      className="px-4 py-10 text-center text-faint"
                     >
                       Chargement…
                     </td>
@@ -392,7 +392,7 @@ export default function FiscalYearClosingPage() {
                     <tr>
                       <td
                         colSpan={6}
-                        className="px-4 py-10 text-center text-gray-400"
+                        className="px-4 py-10 text-center text-faint"
                       >
                         Aucun compte de charge ou de produit mouvementé sur cet
                         exercice — la clôture n&apos;aura pas d&apos;écriture à
@@ -401,21 +401,21 @@ export default function FiscalYearClosingPage() {
                     </tr>
                   )}
                 {preview?.lines.map((l) => (
-                  <tr key={l.account_code} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-mono text-xs font-semibold text-gray-700">
+                  <tr key={l.account_code} className="hover:bg-subtle">
+                    <td className="px-4 py-2 font-mono text-xs font-semibold text-muted">
                       {l.account_code}
                     </td>
-                    <td className="px-3 py-2 text-gray-900">
+                    <td className="px-3 py-2 text-ink">
                       {l.account_name}
                     </td>
-                    <td className="px-3 py-2 text-gray-500">{l.class_no}</td>
-                    <td className="px-3 py-2 text-right font-semibold tabular-nums text-gray-900">
+                    <td className="px-3 py-2 text-muted">{l.class_no}</td>
+                    <td className="px-3 py-2 text-right font-semibold tabular-nums text-ink">
                       {formatCurrency(l.balance)}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-gray-600">
+                    <td className="px-3 py-2 text-right tabular-nums text-muted">
                       {l.debit ? formatCurrency(l.debit) : "—"}
                     </td>
-                    <td className="px-4 py-2 text-right tabular-nums text-gray-600">
+                    <td className="px-4 py-2 text-right tabular-nums text-muted">
                       {l.credit ? formatCurrency(l.credit) : "—"}
                     </td>
                   </tr>
@@ -427,22 +427,22 @@ export default function FiscalYearClosingPage() {
       )}
 
       {selectedYear && (
-        <Card className="border border-gray-200">
+        <Card className="border border-line">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-semibold text-gray-900">
+              <h2 className="font-semibold text-ink">
                 {preview?.already_closed
                   ? "Exercice clôturé — écritures verrouillées"
                   : "Clôturer l'exercice"}
               </h2>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted">
                 {preview?.already_closed
                   ? `Les écritures de ${selectedYear.name} ne peuvent plus être saisies ni publiées. Réouvrez l'exercice pour corriger.`
                   : `La clôture solde les charges et les produits de ${selectedYear.name}, reporte le résultat au report à nouveau, puis verrouille l'exercice.`}
               </p>
               {(preview?.closing_entry_reference ||
                 preview?.opening_entry_reference) && (
-                <p className="mt-2 font-mono text-xs text-gray-500">
+                <p className="mt-2 font-mono text-xs text-muted">
                   {preview?.closing_entry_reference
                     ? `Clôture : ${preview.closing_entry_reference}`
                     : ""}

@@ -38,8 +38,8 @@ export default function ContactsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
-          <p className="text-sm text-gray-600">Clients et fournisseurs</p>
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Contacts</h1>
+          <p className="text-sm text-muted">Clients et fournisseurs</p>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton
@@ -68,7 +68,7 @@ export default function ContactsPage() {
       />
 
       {/* Filtres */}
-      <div className="flex gap-4 border-b border-gray-200">
+      <div className="flex gap-4 border-b border-line">
         {[
           { key: "all", label: "Tous" },
           { key: "client", label: "Clients" },
@@ -80,7 +80,7 @@ export default function ContactsPage() {
             className={`border-b-2 px-4 pb-2 text-sm font-medium ${
               role === t.key
                 ? "border-primary text-primary"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                : "border-transparent text-muted hover:text-muted"
             }`}
           >
             {t.label}

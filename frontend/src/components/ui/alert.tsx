@@ -12,7 +12,7 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
       ref={ref}
       role="alert"
       className={cn(
-        "relative w-full rounded-lg border border-gray-200 px-4 py-3 text-sm",
+        "relative w-full rounded-lg border border-line px-4 py-3 text-sm",
         className,
       )}
       {...props}

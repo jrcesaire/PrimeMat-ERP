@@ -40,7 +40,7 @@ function errMsg(err: unknown, fallback: string): string {
 }
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  draft: { label: "Brouillon", className: "bg-gray-100 text-gray-700" },
+  draft: { label: "Brouillon", className: "bg-subtle text-muted" },
   submitted: { label: "Soumise", className: "bg-blue-100 text-blue-800" },
   paid: { label: "Réglée", className: "bg-green-100 text-green-800" },
 };
@@ -173,8 +173,8 @@ export default function VATPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Déclaration de TVA</h1>
-        <p className="text-sm text-gray-600">
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">Déclaration de TVA</h1>
+        <p className="text-sm text-muted">
           TVA collectée / déductible d&apos;une période, liquidation et
           règlement (SYSCOHADA)
         </p>
@@ -197,20 +197,20 @@ export default function VATPage() {
         </div>
       )}
 
-      <Card className="border border-gray-200">
-        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-100 pb-3">
+      <Card className="border border-line">
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
           <div>
-            <h2 className="font-semibold text-gray-900">
+            <h2 className="font-semibold text-ink">
               Période à déclarer
             </h2>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               Les montants sont calculés sur les écritures publiées de la
               période (bornes incluses).
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-2">
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Du</label>
+              <label className="mb-1 block text-xs text-muted">Du</label>
               <Input
                 type="date"
                 value={periodStart}
@@ -219,7 +219,7 @@ export default function VATPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Au</label>
+              <label className="mb-1 block text-xs text-muted">Au</label>
               <Input
                 type="date"
                 value={periodEnd}
@@ -247,37 +247,37 @@ export default function VATPage() {
         <div className="grid gap-6 pt-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <CardDescription>TVA collectée</CardDescription>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+            <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
               {preview ? formatCurrency(preview.collected_amount) : "—"}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted">
               Comptes 443x (TVA facturée)
             </p>
           </div>
           <div>
             <CardDescription>TVA déductible</CardDescription>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+            <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
               {preview ? formatCurrency(preview.deductible_amount) : "—"}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted">
               Comptes 442x / 445x (TVA récupérable)
             </p>
           </div>
           <div>
             <CardDescription>TVA à payer</CardDescription>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-amber-600">
+            <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-amber-600">
               {preview ? formatCurrency(preview.net_due) : "—"}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted">
               {preview?.label ?? "Période sélectionnée"}
             </p>
           </div>
           <div>
             <CardDescription>Crédit reportable</CardDescription>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-blue-600">
+            <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-blue-600">
               {preview ? formatCurrency(preview.credit_carry) : "—"}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted">
               Reporté sur la période suivante
             </p>
           </div>
@@ -286,7 +286,7 @@ export default function VATPage() {
         <div className="mt-6 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-2 py-2">Compte</th>
                 <th className="px-3 py-2">Libellé</th>
                 <th className="px-3 py-2">Nature</th>
@@ -297,25 +297,25 @@ export default function VATPage() {
             <tbody className="divide-y divide-gray-50">
               {previewQuery.isLoading && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-8 text-center text-gray-400">
+                  <td colSpan={5} className="px-3 py-8 text-center text-faint">
                     Calcul en cours…
                   </td>
                 </tr>
               )}
               {!previewQuery.isLoading && (preview?.lines.length ?? 0) === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-8 text-center text-gray-400">
+                  <td colSpan={5} className="px-3 py-8 text-center text-faint">
                     Aucun mouvement de TVA sur cette période — vérifiez les
                     dates ou la comptabilisation des factures.
                   </td>
                 </tr>
               )}
               {preview?.lines.map((l) => (
-                <tr key={l.account_code} className="hover:bg-gray-50">
-                  <td className="px-2 py-2 font-mono text-xs font-semibold text-gray-700">
+                <tr key={l.account_code} className="hover:bg-subtle">
+                  <td className="px-2 py-2 font-mono text-xs font-semibold text-muted">
                     {l.account_code}
                   </td>
-                  <td className="px-3 py-2 text-gray-900">{l.account_name}</td>
+                  <td className="px-3 py-2 text-ink">{l.account_name}</td>
                   <td className="px-3 py-2">
                     <span
                       className={`rounded px-2 py-0.5 text-xs font-medium ${
@@ -327,10 +327,10 @@ export default function VATPage() {
                       {KIND_LABELS[l.kind] ?? l.kind}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-500">
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">
                     {l.entry_count}
                   </td>
-                  <td className="px-3 py-2 text-right font-semibold tabular-nums text-gray-900">
+                  <td className="px-3 py-2 text-right font-semibold tabular-nums text-ink">
                     {formatCurrency(l.amount)}
                   </td>
                 </tr>
@@ -341,18 +341,18 @@ export default function VATPage() {
       </Card>
 
       <Card className="overflow-x-auto p-0">
-        <div className="border-b border-gray-100 px-4 py-3">
-          <h2 className="font-semibold text-gray-900">
+        <div className="border-b border-line px-4 py-3">
+          <h2 className="font-semibold text-ink">
             Historique des déclarations
           </h2>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             Brouillon (recalculable) → Soumise (liquidation comptabilisée) →
             Réglée (décaissement enregistré).
           </p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-2">Référence</th>
               <th className="px-3 py-2">Période</th>
               <th className="px-3 py-2 text-right">Collectée</th>
@@ -366,14 +366,14 @@ export default function VATPage() {
           <tbody className="divide-y divide-gray-50">
             {isLoading && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Chargement…
                 </td>
               </tr>
             )}
             {!isLoading && returns.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Aucune déclaration — choisissez une période ci-dessus puis
                   créez la déclaration.
                 </td>
@@ -382,24 +382,24 @@ export default function VATPage() {
             {returns.map((v) => {
               const status = STATUS_LABELS[v.status] ?? {
                 label: v.status,
-                className: "bg-gray-100 text-gray-700",
+                className: "bg-subtle text-muted",
               };
               return (
                 <Fragment key={v.id}>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-mono text-xs font-semibold text-gray-700">
+                  <tr className="hover:bg-subtle">
+                    <td className="px-4 py-2 font-mono text-xs font-semibold text-muted">
                       {v.reference}
                     </td>
                     <td className="px-3 py-2">
-                      <div className="font-medium text-gray-900">{v.label}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="font-medium text-ink">{v.label}</div>
+                      <div className="text-xs text-muted">
                         {formatDate(v.period_start)} → {formatDate(v.period_end)}
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                    <td className="px-3 py-2 text-right tabular-nums text-muted">
                       {formatCurrency(v.collected_amount)}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                    <td className="px-3 py-2 text-right tabular-nums text-muted">
                       {formatCurrency(v.deductible_amount)}
                     </td>
                     <td className="px-3 py-2 text-right font-semibold tabular-nums text-amber-700">
@@ -422,7 +422,7 @@ export default function VATPage() {
                           onClick={() =>
                             setExpandedId(expandedId === v.id ? null : v.id)
                           }
-                          className="text-sm text-gray-600 hover:underline"
+                          className="text-sm text-muted hover:underline"
                         >
                           {expandedId === v.id ? "Masquer" : "Détail"}
                         </button>
@@ -432,7 +432,7 @@ export default function VATPage() {
                               type="button"
                               onClick={() => handleRecompute(v.id)}
                               disabled={recomputeReturn.isPending}
-                              className="text-sm text-gray-600 hover:underline disabled:opacity-50"
+                              className="text-sm text-muted hover:underline disabled:opacity-50"
                             >
                               Recalculer
                             </button>
@@ -469,8 +469,8 @@ export default function VATPage() {
                   </tr>
                   {expandedId === v.id && (
                     <tr>
-                      <td colSpan={8} className="bg-gray-50 px-4 py-3">
-                        <p className="mb-2 text-xs font-medium text-gray-600">
+                      <td colSpan={8} className="bg-subtle px-4 py-3">
+                        <p className="mb-2 text-xs font-medium text-muted">
                           Détail par compte —{" "}
                           {v.journal_entry_id
                             ? `liquidation : écriture #${v.journal_entry_id}`
@@ -480,26 +480,26 @@ export default function VATPage() {
                             : ""}
                         </p>
                         <table className="w-full text-sm">
-                          <tbody className="divide-y divide-gray-100">
+                          <tbody className="divide-y divide-line">
                             {v.lines.length === 0 && (
                               <tr>
-                                <td className="py-3 text-center text-gray-400">
+                                <td className="py-3 text-center text-faint">
                                   Aucun compte de TVA mouvementé.
                                 </td>
                               </tr>
                             )}
                             {v.lines.map((l) => (
                               <tr key={l.id}>
-                                <td className="w-20 py-1 font-mono text-xs text-gray-700">
+                                <td className="w-20 py-1 font-mono text-xs text-muted">
                                   {l.account_code}
                                 </td>
-                                <td className="py-1 text-gray-600">
+                                <td className="py-1 text-muted">
                                   {l.account_name}
                                 </td>
-                                <td className="w-32 py-1 text-gray-500">
+                                <td className="w-32 py-1 text-muted">
                                   {KIND_LABELS[l.kind] ?? l.kind}
                                 </td>
-                                <td className="w-32 py-1 text-right tabular-nums text-gray-900">
+                                <td className="w-32 py-1 text-right tabular-nums text-ink">
                                   {formatCurrency(l.amount)}
                                 </td>
                               </tr>

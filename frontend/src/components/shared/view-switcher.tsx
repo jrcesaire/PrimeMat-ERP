@@ -23,7 +23,7 @@ export function ViewSwitcher<T extends string>({
   options: ViewSwitcherOption<T>[];
 }) {
   return (
-    <div className="flex flex-wrap gap-1 border-b border-gray-200">
+    <div className="flex flex-wrap gap-1 border-b border-line">
       {options.map((option) => (
         <button
           key={option.key}
@@ -33,8 +33,8 @@ export function ViewSwitcher<T extends string>({
           className={cn(
             "px-4 py-2 text-sm font-medium transition-colors",
             value === option.key
-              ? "border-b-2 border-gray-900 text-gray-900"
-              : "text-gray-500 hover:text-gray-800",
+              ? "border-b-2 border-gray-900 text-ink"
+              : "text-muted hover:text-ink",
           )}
         >
           {option.label}

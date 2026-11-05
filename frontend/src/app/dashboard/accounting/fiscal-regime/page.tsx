@@ -89,8 +89,8 @@ export default function FiscalRegimePage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configuration fiscale</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Configuration fiscale</h1>
+          <p className="text-sm text-muted">
             Régime d'imposition SYSCOHADA — Côte d'Ivoire (TEE / RME / RSI / RNI)
           </p>
         </div>
@@ -117,30 +117,30 @@ export default function FiscalRegimePage() {
           {regime && (
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-lg border p-4">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <p className="text-xs font-medium text-muted uppercase tracking-wider">
                   Régime actuel
                 </p>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">{regime.tax_regime ?? "Non défini"}</span>
+                  <span className="text-[28px] font-semibold leading-tight">{regime.tax_regime ?? "Non défini"}</span>
                   <Badge variant={regime.tva_blocked ? "destructive" : "default"} className="ml-auto">
                     {regime.tva_blocked ? "TVA bloquée" : "TVA autorisée"}
                   </Badge>
                 </div>
                 {currentRegimeInfo && (
-                  <p className="mt-2 text-sm text-gray-600">{currentRegimeInfo.description}</p>
+                  <p className="mt-2 text-sm text-muted">{currentRegimeInfo.description}</p>
                 )}
               </div>
               <div className="rounded-lg border p-4">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <p className="text-xs font-medium text-muted uppercase tracking-wider">
                   Seuil de CA annuel
                 </p>
-                <div className="mt-1 text-2xl font-bold">{formatFCFA(currentRegimeInfo?.ca_threshold ?? null)}</div>
+                <div className="mt-1 text-[28px] font-semibold leading-tight">{formatFCFA(currentRegimeInfo?.ca_threshold ?? null)}</div>
               </div>
             </div>
           )}
 
           <div className="pt-4 border-t space-y-4">
-            <p className="text-sm font-medium text-gray-700">Changer le régime fiscal</p>
+            <p className="text-sm font-medium text-muted">Changer le régime fiscal</p>
             <div className="space-y-2">
               {REGIMES.map((r) => (
                 <button
@@ -150,7 +150,7 @@ export default function FiscalRegimePage() {
                   className={`w-full flex justify-between items-center px-4 py-3 rounded-lg border transition-colors ${
                     regime?.tax_regime === r.code
                       ? "bg-blue-50 border-blue-200 text-blue-700"
-                      : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                      : "bg-surface border-line text-muted hover:bg-subtle"
                   }`}
                 >
                   <span>{r.label}</span>
@@ -200,14 +200,14 @@ export default function FiscalRegimePage() {
               {regime.tva_blocked ? (
                 <>
                   <p className="text-sm text-orange-600 font-medium">TVA non collectable</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted">
                     Les factures émises ne comportent pas de TVA.
                   </p>
                 </>
               ) : (
                 <>
                   <p className="text-sm text-green-600 font-medium">TVA collectable et déductible</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted">
                     Les factures comportent la TVA applicable selon le taux configuré.
                   </p>
                 </>
@@ -238,7 +238,7 @@ export default function FiscalRegimePage() {
               <TrendingUp className="mr-2 h-4 w-4" />
               Tester le dépassement
             </Button>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted">
               Seuil actuel : {formatFCFA(currentRegimeInfo.ca_threshold)}
             </p>
           </CardContent>

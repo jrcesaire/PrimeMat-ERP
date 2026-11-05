@@ -27,14 +27,14 @@ export default function AccountLedgerPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Grand livre</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Grand livre</h1>
+          <p className="text-sm text-muted">
             Mouvements d&apos;un compte du plan comptable, avec solde progressif
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <div>
-            <label className="mb-1 block text-xs text-gray-500">
+            <label className="mb-1 block text-xs text-muted">
               Compte
             </label>
             <Input
@@ -45,7 +45,7 @@ export default function AccountLedgerPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Du</label>
+            <label className="mb-1 block text-xs text-muted">Du</label>
             <Input
               type="date"
               value={dateFrom}
@@ -54,7 +54,7 @@ export default function AccountLedgerPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Au</label>
+            <label className="mb-1 block text-xs text-muted">Au</label>
             <Input
               type="date"
               value={dateTo}
@@ -68,41 +68,41 @@ export default function AccountLedgerPage() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardDescription>Solde d&apos;ouverture</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {data ? formatCurrency(data.opening_balance) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             {data ? `${data.account_code} — ${data.account_name}` : "Saisissez un compte"}
           </p>
         </Card>
         <Card>
           <CardDescription>Débit de la période</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {data ? formatCurrency(data.total_debit) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             {data ? `${data.movements.length} mouvement(s)` : "—"}
           </p>
         </Card>
         <Card>
           <CardDescription>Crédit de la période</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {data ? formatCurrency(data.total_credit) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Écritures publiées uniquement
           </p>
         </Card>
         <Card>
           <CardDescription>Solde de clôture</CardDescription>
           <p
-            className={`mt-1 text-2xl font-bold tabular-nums ${
-              data && data.closing_balance < 0 ? "text-blue-600" : "text-gray-900"
+            className={`mt-1 text-[28px] font-semibold leading-tight tabular-nums ${
+              data && data.closing_balance < 0 ? "text-blue-600" : "text-ink"
             }`}
           >
             {data ? formatCurrency(data.closing_balance) : "—"}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             {data && data.closing_balance < 0
               ? "Solde créditeur"
               : "Solde débiteur"}
@@ -111,15 +111,15 @@ export default function AccountLedgerPage() {
       </div>
 
       <Card className="overflow-x-auto p-0">
-        <div className="border-b border-gray-100 px-4 py-3">
-          <h2 className="font-semibold text-gray-900">Mouvements</h2>
-          <p className="text-xs text-gray-500">
+        <div className="border-b border-line px-4 py-3">
+          <h2 className="font-semibold text-ink">Mouvements</h2>
+          <p className="text-xs text-muted">
             Écritures publiées, du plus ancien au plus récent.
           </p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-2">Date</th>
               <th className="px-3 py-2">Référence</th>
               <th className="px-3 py-2">Journal</th>
@@ -132,7 +132,7 @@ export default function AccountLedgerPage() {
           <tbody className="divide-y divide-gray-50">
             {!accountCode.trim() && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-faint">
                   Saisissez un code de compte (411, 4431, 601…) pour afficher
                   son grand livre.
                 </td>
@@ -140,7 +140,7 @@ export default function AccountLedgerPage() {
             )}
             {accountCode.trim() && query.isLoading && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-faint">
                   Chargement…
                 </td>
               </tr>
@@ -149,38 +149,38 @@ export default function AccountLedgerPage() {
               !query.isLoading &&
               (data?.movements.length ?? 0) === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-10 text-center text-faint">
                     Aucun mouvement sur ce compte pour la période.
                   </td>
                 </tr>
               )}
             {data?.movements.map((m, index) => (
-              <tr key={`${m.entry_id}-${index}`} className="hover:bg-gray-50">
-                <td className="px-4 py-2 tabular-nums text-gray-700">
+              <tr key={`${m.entry_id}-${index}`} className="hover:bg-subtle">
+                <td className="px-4 py-2 tabular-nums text-muted">
                   {formatDate(m.entry_date)}
                 </td>
-                <td className="px-3 py-2 font-mono text-xs text-gray-600">
+                <td className="px-3 py-2 font-mono text-xs text-muted">
                   {m.reference}
                 </td>
                 <td className="px-3 py-2">
-                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                  <span className="rounded bg-subtle px-2 py-0.5 text-xs font-medium text-muted">
                     {m.journal_code}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-gray-600">{m.label ?? "—"}</td>
-                <td className="px-3 py-2 text-right tabular-nums text-gray-900">
+                <td className="px-3 py-2 text-muted">{m.label ?? "—"}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-ink">
                   {m.debit ? formatCurrency(m.debit) : ""}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-gray-900">
+                <td className="px-3 py-2 text-right tabular-nums text-ink">
                   {m.credit ? formatCurrency(m.credit) : ""}
                 </td>
-                <td className="px-4 py-2 text-right font-semibold tabular-nums text-gray-900">
+                <td className="px-4 py-2 text-right font-semibold tabular-nums text-ink">
                   {formatCurrency(m.balance)}
                 </td>
               </tr>
             ))}
             {data && data.movements.length > 0 && (
-              <tr className="border-t border-gray-200 bg-gray-50 font-semibold">
+              <tr className="border-t border-line bg-subtle font-semibold">
                 <td className="px-4 py-2" colSpan={4}>
                   Total de la période
                 </td>

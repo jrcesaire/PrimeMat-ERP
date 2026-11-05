@@ -7,6 +7,7 @@
  * → facture (draft → posted → paid, rapprochement 3 voies).
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -83,7 +84,7 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 const PRIORITY_LABELS: Record<string, { label: string; className: string }> = {
-  low: { label: "Basse", className: "bg-gray-100 text-gray-600" },
+  low: { label: "Basse", className: "bg-subtle text-muted" },
   normal: { label: "Normale", className: "bg-blue-100 text-blue-700" },
   high: { label: "Haute", className: "bg-amber-100 text-amber-700" },
   urgent: { label: "Urgente", className: "bg-red-100 text-red-700" },
@@ -155,7 +156,7 @@ function LineEditor({
             allowCreate
           />
           <input
-            className="w-20 rounded-md border border-gray-300 px-2 py-2 text-right text-sm"
+            className="w-20 rounded-md border border-line px-2 py-2 text-right text-sm"
             type="number"
             min="0"
             step="any"
@@ -164,14 +165,14 @@ function LineEditor({
             onChange={(e) => update(i, { quantity: e.target.value })}
           />
           <input
-            className="w-20 rounded-md border border-gray-300 px-2 py-2 text-sm"
+            className="w-20 rounded-md border border-line px-2 py-2 text-sm"
             placeholder="Unité"
             title="Unité"
             value={l.unit}
             onChange={(e) => update(i, { unit: e.target.value })}
           />
           <input
-            className="w-32 rounded-md border border-gray-300 px-2 py-2 text-right text-sm"
+            className="w-32 rounded-md border border-line px-2 py-2 text-right text-sm"
             type="number"
             min="0"
             step="any"
@@ -217,22 +218,22 @@ export default function PurchasesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Achats</h1>
-        <p className="text-sm text-gray-600">
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">Achats</h1>
+        <p className="text-sm text-muted">
           Demandes d&apos;achat, bons de commande, réceptions et factures
           fournisseur
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-gray-200">
+      <div className="flex flex-wrap gap-1 border-b border-line">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               tab === t.key
-                ? "border-b-2 border-gray-900 text-gray-900"
-                : "text-gray-500 hover:text-gray-800"
+                ? "border-b-2 border-gray-900 text-ink"
+                : "text-muted hover:text-ink"
             }`}
           >
             {t.label}
@@ -364,7 +365,7 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           {requests.length} demande(s) — workflow soumission / approbation
         </p>
         {can("purchase_request:edit") && (
@@ -391,7 +392,7 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
           <div className="space-y-3 p-4">
             <div className="flex flex-wrap gap-2">
               <select
-                className="min-w-56 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className="min-w-56 rounded-md border border-line px-3 py-2 text-sm"
                 value={supplierId}
                 onChange={(e) => setSupplierId(e.target.value)}
               >
@@ -405,7 +406,7 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
                   ))}
               </select>
               <select
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className="rounded-md border border-line px-3 py-2 text-sm"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
               >
@@ -416,7 +417,7 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
               </select>
               <input
                 type="date"
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className="rounded-md border border-line px-3 py-2 text-sm"
                 title="Besoin avant le"
                 value={neededBy}
                 onChange={(e) => setNeededBy(e.target.value)}
@@ -454,38 +455,38 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
 
       <Card className="overflow-x-auto p-0">
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : requests.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">
+          <p className="p-10 text-center text-sm text-muted">
             Aucune demande d&apos;achat.
           </p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50">
+            <thead className="border-b border-line bg-subtle">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">N°</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Fournisseur</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Priorité</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Lignes</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Estimé</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Statut</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">N°</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Fournisseur</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Priorité</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Lignes</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Estimé</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Statut</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {requests.map((r) => {
                 const prio = PRIORITY_LABELS[r.priority] ?? {
                   label: r.priority,
-                  className: "bg-gray-100 text-gray-600",
+                  className: "bg-subtle text-muted",
                 };
                 return (
                   <tr
                     key={r.id}
-                    className="align-top hover:bg-gray-50 cursor-pointer"
+                    className="align-top hover:bg-subtle cursor-pointer"
                     onClick={() => setDetailId(r.id)}
                   >
-                    <td className="px-4 py-2.5 font-medium text-gray-900">
+                    <td className="px-4 py-2.5 font-medium text-ink">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -630,7 +631,7 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
                       {rejectId === r.id && (
                         <div className="mt-1 flex justify-end gap-1">
                           <input
-                            className="w-44 rounded-md border border-gray-300 px-2 py-1 text-xs"
+                            className="w-44 rounded-md border border-line px-2 py-1 text-xs"
                             placeholder="Motif du rejet"
                             value={rejectReason}
                             onChange={(e) => {
@@ -681,41 +682,41 @@ function RequestsTab({ onConverted }: { onConverted: () => void }) {
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">Fournisseur</span>
+                  <span className="text-muted text-xs uppercase">Fournisseur</span>
                   <p>{supplierName(detail.supplier_id)}</p>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">Date</span>
+                  <span className="text-muted text-xs uppercase">Date</span>
                   <p>{formatDate(detail.request_date)}</p>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">Priorité</span>
+                  <span className="text-muted text-xs uppercase">Priorité</span>
                   <p>{PRIORITY_LABELS[detail.priority]?.label ?? detail.priority}</p>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">Statut</span>
+                  <span className="text-muted text-xs uppercase">Statut</span>
                   <StatusBadge status={detail.status} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">Total estimé</span>
+                  <span className="text-muted text-xs uppercase">Total estimé</span>
                   <p className="text-right font-medium">{formatCurrency(detail.estimated_total)}</p>
                 </div>
                 {detail.needed_by && (
                   <div className="flex flex-col gap-1">
-                    <span className="text-gray-500 text-xs uppercase">Besoin avant le</span>
+                    <span className="text-muted text-xs uppercase">Besoin avant le</span>
                     <p>{formatDate(detail.needed_by)}</p>
                   </div>
                 )}
               </div>
               <div>
-                <span className="text-gray-500 text-xs uppercase block mb-1">Lignes</span>
-                <table className="w-full text-sm border border-gray-100">
-                  <thead className="border-b border-gray-100 bg-gray-50">
+                <span className="text-muted text-xs uppercase block mb-1">Lignes</span>
+                <table className="w-full text-sm border border-line">
+                  <thead className="border-b border-line bg-subtle">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-500">Produit</th>
-                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">Qté</th>
-                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">Prix unit.</th>
-                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">Total</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-muted">Produit</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-muted">Qté</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-muted">Prix unit.</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-muted">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -853,7 +854,7 @@ function OrdersTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           {orders.length} bon(aux) de commande — les DA approuvées se convertissent
           depuis l&apos;onglet Demandes
         </p>
@@ -883,7 +884,7 @@ function OrdersTab() {
           <div className="space-y-3 p-4">
             <div className="flex flex-wrap gap-2">
               <select
-                className="min-w-56 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className="min-w-56 rounded-md border border-line px-3 py-2 text-sm"
                 value={supplierId}
                 onChange={(e) => setSupplierId(e.target.value)}
               >
@@ -898,7 +899,7 @@ function OrdersTab() {
               </select>
               <input
                 type="date"
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className="rounded-md border border-line px-3 py-2 text-sm"
                 title="Date prévue"
                 value={expectedDate}
                 onChange={(e) => setExpectedDate(e.target.value)}
@@ -933,23 +934,23 @@ function OrdersTab() {
 
       <Card className="overflow-x-auto p-0">
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : orders.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">
+          <p className="p-10 text-center text-sm text-muted">
             Aucun bon de commande.
           </p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50">
+            <thead className="border-b border-line bg-subtle">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">N°</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Fournisseur</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Prévu le</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Lignes</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Total TTC</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Statut</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">N°</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Fournisseur</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Prévu le</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Lignes</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Total TTC</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Statut</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -960,10 +961,10 @@ function OrdersTab() {
                 return (
                   <tr
                     key={o.id}
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className="hover:bg-subtle cursor-pointer"
                     onClick={() => setDetailId(o.id)}
                   >
-                    <td className="px-4 py-2.5 font-medium text-gray-900">
+                    <td className="px-4 py-2.5 font-medium text-ink">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -975,7 +976,7 @@ function OrdersTab() {
                         {o.number}
                       </button>
                       {o.origin_request_id && (
-                        <span className="ml-1 text-xs text-gray-400">
+                        <span className="ml-1 text-xs text-faint">
                           (DA #{o.origin_request_id})
                         </span>
                       )}
@@ -1093,31 +1094,31 @@ function OrdersTab() {
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">
+                  <span className="text-muted text-xs uppercase">
                     Fournisseur
                   </span>
                   <p>{supplierName(detail.supplier_id)}</p>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">
+                  <span className="text-muted text-xs uppercase">
                     Date commande
                   </span>
                   <p>{formatDate(detail.order_date)}</p>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">
+                  <span className="text-muted text-xs uppercase">
                     Prévu le
                   </span>
                   <p>{formatDate(detail.expected_date)}</p>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">
+                  <span className="text-muted text-xs uppercase">
                     Statut
                   </span>
                   <StatusBadge status={detail.status} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">
+                  <span className="text-muted text-xs uppercase">
                     Total HT
                   </span>
                   <p className="text-right font-medium">
@@ -1125,7 +1126,7 @@ function OrdersTab() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">
+                  <span className="text-muted text-xs uppercase">
                     Total TTC
                   </span>
                   <p className="text-right font-medium">
@@ -1135,30 +1136,30 @@ function OrdersTab() {
               </div>
               {detail.notes && (
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 text-xs uppercase">Notes</span>
+                  <span className="text-muted text-xs uppercase">Notes</span>
                   <p>{detail.notes}</p>
                 </div>
               )}
               <div>
-                <span className="text-gray-500 text-xs uppercase block mb-1">
+                <span className="text-muted text-xs uppercase block mb-1">
                   Lignes
                 </span>
-                <table className="w-full text-sm border border-gray-100">
-                  <thead className="border-b border-gray-100 bg-gray-50">
+                <table className="w-full text-sm border border-line">
+                  <thead className="border-b border-line bg-subtle">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-500">
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-muted">
                         Produit
                       </th>
-                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-muted">
                         Qté
                       </th>
-                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-muted">
                         Qté reçue
                       </th>
-                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-muted">
                         Prix unit.
                       </th>
-                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-muted">
                         Total
                       </th>
                     </tr>
@@ -1240,7 +1241,7 @@ function OrdersTab() {
                 </>
               )}
               {detail.status === "received" && (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted">
                   Aucune opération possible (reçu).
                 </span>
               )}
@@ -1341,7 +1342,7 @@ function ReceptionsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           {receptions.length} réception(s) — validation = mouvement de stock
           entrant
         </p>
@@ -1358,10 +1359,10 @@ function ReceptionsTab() {
 
       {showForm && (
         <Card className="space-y-3 p-4">
-          <h2 className="font-semibold text-gray-800">Nouvelle réception (BR)</h2>
+          <h2 className="font-semibold text-ink">Nouvelle réception (BR)</h2>
           <div className="flex flex-wrap gap-2">
             <select
-              className="min-w-64 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="min-w-64 rounded-md border border-line px-3 py-2 text-sm"
               value={orderId}
               onChange={(e) => {
                 setOrderId(e.target.value);
@@ -1376,7 +1377,7 @@ function ReceptionsTab() {
               ))}
             </select>
             <select
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="rounded-md border border-line px-3 py-2 text-sm"
               value={warehouseId}
               onChange={(e) => setWarehouseId(e.target.value)}
             >
@@ -1391,7 +1392,7 @@ function ReceptionsTab() {
 
           {orderId && orderLines.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase text-gray-500">
+              <p className="text-xs font-semibold uppercase text-muted">
                 Quantités reçues (restant par défaut)
               </p>
               {orderLines.map((l) => (
@@ -1399,14 +1400,14 @@ function ReceptionsTab() {
                   key={l.id}
                   className="flex flex-wrap items-center gap-2 text-sm"
                 >
-                  <span className="min-w-52 flex-1 text-gray-800">
+                  <span className="min-w-52 flex-1 text-ink">
                     {l.description ?? `Ligne #${l.id}`}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-faint">
                     restant : {l.quantity_remaining} {l.unit ?? ""}
                   </span>
                   <input
-                    className="w-24 rounded-md border border-gray-300 px-2 py-1.5 text-right text-sm"
+                    className="w-24 rounded-md border border-line px-2 py-1.5 text-right text-sm"
                     type="number"
                     min="0"
                     step="any"
@@ -1429,28 +1430,28 @@ function ReceptionsTab() {
 
       <Card className="overflow-x-auto p-0">
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : receptions.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">
+          <p className="p-10 text-center text-sm text-muted">
             Aucune réception.
           </p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50">
+            <thead className="border-b border-line bg-subtle">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">N°</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Bon de commande</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Entrepôt</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Date</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Lignes</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Statut</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">N°</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Bon de commande</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Entrepôt</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Date</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Lignes</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Statut</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {receptions.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5 font-medium text-gray-900">
+                <tr key={r.id} className="hover:bg-subtle">
+                  <td className="px-4 py-2.5 font-medium text-ink">
                     {r.number}
                   </td>
                   <td className="px-4 py-2.5">{orderNumber(r.order_id)}</td>
@@ -1623,7 +1624,7 @@ function InvoicesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           {invoices.length} facture(s) — rapprochement 3 voies, comptabilisation
           et règlements
         </p>
@@ -1640,10 +1641,10 @@ function InvoicesTab() {
 
       {showForm && (
         <Card className="space-y-3 p-4">
-          <h2 className="font-semibold text-gray-800">Nouvelle facture fournisseur</h2>
+          <h2 className="font-semibold text-ink">Nouvelle facture fournisseur</h2>
           <div className="flex flex-wrap gap-2">
             <select
-              className="min-w-56 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="min-w-56 rounded-md border border-line px-3 py-2 text-sm"
               value={supplierId}
               onChange={(e) => {
                 setSupplierId(e.target.value);
@@ -1662,7 +1663,7 @@ function InvoicesTab() {
                 ))}
             </select>
             <select
-              className="min-w-64 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="min-w-64 rounded-md border border-line px-3 py-2 text-sm"
               value={orderId}
               onChange={(e) => {
                 setOrderId(e.target.value);
@@ -1678,21 +1679,21 @@ function InvoicesTab() {
               ))}
             </select>
             <input
-              className="w-44 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="w-44 rounded-md border border-line px-3 py-2 text-sm"
               placeholder="N° facture fournisseur"
               value={supplierRef}
               onChange={(e) => setSupplierRef(e.target.value)}
             />
             <input
               type="date"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="rounded-md border border-line px-3 py-2 text-sm"
               title="Date de facture"
               value={invoiceDate}
               onChange={(e) => setInvoiceDate(e.target.value)}
             />
             <input
               type="date"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="rounded-md border border-line px-3 py-2 text-sm"
               title="Échéance"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
@@ -1701,7 +1702,7 @@ function InvoicesTab() {
 
           {orderId ? (
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase text-gray-500">
+              <p className="text-xs font-semibold uppercase text-muted">
                 Lignes du bon de commande (quantités et prix modifiables)
               </p>
               {orderLines.map((l) => (
@@ -1709,11 +1710,11 @@ function InvoicesTab() {
                   key={l.id}
                   className="flex flex-wrap items-center gap-2 text-sm"
                 >
-                  <span className="min-w-52 flex-1 text-gray-800">
+                  <span className="min-w-52 flex-1 text-ink">
                     {l.description ?? `Ligne #${l.id}`}
                   </span>
                   <input
-                    className="w-24 rounded-md border border-gray-300 px-2 py-1.5 text-right text-sm"
+                    className="w-24 rounded-md border border-line px-2 py-1.5 text-right text-sm"
                     type="number"
                     min="0"
                     step="any"
@@ -1722,7 +1723,7 @@ function InvoicesTab() {
                     onChange={(e) => setQtys({ ...qtys, [l.id]: e.target.value })}
                   />
                   <input
-                    className="w-32 rounded-md border border-gray-300 px-2 py-1.5 text-right text-sm"
+                    className="w-32 rounded-md border border-line px-2 py-1.5 text-right text-sm"
                     type="number"
                     min="0"
                     step="any"
@@ -1748,7 +1749,7 @@ function InvoicesTab() {
       {matchView && (
         <Card className="space-y-2 p-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-800">
+            <h3 className="font-semibold text-ink">
               Rapprochement —{" "}
               {invoices.find((i) => i.id === matchView.invoiceId)?.reference ??
                 `#${matchView.invoiceId}`}
@@ -1757,10 +1758,10 @@ function InvoicesTab() {
               Fermer
             </Button>
           </div>
-          <p className="flex items-center gap-2 text-sm text-gray-600">
+          <p className="flex items-center gap-2 text-sm text-muted">
             Statut : <StatusBadge status={matchView.result.status} />
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted">
             Commandé : {formatCurrency(matchView.result.ordered_total ?? null)} —
             Facturé : {formatCurrency(matchView.result.invoiced_total ?? null)}
           </p>
@@ -1783,32 +1784,32 @@ function InvoicesTab() {
 
       <Card className="overflow-x-auto p-0">
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : invoices.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">
+          <p className="p-10 text-center text-sm text-muted">
             Aucune facture fournisseur.
           </p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50">
+            <thead className="border-b border-line bg-subtle">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Référence</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Fournisseur</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Date</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Total TTC</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Reste dû</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Rapprochement</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Statut</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Référence</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Fournisseur</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Date</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Total TTC</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Reste dû</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Rapprochement</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Statut</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {invoices.map((inv) => (
-                <tr key={inv.id} className="align-top hover:bg-gray-50">
-                  <td className="px-4 py-2.5 font-medium text-gray-900">
+                <tr key={inv.id} className="align-top hover:bg-subtle">
+                  <td className="px-4 py-2.5 font-medium text-ink">
                     {inv.reference}
                     {inv.supplier_invoice_number && (
-                      <p className="text-xs font-normal text-gray-400">
+                      <p className="text-xs font-normal text-faint">
                         N° fournisseur : {inv.supplier_invoice_number}
                       </p>
                     )}
@@ -1817,7 +1818,7 @@ function InvoicesTab() {
                   <td className="px-4 py-2.5">
                     {formatDate(inv.invoice_date)}
                     {inv.due_date && (
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-faint">
                         échéance {formatDate(inv.due_date)}
                       </p>
                     )}
@@ -1832,7 +1833,7 @@ function InvoicesTab() {
                     {inv.matching_status ? (
                       <StatusBadge status={inv.matching_status} />
                     ) : (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-faint">
                         non rapprochée
                       </span>
                     )}
@@ -1883,7 +1884,7 @@ function InvoicesTab() {
                     {payId === inv.id && (
                       <div className="mt-1 flex justify-end gap-1">
                         <input
-                          className="w-28 rounded-md border border-gray-300 px-2 py-1 text-right text-xs"
+                          className="w-28 rounded-md border border-line px-2 py-1 text-right text-xs"
                           type="number"
                           min="0"
                           step="any"
@@ -2022,7 +2023,7 @@ function SuppliersTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600">{suppliers.length} fournisseur(s)</p>
+        <p className="text-sm text-muted">{suppliers.length} fournisseur(s)</p>
         {can("purchase:create") && (
           <Button
             variant="outline"
@@ -2042,37 +2043,37 @@ function SuppliersTab() {
 
       {showForm && (
         <Card className="space-y-3 p-4">
-          <h2 className="font-semibold text-gray-800">
+          <h2 className="font-semibold text-ink">
             {editId ? "Modifier le fournisseur" : "Nouveau fournisseur"}
           </h2>
           <div className="flex flex-wrap gap-2">
             <input
-              className="min-w-56 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="min-w-56 rounded-md border border-line px-3 py-2 text-sm"
               placeholder="Nom *"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
             <input
-              className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="w-32 rounded-md border border-line px-3 py-2 text-sm"
               placeholder="Code"
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
             <input
-              className="w-44 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="w-44 rounded-md border border-line px-3 py-2 text-sm"
               placeholder="Téléphone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
             <input
-              className="w-56 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="w-56 rounded-md border border-line px-3 py-2 text-sm"
               placeholder="Email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
             <input
-              className="w-36 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="w-36 rounded-md border border-line px-3 py-2 text-sm"
               placeholder="Délai paiement (j)"
               type="number"
               min="0"
@@ -2080,7 +2081,7 @@ function SuppliersTab() {
               onChange={(e) => setTerms(e.target.value)}
             />
             <input
-              className="w-36 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="w-36 rounded-md border border-line px-3 py-2 text-sm"
               placeholder="Délai livraison (j)"
               type="number"
               min="0"
@@ -2096,32 +2097,32 @@ function SuppliersTab() {
 
       <Card className="overflow-x-auto p-0">
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : suppliers.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">
+          <p className="p-10 text-center text-sm text-muted">
             Aucun fournisseur.
           </p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50">
+            <thead className="border-b border-line bg-subtle">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Nom</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Code</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Contact</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Délai livr.</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Note</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Actif</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Nom</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Code</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Contact</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Délai livr.</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Note</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Actif</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {suppliers.map((s) => (
-                <tr key={s.id} className="align-top hover:bg-gray-50">
-                  <td className="px-4 py-2.5 font-medium text-gray-900">{s.name}</td>
+                <tr key={s.id} className="align-top hover:bg-subtle">
+                  <td className="px-4 py-2.5 font-medium text-ink">{s.name}</td>
                   <td className="px-4 py-2.5">{s.code ?? "—"}</td>
                   <td className="px-4 py-2.5">
                     {s.phone ?? "—"}
-                    {s.email && <p className="text-xs text-gray-400">{s.email}</p>}
+                    {s.email && <p className="text-xs text-faint">{s.email}</p>}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     {s.delivery_days != null ? `${s.delivery_days} j` : "—"}
@@ -2131,12 +2132,12 @@ function SuppliersTab() {
                       <span className="text-amber-500">
                         {"★".repeat(Math.round(s.rating))}
                         {"☆".repeat(5 - Math.round(s.rating))}
-                        <span className="ml-1 text-xs text-gray-500">
+                        <span className="ml-1 text-xs text-muted">
                           ({Number(s.rating).toFixed(1)})
                         </span>
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-400">non noté</span>
+                      <span className="text-xs text-faint">non noté</span>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
@@ -2145,7 +2146,7 @@ function SuppliersTab() {
                         Oui
                       </span>
                     ) : (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                      <span className="rounded-full bg-subtle px-2 py-0.5 text-xs text-muted">
                         Non
                       </span>
                     )}
@@ -2188,7 +2189,7 @@ function SuppliersTab() {
                     {rateId === s.id && (
                       <div className="mt-1 flex justify-end gap-1">
                         <select
-                          className="rounded-md border border-gray-300 px-2 py-1 text-xs"
+                          className="rounded-md border border-line px-2 py-1 text-xs"
                           value={rateValue}
                           onChange={(e) => setRateValue(e.target.value)}
                         >
@@ -2244,29 +2245,29 @@ function SuggestTable({
   loading: boolean;
 }) {
   if (loading) {
-    return <p className="p-6 text-sm text-gray-500">Chargement…</p>;
+    return <RowsSkeleton />;
   }
   if (items.length === 0) {
     return (
-      <p className="p-8 text-center text-sm text-gray-500">
+      <p className="p-8 text-center text-sm text-muted">
         Aucune suggestion — l&apos;historique se remplit avec vos achats.
       </p>
     );
   }
   return (
     <table className="w-full text-sm">
-      <thead className="border-b border-gray-100 bg-gray-50">
+      <thead className="border-b border-line bg-subtle">
         <tr>
-          <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Nom</th>
-          <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Note</th>
-          <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Délai</th>
-          <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Dernier prix</th>
+          <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Nom</th>
+          <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted">Note</th>
+          <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Délai</th>
+          <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-muted">Dernier prix</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-50">
         {items.map((s) => (
-          <tr key={s.id} className="hover:bg-gray-50">
-            <td className="px-4 py-2.5 font-medium text-gray-900">{s.name}</td>
+          <tr key={s.id} className="hover:bg-subtle">
+            <td className="px-4 py-2.5 font-medium text-ink">{s.name}</td>
             <td className="px-4 py-2.5">
               {s.rating != null ? `${Number(s.rating).toFixed(1)} / 5` : "—"}
             </td>
@@ -2292,20 +2293,20 @@ function SuggestionsTab() {
   return (
     <div className="space-y-4">
       <Card className="overflow-x-auto p-0">
-        <h2 className="px-4 pt-4 font-semibold text-gray-800">
+        <h2 className="px-4 pt-4 font-semibold text-ink">
           Fournisseurs suggérés
         </h2>
-        <p className="px-4 pb-2 text-sm text-gray-600">
+        <p className="px-4 pb-2 text-sm text-muted">
           Classement selon la note, le délai de livraison et le dernier prix
           constaté.
         </p>
         <SuggestTable items={supSuggestions} loading={loadingSup} />
       </Card>
       <Card className="overflow-x-auto p-0">
-        <h2 className="px-4 pt-4 font-semibold text-gray-800">
+        <h2 className="px-4 pt-4 font-semibold text-ink">
           Historique de prix par produit
         </h2>
-        <p className="px-4 pb-2 text-sm text-gray-600">
+        <p className="px-4 pb-2 text-sm text-muted">
           Derniers prix d&apos;achat observés pour préparer vos négociations.
         </p>
         <SuggestTable items={prodSuggestions} loading={loadingProd} />
@@ -2354,21 +2355,21 @@ function NeedsTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-muted">
         Besoins d&apos;achat issus des commandes confirmées (à acheter auprès
         des fournisseurs).
       </p>
       <Card className="overflow-hidden p-0">
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : needs.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">
+          <p className="p-10 text-center text-sm text-muted">
             Aucun besoin d&apos;achat en cours.
           </p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase text-muted">
                 <th className="px-4 py-3">Produit</th>
                 <th className="px-4 py-3 text-right">Quantité à acheter</th>
               </tr>
@@ -2377,9 +2378,9 @@ function NeedsTab() {
               {needs.map((n) => (
                 <tr
                   key={n.productId}
-                  className="border-b border-gray-100 hover:bg-gray-50"
+                  className="border-b border-line hover:bg-subtle"
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900">
+                  <td className="px-4 py-3 font-medium text-ink">
                     {n.name}
                     {n.sellByLength && (
                       <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">

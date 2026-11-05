@@ -2,6 +2,7 @@
  * Page Paiements — encaissements, reçus imprimables.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -140,8 +141,8 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Paiements</h1>
-        <p className="text-sm text-gray-600">Encaissements clients</p>
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">Paiements</h1>
+        <p className="text-sm text-muted">Encaissements clients</p>
       </div>
 
       <ViewSwitcher
@@ -155,11 +156,11 @@ export default function PaymentsPage() {
 
       {/* Nouveau paiement */}
       <Card className={cn("space-y-3 p-4", view !== "new" && "hidden")}>
-        <h2 className="font-semibold text-gray-800">Encaisser un paiement</h2>
+        <h2 className="font-semibold text-ink">Encaisser un paiement</h2>
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <select
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-md border border-line px-3 py-2 text-sm"
             value={invoiceId ?? ""}
             onChange={(e) => {
               const id = e.target.value ? Number(e.target.value) : null;
@@ -176,7 +177,7 @@ export default function PaymentsPage() {
             ))}
           </select>
           <select
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-md border border-line px-3 py-2 text-sm"
             value={method}
             onChange={(e) => setMethod(e.target.value)}
           >
@@ -197,20 +198,20 @@ export default function PaymentsPage() {
           </Button>
         </div>
         {unpaid.length === 0 && (
-          <p className="text-xs text-gray-400">Aucune facture en attente de paiement.</p>
+          <p className="text-xs text-faint">Aucune facture en attente de paiement.</p>
         )}
       </Card>
 
       {/* Liste */}
       <Card className={cn("overflow-hidden p-0", view !== "list" && "hidden")}>
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : payments.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">Aucun paiement.</p>
+          <p className="p-10 text-center text-sm text-muted">Aucun paiement.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase text-muted">
                 <th className="px-4 py-3">Référence</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Client</th>
@@ -225,12 +226,12 @@ export default function PaymentsPage() {
                 <tr
                   key={p.id}
                   onClick={() => router.push(`/dashboard/payments/${p.id}`)}
-                  className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                  className="cursor-pointer border-b border-line hover:bg-subtle"
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900 hover:text-primary hover:underline">
+                  <td className="px-4 py-3 font-medium text-ink hover:text-primary hover:underline">
                     {p.reference}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{formatDate(p.payment_date)}</td>
+                  <td className="px-4 py-3 text-muted">{formatDate(p.payment_date)}</td>
                   <td className="px-4 py-3">{partnerName(p)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={p.status} />
@@ -291,7 +292,7 @@ export default function PaymentsPage() {
                           e.stopPropagation();
                           printReceipt(p.id).catch(() => alert("Impossible de générer le reçu."));
                         }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-subtle disabled:opacity-40"
                       >
                         🖨
                       </button>

@@ -128,14 +128,14 @@ export function BarcodeScanner({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md space-y-3 rounded-xl bg-white p-4 shadow-xl">
+          <div className="w-full max-w-md space-y-3 rounded-xl bg-surface p-4 shadow-xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className="text-sm font-semibold text-ink">
                 Scanner un code
               </h3>
               <button
                 onClick={close}
-                className="text-gray-400 hover:text-gray-700"
+                className="text-faint hover:text-muted"
                 aria-label="Fermer le scanner"
               >
                 <X className="h-5 w-5" />
@@ -151,7 +151,7 @@ export function BarcodeScanner({
                 />
                 <button
                   type="button"
-                  className="flex w-full items-center justify-center gap-2 text-xs text-gray-500 hover:text-primary"
+                  className="flex w-full items-center justify-center gap-2 text-xs text-muted hover:text-primary"
                   onClick={async () => {
                     await stopScanner();
                     setManualMode(true);

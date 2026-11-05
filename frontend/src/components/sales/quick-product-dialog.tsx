@@ -49,18 +49,18 @@ export function QuickProductDialog({ initialName, onClose, onCreated }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
-        <h3 className="mb-1 text-lg font-semibold text-gray-900">Ajout rapide de produit</h3>
-        <p className="mb-4 text-xs text-gray-500">
+      <div className="w-full max-w-sm rounded-lg bg-surface p-5 shadow-xl">
+        <h3 className="mb-1 text-lg font-semibold text-ink">Ajout rapide de produit</h3>
+        <p className="mb-4 text-xs text-muted">
           La référence est générée automatiquement. Complétez la fiche plus tard dans le Catalogue.
         </p>
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Nom *</label>
+            <label className="mb-1 block text-xs font-medium text-muted">Nom *</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Prix de vente *</label>
+            <label className="mb-1 block text-xs font-medium text-muted">Prix de vente *</label>
             <Input
               type="number"
               min={0}

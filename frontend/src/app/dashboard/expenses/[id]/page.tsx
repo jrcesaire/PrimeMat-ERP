@@ -2,6 +2,7 @@
  * Détail d'une dépense — lecture.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { use } from "react";
 import Link from "next/link";
@@ -36,10 +37,10 @@ export default function ExpenseDetailPage({
 
   const expense: Expense | undefined = expenses.find((e) => e.id === id);
   if (isLoading)
-    return <p className="p-6 text-sm text-gray-500">Chargement…</p>;
+    return <RowsSkeleton />;
   if (!expense)
     return (
-      <p className="p-6 text-sm text-gray-500">
+      <p className="p-6 text-sm text-muted">
         Dépense introuvable (ou accès refusé).
       </p>
     );
@@ -47,32 +48,32 @@ export default function ExpenseDetailPage({
   return (
     <div className="space-y-8">
       <div>
-        <Link href="/dashboard/expenses" className="text-sm text-gray-500 hover:text-primary">
+        <Link href="/dashboard/expenses" className="text-sm text-muted hover:text-primary">
           <ArrowLeft className="mr-1 inline h-4 w-4" /> Retour aux dépenses
         </Link>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900">
+        <h1 className="mt-1 text-[28px] font-semibold leading-tight text-ink">
           {expense.reference} — {expense.label}
         </h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           {expense.expense_date ? formatDate(expense.expense_date) : "Date inconnue"}
         </p>
       </div>
 
       <Card className="grid grid-cols-2 gap-6 p-4 sm:grid-cols-4">
         <div>
-          <p className="text-xs text-gray-500">Catégorie</p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-xs text-muted">Catégorie</p>
+          <p className="text-sm font-medium text-ink">
             {CATEGORY_LABELS[expense.category] ?? expense.category}
           </p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Mode de paiement</p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-xs text-muted">Mode de paiement</p>
+          <p className="text-sm font-medium text-ink">
             {METHOD_LABELS[expense.payment_method] ?? expense.payment_method}
           </p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Montant</p>
+          <p className="text-xs text-muted">Montant</p>
           <p className="text-lg font-bold text-red-600">
             -{formatCurrency(expense.amount)}
           </p>
@@ -81,8 +82,8 @@ export default function ExpenseDetailPage({
 
       {expense.notes && (
         <Card className="p-4">
-          <p className="text-xs text-gray-500">Notes</p>
-          <p className="mt-1 text-sm text-gray-700">{expense.notes}</p>
+          <p className="text-xs text-muted">Notes</p>
+          <p className="mt-1 text-sm text-muted">{expense.notes}</p>
         </Card>
       )}
     </div>

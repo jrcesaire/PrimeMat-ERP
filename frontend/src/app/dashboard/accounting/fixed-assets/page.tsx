@@ -156,8 +156,8 @@ export default function FixedAssetsPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Immobilisations</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Immobilisations</h1>
+          <p className="text-sm text-muted">
             Registre des immobilisations amortissables — plans linéaires et
             dégressifs (SYSCOHADA)
           </p>
@@ -184,40 +184,40 @@ export default function FixedAssetsPage() {
       <div className="grid gap-6 sm:grid-cols-3">
         <Card>
           <CardDescription>Valeur d&apos;acquisition</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {formatCurrency(totalCost)}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             {assets.length} immobilisation(s)
           </p>
         </Card>
         <Card>
           <CardDescription>Amortissements comptabilisés</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {formatCurrency(totalAccumulated)}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Cumul des dotations déjà passées en comptabilité
           </p>
         </Card>
         <Card>
           <CardDescription>Valeur nette comptable</CardDescription>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-[28px] font-semibold leading-tight tabular-nums text-ink">
             {formatCurrency(totalCost - totalAccumulated)}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Valeur d&apos;acquisition − amortissements cumulés
           </p>
         </Card>
       </div>
 
       {openCreate && (
-        <Card className="border border-gray-200">
-          <div className="mb-4 border-b border-gray-100 pb-3">
-            <h2 className="font-semibold text-gray-900">
+        <Card className="border border-line">
+          <div className="mb-4 border-b border-line pb-3">
+            <h2 className="font-semibold text-ink">
               Nouvelle immobilisation
             </h2>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               Le plan d&apos;amortissement est généré automatiquement à la
               création.
             </p>
@@ -227,7 +227,7 @@ export default function FixedAssetsPage() {
             className="grid grid-cols-1 gap-4 md:grid-cols-4"
           >
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Code *</label>
+              <label className="mb-1 block text-xs text-muted">Code *</label>
               <Input
                 value={form.code}
                 onChange={(e) => setField("code", e.target.value)}
@@ -236,7 +236,7 @@ export default function FixedAssetsPage() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Libellé *
               </label>
               <Input
@@ -247,13 +247,13 @@ export default function FixedAssetsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Catégorie
               </label>
               <select
                 value={form.category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
+                className="h-10 w-full rounded-md border border-line bg-surface px-2 text-sm"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -264,7 +264,7 @@ export default function FixedAssetsPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Compte d&apos;immobilisation *
               </label>
               <Input
@@ -275,7 +275,7 @@ export default function FixedAssetsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Compte d&apos;amortissement
               </label>
               <Input
@@ -287,7 +287,7 @@ export default function FixedAssetsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Compte de dotation
               </label>
               <Input
@@ -297,7 +297,7 @@ export default function FixedAssetsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Journal</label>
+              <label className="mb-1 block text-xs text-muted">Journal</label>
               <Input
                 value={form.journal_code}
                 onChange={(e) => setField("journal_code", e.target.value)}
@@ -306,7 +306,7 @@ export default function FixedAssetsPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Date d&apos;acquisition *
               </label>
               <Input
@@ -317,7 +317,7 @@ export default function FixedAssetsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Mise en service
               </label>
               <Input
@@ -327,7 +327,7 @@ export default function FixedAssetsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Valeur d&apos;acquisition *
               </label>
               <Input
@@ -341,7 +341,7 @@ export default function FixedAssetsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Valeur résiduelle
               </label>
               <Input
@@ -355,7 +355,7 @@ export default function FixedAssetsPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Durée (années) *
               </label>
               <Input
@@ -368,7 +368,7 @@ export default function FixedAssetsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Méthode</label>
+              <label className="mb-1 block text-xs text-muted">Méthode</label>
               <select
                 value={form.method}
                 onChange={(e) => {
@@ -381,28 +381,28 @@ export default function FixedAssetsPage() {
                       value === "declining" ? "annual" : prev.periodicity,
                   }));
                 }}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
+                className="h-10 w-full rounded-md border border-line bg-surface px-2 text-sm"
               >
                 <option value="linear">Linéaire</option>
                 <option value="declining">Dégressif</option>
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-muted">
                 Périodicité
               </label>
               <select
                 value={form.periodicity}
                 onChange={(e) => setField("periodicity", e.target.value)}
                 disabled={form.method === "declining"}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-2 text-sm disabled:bg-gray-100 disabled:opacity-60"
+                className="h-10 w-full rounded-md border border-line bg-surface px-2 text-sm disabled:bg-subtle disabled:opacity-60"
               >
                 <option value="annual">Annuelle</option>
                 <option value="monthly">Mensuelle</option>
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Notes</label>
+              <label className="mb-1 block text-xs text-muted">Notes</label>
               <Input
                 value={form.notes}
                 onChange={(e) => setField("notes", e.target.value)}
@@ -426,7 +426,7 @@ export default function FixedAssetsPage() {
               >
                 Annuler
               </Button>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted">
                 Les comptes doivent exister dans le plan OHADA (245, 284, 681…).
                 Le dégressif applique le coefficient SYSCOHADA puis bascule en
                 linéaire sur la durée restante.
@@ -437,16 +437,16 @@ export default function FixedAssetsPage() {
       )}
 
       <Card className="overflow-x-auto p-0">
-        <div className="border-b border-gray-100 px-4 py-3">
-          <h2 className="font-semibold text-gray-900">Registre</h2>
-          <p className="text-xs text-gray-500">
+        <div className="border-b border-line px-4 py-3">
+          <h2 className="font-semibold text-ink">Registre</h2>
+          <p className="text-xs text-muted">
             Ouvrez une immobilisation pour consulter son plan d&apos;amortissement
             et comptabiliser les dotations échues.
           </p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-2">Code</th>
               <th className="px-3 py-2">Libellé</th>
               <th className="px-3 py-2">Comptes</th>
@@ -460,14 +460,14 @@ export default function FixedAssetsPage() {
           <tbody className="divide-y divide-gray-50">
             {isLoading && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Chargement…
                 </td>
               </tr>
             )}
             {!isLoading && assets.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Aucune immobilisation — créez-en une pour générer son plan
                   d&apos;amortissement.
                 </td>
@@ -482,13 +482,13 @@ export default function FixedAssetsPage() {
                 a.depreciations.length > 0 &&
                 posted === a.depreciations.length;
               return (
-                <tr key={a.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 font-mono text-xs font-semibold text-gray-700">
+                <tr key={a.id} className="hover:bg-subtle">
+                  <td className="px-4 py-2 font-mono text-xs font-semibold text-muted">
                     {a.code}
                   </td>
                   <td className="px-3 py-2">
-                    <div className="font-medium text-gray-900">{a.name}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="font-medium text-ink">{a.name}</div>
+                    <div className="text-xs text-muted">
                       {CATEGORY_LABELS[a.category] ?? a.category} ·{" "}
                       {a.useful_life_years} an(s) ·{" "}
                       {METHOD_LABELS[a.method] ?? a.method}
@@ -497,16 +497,16 @@ export default function FixedAssetsPage() {
                         : ""}
                     </div>
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs text-gray-600">
+                  <td className="px-3 py-2 font-mono text-xs text-muted">
                     {a.asset_account} / {a.depreciation_account}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">
                     {formatCurrency(a.acquisition_cost)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">
                     {formatCurrency(accumulated)}
                   </td>
-                  <td className="px-3 py-2 text-right font-semibold tabular-nums text-gray-900">
+                  <td className="px-3 py-2 text-right font-semibold tabular-nums text-ink">
                     {formatCurrency(Number(a.acquisition_cost) - accumulated)}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
@@ -514,7 +514,7 @@ export default function FixedAssetsPage() {
                       className={
                         fullyDepreciated
                           ? "font-semibold text-green-700"
-                          : "text-gray-600"
+                          : "text-muted"
                       }
                     >
                       {posted}/{a.depreciations.length}

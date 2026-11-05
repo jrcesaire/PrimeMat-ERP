@@ -15,7 +15,7 @@ export const DropdownMenuContent = forwardRef<
     <DropdownMenuPrimitive.Content
       ref={ref}
       className={cn(
-        "z-50 min-w-56 rounded-md border border-gray-200 bg-white p-1 shadow-lg",
+        "z-50 min-w-56 rounded-md border border-line bg-surface p-1 shadow-lg",
         className,
       )}
       {...props}
@@ -31,7 +31,7 @@ export const DropdownMenuItem = forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-pointer items-center rounded px-2 py-1.5 text-sm outline-none hover:bg-gray-100",
+      "relative flex cursor-pointer items-center rounded px-2 py-1.5 text-sm outline-none hover:bg-subtle",
       className,
     )}
     {...props}
@@ -45,7 +45,7 @@ export const DropdownMenuLabel = forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn("px-2 py-1.5 text-xs font-semibold text-gray-500", className)}
+    className={cn("px-2 py-1.5 text-xs font-semibold text-muted", className)}
     {...props}
   />
 ));

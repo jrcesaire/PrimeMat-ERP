@@ -126,7 +126,7 @@ export function ImportDialog({
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"
+        className="w-full max-w-lg rounded-xl bg-surface p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
@@ -135,15 +135,15 @@ export function ImportDialog({
               <FileSpreadsheet className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-              <p className="text-xs text-gray-500">
+              <h3 className="text-lg font-semibold text-ink">{title}</h3>
+              <p className="text-xs text-muted">
                 Fichier Excel (.xlsx) ou CSV — première ligne = en-têtes
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-md p-1 text-faint hover:bg-subtle hover:text-muted"
             aria-label="Fermer"
           >
             <X className="h-4 w-4" />
@@ -179,7 +179,7 @@ export function ImportDialog({
             <div className="flex justify-end gap-2">
               <button
                 onClick={reset}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+                className="rounded-md border border-line px-4 py-2 text-sm hover:bg-subtle"
               >
                 Importer un autre fichier
               </button>
@@ -193,10 +193,10 @@ export function ImportDialog({
           </div>
         ) : (
           <>
-            <div className="mt-5 rounded-md bg-gray-50 px-4 py-3 text-xs text-gray-600">
+            <div className="mt-5 rounded-md bg-subtle px-4 py-3 text-xs text-muted">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-medium text-gray-700">Colonnes attendues :</p>
+                  <p className="font-medium text-muted">Colonnes attendues :</p>
                   <p className="mt-1 leading-relaxed">{columnsHint}</p>
                 </div>
                 {exportEndpoint !== endpoint && (
@@ -204,7 +204,7 @@ export function ImportDialog({
                     type="button"
                     onClick={onDownloadTemplate}
                     disabled={downloading}
-                    className="flex shrink-0 items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                    className="flex shrink-0 items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 py-1.5 font-medium text-muted hover:bg-subtle disabled:opacity-60"
                   >
                     {downloading ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -217,7 +217,7 @@ export function ImportDialog({
               </div>
             </div>
 
-            <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-8 text-sm text-gray-500 hover:border-primary hover:bg-gray-50">
+            <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line px-4 py-8 text-sm text-muted hover:border-primary hover:bg-subtle">
               <Upload className="h-6 w-6" />
               <span>Cliquez pour choisir un fichier</span>
               <input
@@ -237,7 +237,7 @@ export function ImportDialog({
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={handleClose}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+                className="rounded-md border border-line px-4 py-2 text-sm hover:bg-subtle"
               >
                 Annuler
               </button>

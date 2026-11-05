@@ -72,13 +72,13 @@ export function DocumentsTab() {
           <FileText className="h-5 w-5 text-blue-600" />
           Nomenclature des documents
         </h2>
-        <p className="mb-5 text-sm text-gray-500">
+        <p className="mb-5 text-sm text-muted">
           Format : <span className="font-mono">PRÉFIXE-SERIE-SUFFIXE</span> — ex.{" "}
           <span className="font-mono">DEV-000123-2609</span>. La série (XXXXXX) peut être
           réinitialisée périodiquement. S'applique aux prochains documents créés.
         </p>
         {isLoading ? (
-          <p className="flex items-center gap-2 text-gray-500">
+          <p className="flex items-center gap-2 text-muted">
             <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
           </p>
         ) : (
@@ -86,16 +86,16 @@ export function DocumentsTab() {
             {DOC_MODELS.map(({ key, label }) => {
               const cfg = { ...DEFAULT_NOMENCLATURE, ...draft[key] };
               return (
-                <div key={key} className="rounded-lg border border-gray-200 p-4">
+                <div key={key} className="rounded-lg border border-line p-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <h3 className="font-medium text-gray-800">{label}</h3>
+                    <h3 className="font-medium text-ink">{label}</h3>
                     <span className="rounded-md bg-blue-50 px-3 py-1 font-mono text-sm text-blue-700">
                       {previewReference(cfg)}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-500">
+                      <label className="mb-1 block text-xs font-medium text-muted">
                         Préfixe
                       </label>
                       <Input
@@ -107,7 +107,7 @@ export function DocumentsTab() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-500">
+                      <label className="mb-1 block text-xs font-medium text-muted">
                         Longueur de la série
                       </label>
                       <Input
@@ -121,11 +121,11 @@ export function DocumentsTab() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-500">
+                      <label className="mb-1 block text-xs font-medium text-muted">
                         Réinitialisation
                       </label>
                       <select
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        className="w-full rounded-md border border-line px-3 py-2 text-sm"
                         value={cfg.reset}
                         onChange={(e) =>
                           update(key, {
@@ -141,11 +141,11 @@ export function DocumentsTab() {
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-500">
+                      <label className="mb-1 block text-xs font-medium text-muted">
                         Suffixe
                       </label>
                       <select
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        className="w-full rounded-md border border-line px-3 py-2 text-sm"
                         value={cfg.suffix_type}
                         onChange={(e) =>
                           update(key, {
@@ -163,7 +163,7 @@ export function DocumentsTab() {
                   </div>
                   {cfg.suffix_type === "custom" && (
                     <div className="mt-3 max-w-xs">
-                      <label className="mb-1 block text-xs font-medium text-gray-500">
+                      <label className="mb-1 block text-xs font-medium text-muted">
                         Suffixe personnalisé
                       </label>
                       <Input
@@ -298,7 +298,7 @@ function WatermarkCard() {
   return (
     <Card className="p-6">
       <h2 className="mb-1 text-lg font-semibold">Filigrane des documents</h2>
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-4 text-sm text-muted">
         Image <strong>superposée en transparence</strong> sur toutes les pages A4
         des documents PDF (PNG ou JPEG — max 2 Mo), hors page CGV annexée et hors
         ticket POS. Réglez son opacité ci-dessous.
@@ -309,10 +309,10 @@ function WatermarkCard() {
           <img
             src={info.preview}
             alt="Aperçu du filigrane"
-            className="h-24 w-24 rounded-md border border-gray-200 bg-gray-50 object-contain p-1"
+            className="h-24 w-24 rounded-md border border-line bg-subtle object-contain p-1"
           />
         ) : (
-          <div className="flex h-24 w-24 items-center justify-center rounded-md border border-dashed border-gray-300 text-xs text-gray-400">
+          <div className="flex h-24 w-24 items-center justify-center rounded-md border border-dashed border-line text-xs text-faint">
             Aucun filigrane
           </div>
         )}
@@ -345,18 +345,18 @@ function WatermarkCard() {
             )}
           </div>
           {info?.exists && info.size ? (
-            <p className="mt-2 text-xs text-gray-500">{(info.size / 1024).toFixed(0)} Ko</p>
+            <p className="mt-2 text-xs text-muted">{(info.size / 1024).toFixed(0)} Ko</p>
           ) : null}
-          {msg && <p className="mt-2 text-xs text-gray-600">{msg}</p>}
+          {msg && <p className="mt-2 text-xs text-muted">{msg}</p>}
         </div>
       </div>
 
-      <div className="mt-4 border-t border-gray-100 pt-4">
+      <div className="mt-4 border-t border-line pt-4">
         <div className="mb-1 flex items-center justify-between">
-          <label htmlFor="wm-opacity" className="text-sm font-medium text-gray-700">
+          <label htmlFor="wm-opacity" className="text-sm font-medium text-muted">
             Opacité du filigrane
           </label>
-          <span className="text-sm font-semibold text-gray-900">{opacity} %</span>
+          <span className="text-sm font-semibold text-ink">{opacity} %</span>
         </div>
         <input
           id="wm-opacity"
@@ -368,18 +368,18 @@ function WatermarkCard() {
           onChange={(e) => onOpacityChange(Number(e.target.value))}
           className="w-full max-w-md cursor-pointer accent-blue-600"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-muted">
           Valeur basse = filigrane très discret (recommandé : 5–15 %), valeur
           haute = plus visible mais gêne la lecture.
         </p>
       </div>
 
-      <div className="mt-4 border-t border-gray-100 pt-4">
+      <div className="mt-4 border-t border-line pt-4">
         <div className="mb-1 flex items-center justify-between">
-          <label htmlFor="wm-saturation" className="text-sm font-medium text-gray-700">
+          <label htmlFor="wm-saturation" className="text-sm font-medium text-muted">
             Saturation du filigrane
           </label>
-          <span className="text-sm font-semibold text-gray-900">{saturation} %</span>
+          <span className="text-sm font-semibold text-ink">{saturation} %</span>
         </div>
         <input
           id="wm-saturation"
@@ -391,12 +391,12 @@ function WatermarkCard() {
           onChange={(e) => onSaturationChange(Number(e.target.value))}
           className="w-full max-w-md cursor-pointer accent-purple-600"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-muted">
           100 % = couleur pleine, 0 % = niveaux de gris (N&B).
         </p>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
         <Button
           onClick={() => void saveWatermarkSettings()}
           disabled={savingSettings || !dirty}
@@ -409,7 +409,7 @@ function WatermarkCard() {
           </span>
         )}
         {dirty && !savingSettings && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted">
             Modifications non enregistrées
           </span>
         )}
@@ -515,21 +515,21 @@ function CgvCard() {
       <h2 className="mb-1 text-lg font-semibold">
         Conditions Générales de Vente (CGV)
       </h2>
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-4 text-sm text-muted">
         Deux options : un <strong>PDF chargé</strong> (recommandé — ajouté en dernière page
         des devis et factures) ou le <strong>texte</strong> ci-dessous (repli).
       </p>
 
       {/* PDF de CGV */}
-      <div className="mb-5 rounded-lg border border-gray-200 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-gray-800">PDF de CGV</h3>
+      <div className="mb-5 rounded-lg border border-line p-4">
+        <h3 className="mb-2 text-sm font-semibold text-ink">PDF de CGV</h3>
         {pdfInfo?.exists ? (
-          <p className="mb-2 text-sm text-gray-600">
+          <p className="mb-2 text-sm text-muted">
             <span className="font-medium text-green-700">PDF chargé ✓</span>
             {pdfInfo.size ? ` — ${(pdfInfo.size / 1024).toFixed(0)} Ko` : ""}
           </p>
         ) : (
-          <p className="mb-2 text-sm text-gray-500">Aucun PDF chargé.</p>
+          <p className="mb-2 text-sm text-muted">Aucun PDF chargé.</p>
         )}
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -567,17 +567,17 @@ function CgvCard() {
             </>
           )}
         </div>
-        {pdfMsg && <p className="mt-2 text-xs text-gray-600">{pdfMsg}</p>}
+        {pdfMsg && <p className="mt-2 text-xs text-muted">{pdfMsg}</p>}
       </div>
 
       {/* Texte CGV (repli) */}
-      <h3 className="mb-2 text-sm font-semibold text-gray-800">Texte des CGV (repli)</h3>
-      <p className="mb-2 text-xs text-gray-500">
+      <h3 className="mb-2 text-sm font-semibold text-ink">Texte des CGV (repli)</h3>
+      <p className="mb-2 text-xs text-muted">
         Utilisé uniquement si aucun PDF n'est chargé. Affiché en dernière page des
         devis et factures.
       </p>
       <textarea
-        className="min-h-[140px] w-full rounded-md border border-gray-300 p-3 text-sm"
+        className="min-h-[140px] w-full rounded-md border border-line p-3 text-sm"
         value={cgv}
         onChange={(e) => setCgv(e.target.value)}
         placeholder="Conditions Générales de Vente…"

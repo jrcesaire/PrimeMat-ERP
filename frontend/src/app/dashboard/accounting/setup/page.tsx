@@ -93,10 +93,10 @@ const LEGAL_FORMS = [
 ];
 
 const inputClass =
-  "w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-blue-600";
+  "w-full rounded-md border border-line px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-faint focus:border-blue-600";
 
 const labelClass =
-  "mb-1 block text-sm font-medium text-gray-700";
+  "mb-1 block text-sm font-medium text-muted";
 
 interface CompanyInfo {
   id: number;
@@ -341,10 +341,10 @@ export default function AccountingSetupPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">
           Configuration de la comptabilité
         </h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           Assistant OHADA — paramétrage conforme SYSCOHADA Révisé
         </p>
       </div>
@@ -366,16 +366,16 @@ export default function AccountingSetupPage() {
                     ? "bg-[#0a2a6b] text-white"
                     : done
                       ? "text-[#0a2a6b] hover:bg-blue-50"
-                      : "text-gray-400"
+                      : "text-faint"
                 }`}
               >
                 <span
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
                     active
-                      ? "bg-amber-400 text-gray-900"
+                      ? "bg-amber-400 text-ink"
                       : done
                         ? "bg-blue-100"
-                        : "bg-gray-100"
+                        : "bg-subtle"
                   }`}
                 >
                   {done ? <BadgeCheck className="h-3.5 w-3.5" /> : i + 1}
@@ -413,10 +413,10 @@ export default function AccountingSetupPage() {
         {step === 0 && (
           <div className="space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-ink">
                 Identification de la société
               </h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-muted">
                 Reprise automatique des informations générales de
                 l&apos;entreprise — modifiables ici et dans les Paramètres.
               </p>
@@ -460,7 +460,7 @@ export default function AccountingSetupPage() {
                 </select>
               </div>
             </div>
-            <p className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-500">
+            <p className="rounded-md bg-subtle px-3 py-2 text-xs text-muted">
               Code entreprise : <strong>{company?.code ?? "—"}</strong> — devise
               de tenue de compte : <strong>{company?.currency_code ?? "—"}</strong>
             </p>
@@ -471,10 +471,10 @@ export default function AccountingSetupPage() {
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-ink">
                 Monnaie de tenue de compte
               </h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-muted">
                 Comptabilité tenue en <strong>{selectedCountry.currency}</strong> ({selectedCountry.name}). Renseignez les taux de change utilisés pour les états financiers.
               </p>
             </div>
@@ -511,7 +511,7 @@ export default function AccountingSetupPage() {
                 />
               </div>
             </div>
-            <p className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-500">
+            <p className="rounded-md bg-subtle px-3 py-2 text-xs text-muted">
               Le paramètre OHADA du pays "{selectedCountry.name}" sera créé ou mis à jour avec ces valeurs (devise {selectedCountry.currency}).
             </p>
           </div>
@@ -521,10 +521,10 @@ export default function AccountingSetupPage() {
         {step === 2 && (
           <div className="space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-ink">
                 Coordonnées de l&apos;entreprise
               </h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-muted">
                 Ces informations alimentent le module Société et les documents
                 comptables (annexes, états financiers).
               </p>
@@ -617,10 +617,10 @@ export default function AccountingSetupPage() {
         {step === 3 && (
           <div className="space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-ink">
                 Exercice comptable
               </h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-muted">
                 L&apos;exercice délimite les écritures comptables — aucune
                 modification des dates après création.
               </p>
@@ -682,10 +682,10 @@ export default function AccountingSetupPage() {
         {step === 4 && (
           <div className="space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-ink">
                 Reprise des éléments comptables
               </h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-muted">
                 Le plan comptable SYSCOHADA Révisé (9 classes) et les journaux
                 par défaut sont initialisés en une seule opération.
               </p>
@@ -703,7 +703,7 @@ export default function AccountingSetupPage() {
                 <span className="text-sm">
                   <strong>Modèle standard OHADA (recommandé)</strong>
                   <br />
-                  <span className="text-gray-600">
+                  <span className="text-muted">
                     Plan comptable complet, journaux Achat/Vente/Banque/Caisse/
                     Paie/OD pré-configurés.
                   </span>

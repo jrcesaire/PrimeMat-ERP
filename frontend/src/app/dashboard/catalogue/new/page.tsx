@@ -140,10 +140,10 @@ function NewProductPageInner() {
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">
           {isEdit ? "Modifier le produit" : "Nouveau produit"}
         </h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           Le mode de vente est défini par la catégorie
         </p>
       </div>
@@ -152,13 +152,13 @@ function NewProductPageInner() {
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Nom *</label>
+            <label className="mb-1 block text-sm font-medium text-muted">Nom *</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex : Tôle BAC Alu 0,30" />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Catégorie *</label>
+            <label className="mb-1 block text-sm font-medium text-muted">Catégorie *</label>
             <select
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-line px-3 py-2 text-sm"
               value={categoryId ?? ""}
               onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
             >
@@ -174,35 +174,35 @@ function NewProductPageInner() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Type de produit *</label>
+          <label className="mb-1 block text-sm font-medium text-muted">Type de produit *</label>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-300 p-3 hover:border-primary">
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-line p-3 hover:border-primary">
               <input
                 type="checkbox"
                 checked={isStock}
                 onChange={(e) => setIsStock(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                className="mt-0.5 h-4 w-4 rounded border-line"
               />
               <span>
-                <span className="block text-sm font-medium text-gray-900">Quincaillerie</span>
-                <span className="block text-xs text-gray-500">En stock — vendu depuis le stock</span>
+                <span className="block text-sm font-medium text-ink">Quincaillerie</span>
+                <span className="block text-xs text-muted">En stock — vendu depuis le stock</span>
               </span>
             </label>
-            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-300 p-3 hover:border-primary">
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-line p-3 hover:border-primary">
               <input
                 type="checkbox"
                 checked={isProduction}
                 onChange={(e) => setIsProduction(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                className="mt-0.5 h-4 w-4 rounded border-line"
               />
               <span>
-                <span className="block text-sm font-medium text-gray-900">Production</span>
-                <span className="block text-xs text-gray-500">Pas en stock — nécessite production</span>
+                <span className="block text-sm font-medium text-ink">Production</span>
+                <span className="block text-xs text-muted">Pas en stock — nécessite production</span>
               </span>
             </label>
           </div>
           {(isStock || isProduction) && (
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted">
               Type enregistré :{" "}
               <strong>
                 {isStock && isProduction ? "Stock + Production (hybride)" : isProduction ? "Production (sur commande)" : "Quincaillerie (en stock)"}
@@ -213,7 +213,7 @@ function NewProductPageInner() {
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Code-barres / QR (optionnel)</label>
+            <label className="mb-1 block text-sm font-medium text-muted">Code-barres / QR (optionnel)</label>
             <Input
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
@@ -228,12 +228,12 @@ function NewProductPageInner() {
             />
           </div>
         </div>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted">
           Sans code-barres, une référence système (PRD-XXXXXX) est générée automatiquement.
         </p>
 
         {selectedCat && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             Mode de vente hérité :{" "}
             <strong>{SALE_MODE_LABELS[mode] ?? mode}</strong>
           </p>
@@ -241,19 +241,19 @@ function NewProductPageInner() {
 
         {mode === "unit" && (
           <div className="w-48">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Prix de vente (pièce)</label>
+            <label className="mb-1 block text-sm font-medium text-muted">Prix de vente (pièce)</label>
             <Input type="number" min={0} value={sellingPrice} onChange={(e) => setSellingPrice(Number(e.target.value))} />
           </div>
         )}
         {(mode === "length" || mode === "dual") && (
           <div className="w-48">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Prix au mètre linéaire</label>
+            <label className="mb-1 block text-sm font-medium text-muted">Prix au mètre linéaire</label>
             <Input type="number" min={0} value={pricePerMeter} onChange={(e) => setPricePerMeter(Number(e.target.value))} />
           </div>
         )}
         {mode === "dual" && (
           <div className="w-48">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Longueur standard pièce (m)</label>
+            <label className="mb-1 block text-sm font-medium text-muted">Longueur standard pièce (m)</label>
             <Input type="number" step="0.01" min={0} value={unitLength} onChange={(e) => setUnitLength(Number(e.target.value))} />
           </div>
         )}

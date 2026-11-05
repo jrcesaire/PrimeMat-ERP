@@ -83,7 +83,7 @@ export function ConfirmDialogView({
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor={`confirm-keyword-${request.id}`}
-            className="text-sm text-gray-600 dark:text-slate-300"
+            className="text-sm text-muted dark:text-slate-300"
           >
             {request.keywordLabel ??
               `Tapez « ${request.requireKeyword} » pour confirmer`}
@@ -95,13 +95,13 @@ export function ConfirmDialogView({
             onChange={(e) => setKeyword(e.target.value)}
             placeholder={request.requireKeyword}
             autoComplete="off"
-            className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           />
         </div>
       )}
 
       {request.acknowledgement && (
-        <label className="flex cursor-pointer items-start gap-2 text-sm text-gray-600 dark:text-slate-300">
+        <label className="flex cursor-pointer items-start gap-2 text-sm text-muted dark:text-slate-300">
           <input
             type="checkbox"
             checked={acknowledged}

@@ -624,7 +624,7 @@ function NewQuotePageInner() {
         )}
 
         {/* Barre de statut — chevrons du workflow */}
-        <div className="ml-auto flex items-center overflow-hidden rounded-md border border-gray-200">
+        <div className="ml-auto flex items-center overflow-hidden rounded-md border border-line">
           {timelineSteps.map((step, i) => {
             const stepNo = i + 1;
             const isCurrent = stepNo === currentStep;
@@ -637,12 +637,12 @@ function NewQuotePageInner() {
                     ? "bg-green-50 text-green-700"
                     : isDone
                       ? "text-green-600"
-                      : "text-gray-400"
+                      : "text-faint"
                 }`}
               >
                 {step}
                 {i < timelineSteps.length - 1 && (
-                  <ChevronRight className="h-3.5 w-3.5 text-gray-300" />
+                  <ChevronRight className="h-3.5 w-3.5 text-faint" />
                 )}
               </div>
             );
@@ -652,9 +652,9 @@ function NewQuotePageInner() {
 
       {/* Titre du document */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">{title}</h1>
         {entity && (
-          <p className="mt-0.5 text-sm text-gray-500">
+          <p className="mt-0.5 text-sm text-muted">
             {editingOrder ? "Commande client" : "Devis client"} · créé le{" "}
             {new Date(entity.created_at).toLocaleString("fr-FR")}
           </p>
@@ -678,7 +678,7 @@ function NewQuotePageInner() {
         <Card className="grid grid-cols-1 gap-6 p-5 md:grid-cols-2">
           <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 Client *
               </label>
               <ClientAutocomplete
@@ -690,10 +690,10 @@ function NewQuotePageInner() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 Adresse de facturation
               </label>
-              <p className="min-h-9 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+              <p className="min-h-9 rounded-md border border-line bg-subtle px-3 py-2 text-sm text-muted">
                 {partner
                   ? (() => {
                       const addr = partner.addresses?.[0];
@@ -707,7 +707,7 @@ function NewQuotePageInner() {
             </div>
             {!editingOrder && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">
+                <label className="mb-1 block text-xs font-medium text-muted">
                   Contact commercial
                 </label>
                 {isChooser ? (
@@ -718,7 +718,7 @@ function NewQuotePageInner() {
                         e.target.value ? Number(e.target.value) : null
                       )
                     }
-                    className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm focus:border-primary focus:outline-none"
+                    className="h-9 w-full rounded-md border border-line bg-surface px-2 text-sm focus:border-primary focus:outline-none"
                   >
                     <option value="">— Par défaut (moi-même) —</option>
                     {salespersons.map((sp) => (
@@ -728,7 +728,7 @@ function NewQuotePageInner() {
                     ))}
                   </select>
                 ) : (
-                  <p className="min-h-9 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                  <p className="min-h-9 rounded-md border border-line bg-subtle px-3 py-2 text-sm text-muted">
                     {salespersonLabel}
                   </p>
                 )}
@@ -738,11 +738,11 @@ function NewQuotePageInner() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">
+                <label className="mb-1 block text-xs font-medium text-muted">
                   {editingOrder ? "Date de commande" : "Date du devis"}
                 </label>
                 {editingOrder ? (
-                  <p className="min-h-9 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                  <p className="min-h-9 rounded-md border border-line bg-subtle px-3 py-2 text-sm text-muted">
                     {entity && "order_date" in entity
                       ? String(entity.order_date)
                       : quoteDate}
@@ -762,7 +762,7 @@ function NewQuotePageInner() {
                 )}
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">
+                <label className="mb-1 block text-xs font-medium text-muted">
                   {editingOrder ? "Livraison prévue" : "Validité (expiration)"}
                 </label>
                 <Input
@@ -781,13 +781,13 @@ function NewQuotePageInner() {
             </div>
             {!editingOrder && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">
+                <label className="mb-1 block text-xs font-medium text-muted">
                   Conditions de paiement
                 </label>
                 <select
                   value={paymentTerm}
                   onChange={(e) => setPaymentTerm(e.target.value)}
-                  className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm focus:border-primary focus:outline-none"
+                  className="h-9 w-full rounded-md border border-line bg-surface px-2 text-sm focus:border-primary focus:outline-none"
                 >
                   {PAYMENT_TERMS.map((t) => (
                     <option key={t} value={t}>
@@ -801,7 +801,7 @@ function NewQuotePageInner() {
         </Card>
 
         {/* Onglets */}
-        <div className="flex gap-1 border-b border-gray-200">
+        <div className="flex gap-1 border-b border-line">
           {(
             [
               ["lines", "Lignes de commande"],
@@ -815,7 +815,7 @@ function NewQuotePageInner() {
               className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === key
                   ? "border-primary text-primary"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  : "border-transparent text-muted hover:text-muted"
               }`}
             >
               {label}
@@ -827,7 +827,7 @@ function NewQuotePageInner() {
           <Card className="overflow-hidden p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs uppercase text-gray-500">
+                <tr className="border-b border-line bg-subtle text-left text-xs uppercase text-muted">
                   <th className="px-3 py-2.5">Produit</th>
                   <th className="px-3 py-2.5 w-28">Quantité</th>
                   <th className="px-3 py-2.5 w-24">Unité</th>
@@ -851,7 +851,7 @@ function NewQuotePageInner() {
                   return (
                     <Fragment key={line.key}>
                       {/* Ligne principale */}
-                      <tr className="border-b border-gray-100">
+                      <tr className="border-b border-line">
                         <td className="px-3 py-2">
                           <ProductPicker
                             value={line.product_id}
@@ -871,7 +871,7 @@ function NewQuotePageInner() {
                         <td className="px-3 py-2">
                           {isBac ? (
                             <span
-                              className="block text-right font-medium text-gray-700"
+                              className="block text-right font-medium text-muted"
                               title="Longueur totale (somme des coupes)"
                             >
                               {formatNumber(totals.totalLength, 2)}
@@ -890,7 +890,7 @@ function NewQuotePageInner() {
                             />
                           )}
                         </td>
-                        <td className="px-3 py-2 text-xs text-gray-500">
+                        <td className="px-3 py-2 text-xs text-muted">
                           {isBac
                             ? "ml"
                             : line.standard_piece
@@ -924,14 +924,14 @@ function NewQuotePageInner() {
                             }
                           />
                         </td>
-                        <td className="px-3 py-2 text-right font-semibold text-gray-900">
+                        <td className="px-3 py-2 text-right font-semibold text-ink">
                           {formatCurrency(totals.subtotal)}
                         </td>
                         <td className="px-2 py-2 text-center">
                           <button
                             onClick={() => removeLine(line.key)}
                             title="Supprimer la ligne"
-                            className="text-gray-400 hover:text-red-600"
+                            className="text-faint hover:text-red-600"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -941,12 +941,12 @@ function NewQuotePageInner() {
                       {isBac && (
                         <tr
                           key={`${line.key}-sub`}
-                          className="border-b border-gray-100 bg-gray-50/60"
+                          className="border-b border-line bg-subtle/60"
                         >
                           <td colSpan={7} className="px-3 py-1.5">
                             <div className="flex items-center gap-3">
-                              <Scissors className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-                              <span className="flex-1 text-xs italic text-gray-600">
+                              <Scissors className="h-3.5 w-3.5 shrink-0 text-faint" />
+                              <span className="flex-1 text-xs italic text-muted">
                                 {line.cuts.filter((c) => Number(c.length) > 0)
                                   .length > 0
                                   ? line.cuts
@@ -968,7 +968,7 @@ function NewQuotePageInner() {
                               </button>
                             </div>
                             {expanded && (
-                              <div className="mt-2 rounded-md border border-gray-200 bg-white p-3">
+                              <div className="mt-2 rounded-md border border-line bg-surface p-3">
                                 <CutsEditor
                                   line={line}
                                   onLineChange={(patch) =>
@@ -984,11 +984,11 @@ function NewQuotePageInner() {
                       {isDual && !line.standard_piece && !isBac && (
                         <tr
                           key={`${line.key}-dual`}
-                          className="border-b border-gray-100 bg-gray-50/60"
+                          className="border-b border-line bg-subtle/60"
                         >
                           <td colSpan={7} className="px-3 py-1.5">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-muted">
                                 Mode de vente :
                               </span>
                               <button
@@ -998,7 +998,7 @@ function NewQuotePageInner() {
                                     sell_by_length: false,
                                   })
                                 }
-                                className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                                className="rounded-md border border-line bg-surface px-2.5 py-1 text-xs font-medium text-muted hover:bg-subtle"
                               >
                                 À la pièce standard
                               </button>
@@ -1009,7 +1009,7 @@ function NewQuotePageInner() {
                                     standard_piece: false,
                                   })
                                 }
-                                className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                                className="rounded-md border border-line bg-surface px-2.5 py-1 text-xs font-medium text-muted hover:bg-subtle"
                               >
                                 Au mètre (coupes)
                               </button>
@@ -1021,11 +1021,11 @@ function NewQuotePageInner() {
                       {isDual && line.standard_piece && (
                         <tr
                           key={`${line.key}-std`}
-                          className="border-b border-gray-100 bg-gray-50/60"
+                          className="border-b border-line bg-subtle/60"
                         >
                           <td
                             colSpan={7}
-                            className="px-3 py-1.5 text-xs italic text-gray-600"
+                            className="px-3 py-1.5 text-xs italic text-muted"
                           >
                             Pièce standard de{" "}
                             {formatNumber(product?.unit_length ?? 0, 2)} m —
@@ -1041,20 +1041,20 @@ function NewQuotePageInner() {
                 })}
               </tbody>
             </table>
-            <div className="border-t border-gray-100 px-3 py-2">
+            <div className="border-t border-line px-3 py-2">
               <button
                 type="button"
                 onClick={addLine}
                 disabled={hasProductlessLine}
                 title={addLineDisabledReason}
                 aria-disabled={hasProductlessLine}
-                className="flex items-center gap-1 text-sm font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:text-gray-400 disabled:no-underline"
+                className="flex items-center gap-1 text-sm font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:text-faint disabled:no-underline"
               >
                 <Plus className="h-4 w-4" />
                 Ajouter un produit
               </button>
               {hasProductlessLine && (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted">
                   {addLineDisabledReason}
                 </p>
               )}
@@ -1065,7 +1065,7 @@ function NewQuotePageInner() {
         {activeTab === "info" && (
           <Card className="grid grid-cols-1 gap-6 p-5 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 Référence client (bon de commande)
               </label>
               <Input
@@ -1075,7 +1075,7 @@ function NewQuotePageInner() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 Chantier / lieu de livraison
               </label>
               {partnerSites.length > 0 ? (
@@ -1084,7 +1084,7 @@ function NewQuotePageInner() {
                   onChange={(e) =>
                     setSiteId(e.target.value ? Number(e.target.value) : null)
                   }
-                  className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm focus:border-primary focus:outline-none"
+                  className="h-9 w-full rounded-md border border-line bg-surface px-2 text-sm focus:border-primary focus:outline-none"
                 >
                   <option value="">— Aucun —</option>
                   {partnerSites.map((s) => (
@@ -1094,7 +1094,7 @@ function NewQuotePageInner() {
                   ))}
                 </select>
               ) : (
-                <p className="min-h-9 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+                <p className="min-h-9 rounded-md border border-line bg-subtle px-3 py-2 text-sm text-muted">
                   Aucun chantier enregistré pour ce client
                 </p>
               )}
@@ -1105,26 +1105,26 @@ function NewQuotePageInner() {
         {activeTab === "notes" && (
           <Card className="space-y-4 p-5">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 Notes internes (non imprimées)
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="w-full rounded-md border border-line px-3 py-2 text-sm focus:border-primary focus:outline-none"
                 placeholder="Notes visibles uniquement en interne…"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 Conditions particulières (imprimées sur le devis)
               </label>
               <textarea
                 value={terms}
                 onChange={(e) => setTerms(e.target.value)}
                 rows={3}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="w-full rounded-md border border-line px-3 py-2 text-sm focus:border-primary focus:outline-none"
                 placeholder="Ex. Matériaux vendus aux risques du client. Les articles découpés ne sont ni repris ni échangés…"
               />
             </div>
@@ -1136,13 +1136,13 @@ function NewQuotePageInner() {
       <Card className="fixed inset-x-0 bottom-0 z-30 border-t shadow-lg md:left-64">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-end gap-x-8 gap-y-2 px-6 py-3">
           <div className="text-sm">
-            <span className="text-gray-500">Sous-total HT : </span>
-            <span className="font-medium text-gray-900">
+            <span className="text-muted">Sous-total HT : </span>
+            <span className="font-medium text-ink">
               {formatCurrency(subTotal)}
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500">Remise globale :</span>
+            <span className="text-muted">Remise globale :</span>
             <Input
               type="number"
               min={0}
@@ -1152,7 +1152,7 @@ function NewQuotePageInner() {
             />
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500">TVA % :</span>
+            <span className="text-muted">TVA % :</span>
             <Input
               type="number"
               min={0}
@@ -1161,14 +1161,14 @@ function NewQuotePageInner() {
               value={taxPercent}
               onChange={(e) => setTaxPercent(Number(e.target.value) || 0)}
             />
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-ink">
               {formatCurrency(taxAmount)}
             </span>
           </div>
           <div className="flex items-center gap-3">
             <div>
-              <p className="text-xs text-gray-500">Total</p>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-xs text-muted">Total</p>
+              <p className="text-xl font-bold text-ink">
                 {formatCurrency(grandTotal)}
               </p>
             </div>

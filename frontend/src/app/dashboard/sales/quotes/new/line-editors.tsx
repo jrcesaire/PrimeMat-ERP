@@ -55,7 +55,7 @@ export function CutsEditor({ line, onLineChange }: CutsEditorProps) {
     <div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-xs uppercase text-gray-500">
+          <tr className="text-left text-xs uppercase text-muted">
             <th className="pb-1">Qté pièces</th>
             <th className="pb-1">Longueur (m)</th>
             <th className="pb-1 text-right">Total partiel</th>
@@ -84,7 +84,7 @@ export function CutsEditor({ line, onLineChange }: CutsEditorProps) {
                   onChange={(e) => updateCut(cut.key, { length: Number(e.target.value) })}
                 />
               </td>
-              <td className="py-1 text-right text-gray-700">
+              <td className="py-1 text-right text-muted">
                 {formatCurrency(
                   (Number(cut.quantity) || 0) * (Number(cut.length) || 0) * price,
                 )}
@@ -92,7 +92,7 @@ export function CutsEditor({ line, onLineChange }: CutsEditorProps) {
               <td className="py-1 text-right">
                 <button
                   onClick={() => removeCut(cut.key)}
-                  className="text-gray-400 hover:text-red-600"
+                  className="text-faint hover:text-red-600"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -133,7 +133,7 @@ export function StandardPieceEditor({
   return (
     <div className="flex items-end gap-3">
       <div className="w-40">
-        <label className="mb-1 block text-xs font-medium text-gray-500">
+        <label className="mb-1 block text-xs font-medium text-muted">
           Nombre de pièces
         </label>
         <Input
@@ -143,7 +143,7 @@ export function StandardPieceEditor({
           onChange={(e) => onLineChange({ quantity: Number(e.target.value) })}
         />
       </div>
-      <p className="pb-2.5 text-xs text-gray-500">
+      <p className="pb-2.5 text-xs text-muted">
         {formatNumber(line.quantity)} × {formatNumber(product?.unit_length ?? 0, 2)} m ={" "}
         <strong>{formatNumber(totalLength, 2)} m</strong> → {formatCurrency(subtotal)}
       </p>

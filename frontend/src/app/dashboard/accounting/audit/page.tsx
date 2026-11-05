@@ -47,23 +47,23 @@ export default function AccountingAuditPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">
             Journal d&apos;audit comptable
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted">
             Traçabilité des écritures — qui a créé ou publié quoi, et quand
             (lecture seule)
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <div>
-            <label className="mb-1 block text-xs text-gray-500">
+            <label className="mb-1 block text-xs text-muted">
               Opération
             </label>
             <select
               value={action}
               onChange={(e) => setAction(e.target.value)}
-              className="h-10 w-52 rounded-md border border-gray-300 bg-white px-2 text-sm"
+              className="h-10 w-52 rounded-md border border-line bg-surface px-2 text-sm"
             >
               <option value="">Toutes</option>
               <option value="journal_entry.created">Créations</option>
@@ -71,7 +71,7 @@ export default function AccountingAuditPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Du</label>
+            <label className="mb-1 block text-xs text-muted">Du</label>
             <Input
               type="date"
               value={dateFrom}
@@ -80,7 +80,7 @@ export default function AccountingAuditPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Au</label>
+            <label className="mb-1 block text-xs text-muted">Au</label>
             <Input
               type="date"
               value={dateTo}
@@ -92,15 +92,15 @@ export default function AccountingAuditPage() {
       </div>
 
       <Card className="overflow-x-auto p-0">
-        <div className="border-b border-gray-100 px-4 py-3">
-          <h2 className="font-semibold text-gray-900">Opérations tracées</h2>
-          <p className="text-xs text-gray-500">
+        <div className="border-b border-line px-4 py-3">
+          <h2 className="font-semibold text-ink">Opérations tracées</h2>
+          <p className="text-xs text-muted">
             {logs.length} entrée(s) — du plus récent au plus ancien.
           </p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-2">Horodatage</th>
               <th className="px-3 py-2">Opération</th>
               <th className="px-3 py-2">Écriture</th>
@@ -114,14 +114,14 @@ export default function AccountingAuditPage() {
           <tbody className="divide-y divide-gray-50">
             {isLoading && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Chargement…
                 </td>
               </tr>
             )}
             {!isLoading && logs.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-faint">
                   Aucune opération tracée sur la période — les écritures créées
                   ou publiées apparaissent ici automatiquement.
                 </td>
@@ -130,12 +130,12 @@ export default function AccountingAuditPage() {
             {logs.map((log) => {
               const meta = ACTION_LABELS[log.action] ?? {
                 label: log.action,
-                className: "bg-gray-100 text-gray-700",
+                className: "bg-subtle text-muted",
               };
               return (
                 <Fragment key={log.id}>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 tabular-nums text-gray-700">
+                  <tr className="hover:bg-subtle">
+                    <td className="px-4 py-2 tabular-nums text-muted">
                       {formatDate(log.created_at)}
                     </td>
                     <td className="px-3 py-2">
@@ -145,19 +145,19 @@ export default function AccountingAuditPage() {
                         {meta.label}
                       </span>
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs font-semibold text-gray-700">
+                    <td className="px-3 py-2 font-mono text-xs font-semibold text-muted">
                       {field(log.new_values, "reference")}
                     </td>
-                    <td className="px-3 py-2 tabular-nums text-gray-600">
+                    <td className="px-3 py-2 tabular-nums text-muted">
                       {field(log.new_values, "entry_date")}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="px-3 py-2 text-muted">
                       {field(log.new_values, "journal_code")}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-gray-900">
+                    <td className="px-3 py-2 text-right tabular-nums text-ink">
                       {formatCurrency(Number(log.new_values?.total_debit ?? 0))}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="px-3 py-2 text-muted">
                       {log.user_id ? `utilisateur #${log.user_id}` : "système"}
                     </td>
                     <td className="px-4 py-2 text-right">
@@ -166,7 +166,7 @@ export default function AccountingAuditPage() {
                         onClick={() =>
                           setExpandedId(expandedId === log.id ? null : log.id)
                         }
-                        className="text-sm text-gray-600 hover:underline"
+                        className="text-sm text-muted hover:underline"
                       >
                         {expandedId === log.id ? "Masquer" : "Voir"}
                       </button>
@@ -174,14 +174,14 @@ export default function AccountingAuditPage() {
                   </tr>
                   {expandedId === log.id && (
                     <tr>
-                      <td colSpan={8} className="bg-gray-50 px-4 py-3">
-                        <p className="mb-2 text-xs font-medium text-gray-600">
+                      <td colSpan={8} className="bg-subtle px-4 py-3">
+                        <p className="mb-2 text-xs font-medium text-muted">
                           Description : {field(log.new_values, "description")} ·
                           source : {field(log.new_values, "source_type")}#
                           {field(log.new_values, "source_id")} · exercice :{" "}
                           {field(log.new_values, "fiscal_year_id")}
                         </p>
-                        <pre className="overflow-x-auto rounded border border-gray-200 bg-white p-3 text-xs text-gray-700">
+                        <pre className="overflow-x-auto rounded border border-line bg-surface p-3 text-xs text-muted">
                           {JSON.stringify(log.new_values, null, 2)}
                         </pre>
                       </td>

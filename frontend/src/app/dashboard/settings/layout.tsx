@@ -22,7 +22,7 @@ export default function SettingsLayout({
 
   return (
     <div className="space-y-6">
-      <nav className="flex flex-wrap gap-1 border-b border-gray-200">
+      <nav className="flex flex-wrap gap-1 border-b border-line">
         {items.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -33,7 +33,7 @@ export default function SettingsLayout({
                 "rounded-t-md px-4 py-2 text-sm transition-colors",
                 isActive
                   ? "border-b-2 border-blue-600 font-medium text-blue-600"
-                  : "text-gray-600 hover:bg-gray-100",
+                  : "text-muted hover:bg-subtle",
               )}
             >
               {item.label}

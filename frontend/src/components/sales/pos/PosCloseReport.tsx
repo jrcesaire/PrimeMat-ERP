@@ -4,6 +4,7 @@
  * Conforme au PRD §4.1.2 §4 — Rapport de clôture.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
 import { ArrowLeft, Printer, RefreshCw } from "lucide-react";
@@ -56,12 +57,12 @@ export function PosCloseReport({ sessionId, onBack }: Props) {
           <Button variant="outline" size="sm" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" /> Retour
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">Rapport de clôture</h1>
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Rapport de clôture</h1>
         </div>
         {isLoading ? (
-          <p className="p-10 text-center text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton className="mx-auto max-w-lg" />
         ) : (
-          <p className="p-10 text-center text-sm text-gray-500">
+          <p className="p-10 text-center text-sm text-muted">
             Rapport de clôture introuvable pour cette session.
           </p>
         )}
@@ -71,12 +72,12 @@ export function PosCloseReport({ sessionId, onBack }: Props) {
 
   const varianceClass =
     report.variance === null
-      ? "text-gray-500"
+      ? "text-muted"
       : report.variance < 0
         ? "text-red-600 font-medium"
         : report.variance > 0
           ? "text-green-600 font-medium"
-          : "text-gray-600 font-medium";
+          : "text-muted font-medium";
 
   const handlePrint = async () => {
     setPrinting(true);
@@ -202,7 +203,7 @@ export function PosCloseReport({ sessionId, onBack }: Props) {
             Imprimer le rapport
           </Button>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Rapport de clôture</h1>
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">Rapport de clôture</h1>
         <Badge variant={statusVariant(report.status)}>{statusLabel(report.status)}</Badge>
       </div>
 
@@ -212,33 +213,33 @@ export function PosCloseReport({ sessionId, onBack }: Props) {
         </CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="space-y-1">
-            <div className="text-xs uppercase text-gray-500">Solde initial</div>
+            <div className="text-xs uppercase text-muted">Solde initial</div>
             <div className="text-lg font-medium">{formatCurrency(report.initial_balance)}</div>
           </div>
           <div className="space-y-1">
-            <div className="text-xs uppercase text-gray-500">Total des ventes</div>
+            <div className="text-xs uppercase text-muted">Total des ventes</div>
             <div className="text-lg font-medium">{formatCurrency(report.sales_total)}</div>
           </div>
           <div className="space-y-1">
-            <div className="text-xs uppercase text-gray-500">Mouvements de fonds</div>
+            <div className="text-xs uppercase text-muted">Mouvements de fonds</div>
             <div className="text-lg font-medium">
               {formatCurrency(report.fund_movements_total)}
             </div>
           </div>
           <div className="space-y-1">
-            <div className="text-xs uppercase text-gray-500">Nombre de ventes</div>
+            <div className="text-xs uppercase text-muted">Nombre de ventes</div>
             <div className="text-lg font-medium">{report.sales_count}</div>
           </div>
           <div className="space-y-1">
-            <div className="text-xs uppercase text-gray-500">Solde théorique</div>
+            <div className="text-xs uppercase text-muted">Solde théorique</div>
             <div className="text-lg font-medium">{formatCurrency(report.theoretical_balance)}</div>
           </div>
           <div className="space-y-1 col-span-2 md:col-span-1">
-            <div className="text-xs uppercase text-gray-500">Solde constaté</div>
+            <div className="text-xs uppercase text-muted">Solde constaté</div>
             <div className="text-lg font-medium">{formatCurrency(report.closing_balance ?? 0)}</div>
           </div>
           <div className="space-y-1 col-span-2 md:col-span-1">
-            <div className="text-xs uppercase text-gray-500">Écart de caisse</div>
+            <div className="text-xs uppercase text-muted">Écart de caisse</div>
             <div className={`text-lg font-medium ${varianceClass}`}>
               {report.variance === null ? "—" : report.variance >= 0 ? `+${formatCurrency(report.variance)}` : formatCurrency(report.variance)}
             </div>
@@ -255,14 +256,14 @@ export function PosCloseReport({ sessionId, onBack }: Props) {
         </CardHeader>
         <CardContent>
           {report.sales.length === 0 ? (
-            <p className="p-4 text-center text-sm text-gray-500">
+            <p className="p-4 text-center text-sm text-muted">
               Aucune vente rattachée à cette session.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+                  <tr className="border-b border-line text-left text-xs uppercase text-muted">
                     <th className="px-4 py-3">Référence</th>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3">Client</th>
@@ -271,14 +272,14 @@ export function PosCloseReport({ sessionId, onBack }: Props) {
                 </thead>
                 <tbody>
                   {report.sales.map((s) => (
-                    <tr key={s.order_reference} className="border-b border-gray-100">
-                      <td className="px-4 py-3 font-semibold text-gray-900">
+                    <tr key={s.order_reference} className="border-b border-line">
+                      <td className="px-4 py-3 font-semibold text-ink">
                         {s.order_reference}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="px-4 py-3 text-muted">
                         {formatDate(s.created_at)}
                       </td>
-                      <td className="px-4 py-3 text-gray-800">
+                      <td className="px-4 py-3 text-ink">
                         {s.partner_name ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-right font-medium">
@@ -286,7 +287,7 @@ export function PosCloseReport({ sessionId, onBack }: Props) {
                       </td>
                     </tr>
                   ))}
-                  <tr className="border-t border-gray-200 font-bold bg-gray-50">
+                  <tr className="border-t border-line font-bold bg-subtle">
                     <td className="px-4 py-3" colSpan={3}>
                       Total des ventes
                     </td>
@@ -301,7 +302,7 @@ export function PosCloseReport({ sessionId, onBack }: Props) {
         </CardContent>
       </Card>
 
-      <div className="text-xs text-gray-500 text-center">
+      <div className="text-xs text-muted text-center">
         Généré le {new Date().toLocaleString("fr-FR")} — ERP Point de Vente.
         {report.variance !== null && report.variance < 0 && (
           <span className="text-red-600 font-medium ml-2">

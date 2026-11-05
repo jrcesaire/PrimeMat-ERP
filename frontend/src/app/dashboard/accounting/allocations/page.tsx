@@ -117,10 +117,10 @@ export default function AllocationsPage() {
       {/* En-tête */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">
             Lettrage tiers — Factures ↔ Paiements
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted">
             Rapprochez les paiements encaissés/émis avec les factures
             correspondantes pour solder les comptes tiers (411 / 401).
           </p>
@@ -133,7 +133,7 @@ export default function AllocationsPage() {
         </Button>
       </div>
 
-      <hr className="border-gray-200" />
+      <hr className="border-line" />
 
       {/* Section 1 : Factures avec solde restant */}
       <Card>
@@ -164,7 +164,7 @@ export default function AllocationsPage() {
                 {data.map((inv) => (
                   <TableRow
                     key={inv.invoice_id}
-                    className="cursor-pointer hover:bg-gray-50"
+                    className="cursor-pointer hover:bg-subtle"
                     onClick={() =>
                       setSelectedInvoiceId(
                         selectedInvoiceId === inv.invoice_id ? null : inv.invoice_id
@@ -172,8 +172,8 @@ export default function AllocationsPage() {
                     }
                   >
                     <TableCell className="font-medium">{inv.invoice_reference}</TableCell>
-                    <TableCell className="text-sm text-gray-600">—</TableCell>
-                    <TableCell className="text-sm text-gray-600">—</TableCell>
+                    <TableCell className="text-sm text-muted">—</TableCell>
+                    <TableCell className="text-sm text-muted">—</TableCell>
                     <TableCell className="text-right text-sm font-medium">
                       {formatAmount(inv.amount_total)}
                     </TableCell>
@@ -206,7 +206,7 @@ export default function AllocationsPage() {
                 ))}
                 {data.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-gray-500">
+                    <TableCell colSpan={7} className="text-center text-muted">
                       Aucune facture avec solde restant à lettrer.
                     </TableCell>
                   </TableRow>
@@ -225,7 +225,7 @@ export default function AllocationsPage() {
               <CheckCircle2 className="h-4 w-4 text-blue-600" />
               Créer un lettrage
             </CardTitle>
-            <CardDescription className="text-sm text-gray-600">
+            <CardDescription className="text-sm text-muted">
               Facture sélectionnée : #{selectedInvoiceId}
             </CardDescription>
           </CardHeader>
@@ -318,17 +318,17 @@ export default function AllocationsPage() {
                     <TableRow key={alloc.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Wallet className="h-3 w-3 text-gray-400" />
+                          <Wallet className="h-3 w-3 text-faint" />
                           <span className="text-sm font-medium">#{alloc.payment_id}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right text-sm font-medium">
                         {formatAmount(alloc.allocated_amount)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted">
                         {alloc.allocation_date}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-500">
+                      <TableCell className="text-sm text-muted">
                         {alloc.notes ?? "—"}
                       </TableCell>
                     </TableRow>

@@ -84,7 +84,7 @@ export function PosDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col px-[20px] md:px-[80px] py-6">
+    <div className="min-h-screen bg-subtle flex flex-col px-[20px] md:px-[80px] py-6">
       {/* Bandeau : bouton « Quitter » en haut à gauche + info caisse en haut à droite */}
       <header className="flex items-center justify-between gap-4">
         <Button
@@ -96,13 +96,13 @@ export function PosDashboard() {
           <LogOut className="h-4 w-4" />
           Quitter
         </Button>
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-muted">
           <Store className="h-5 w-5" />
           <div className="text-right leading-tight">
-            <div className="text-sm font-semibold text-gray-900">
+            <div className="text-sm font-semibold text-ink">
               {company?.name ?? "Point de vente"}
             </div>
-            <div className="text-xs text-gray-500">Caisse comptoir</div>
+            <div className="text-xs text-muted">Caisse comptoir</div>
           </div>
         </div>
       </header>
@@ -117,7 +117,7 @@ export function PosDashboard() {
             onClick={() => router.push(tile.href)}
             className={cn(
               "w-full max-w-[360px] h-14 justify-start gap-3 text-base",
-              !tile.primary && "bg-white",
+              !tile.primary && "bg-surface",
             )}
           >
             <tile.icon className="h-5 w-5" />

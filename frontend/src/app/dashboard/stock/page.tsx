@@ -2,6 +2,7 @@
  * Page Stock — entrepôts, niveaux (réel / réservé / disponible), mouvements.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -71,16 +72,16 @@ export default function StockPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Stock</h1>
-        <p className="text-sm text-gray-600">Entrepôts, niveaux et mouvements</p>
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">Stock</h1>
+        <p className="text-sm text-muted">Entrepôts, niveaux et mouvements</p>
       </div>
 
       {/* Entrepôts */}
       <Card className="p-4">
-        <h2 className="mb-3 font-semibold text-gray-800">Entrepôts</h2>
+        <h2 className="mb-3 font-semibold text-ink">Entrepôts</h2>
         <div className="flex flex-wrap items-center gap-2">
           {warehouses.map((w) => (
-            <span key={w.id} className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
+            <span key={w.id} className="rounded-full bg-subtle px-3 py-1 text-sm text-muted">
               {w.name}
             </span>
           ))}
@@ -93,15 +94,15 @@ export default function StockPage() {
 
       {/* Mouvement rapide */}
       <Card className="space-y-3 p-4">
-        <h2 className="font-semibold text-gray-800">Mouvement rapide</h2>
+        <h2 className="font-semibold text-ink">Mouvement rapide</h2>
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
-          <select className="rounded-md border border-gray-300 px-3 py-2 text-sm" value={mvType} onChange={(e) => setMvType(e.target.value)}>
+          <select className="rounded-md border border-line px-3 py-2 text-sm" value={mvType} onChange={(e) => setMvType(e.target.value)}>
             <option value="in">Entrée</option>
             <option value="out">Sortie</option>
           </select>
           <select
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm sm:col-span-2"
+            className="rounded-md border border-line px-3 py-2 text-sm sm:col-span-2"
             value={mvProduct ?? ""}
             onChange={(e) => setMvProduct(e.target.value ? Number(e.target.value) : null)}
           >
@@ -111,7 +112,7 @@ export default function StockPage() {
             ))}
           </select>
           <select
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-md border border-line px-3 py-2 text-sm"
             value={mvWarehouse ?? ""}
             onChange={(e) => setMvWarehouse(e.target.value ? Number(e.target.value) : null)}
           >
@@ -129,15 +130,15 @@ export default function StockPage() {
 
       {/* Niveaux */}
       <Card className="overflow-hidden p-0">
-        <h2 className="px-4 pt-4 font-semibold text-gray-800">Niveaux de stock</h2>
+        <h2 className="px-4 pt-4 font-semibold text-ink">Niveaux de stock</h2>
         {loadingLevels ? (
-          <p className="p-6 text-sm text-gray-500">Chargement…</p>
+          <RowsSkeleton />
         ) : levels.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">Aucun niveau de stock.</p>
+          <p className="p-10 text-center text-sm text-muted">Aucun niveau de stock.</p>
         ) : (
           <table className="mt-3 w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase text-muted">
                 <th className="px-4 py-3">Produit</th>
                 <th className="px-4 py-3">Entrepôt</th>
                 <th className="px-4 py-3 text-right">Réel</th>
@@ -152,10 +153,10 @@ export default function StockPage() {
                   <tr
                     key={l.id}
                     onClick={() => router.push(`/dashboard/catalogue/${l.product_id}`)}
-                    className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                    className="cursor-pointer border-b border-line hover:bg-subtle"
                   >
-                    <td className="px-4 py-3 font-medium text-gray-900 hover:text-primary hover:underline">{productName(l.product_id)}</td>
-                    <td className="px-4 py-3 text-gray-600">{wh?.name ?? `#${l.warehouse_id}`}</td>
+                    <td className="px-4 py-3 font-medium text-ink hover:text-primary hover:underline">{productName(l.product_id)}</td>
+                    <td className="px-4 py-3 text-muted">{wh?.name ?? `#${l.warehouse_id}`}</td>
                     <td className="px-4 py-3 text-right">{l.quantity_on_hand}</td>
                     <td className="px-4 py-3 text-right text-orange-600">{l.quantity_reserved}</td>
                     <td className="px-4 py-3 text-right font-semibold text-green-700">{l.available}</td>
@@ -169,13 +170,13 @@ export default function StockPage() {
 
       {/* Derniers mouvements */}
       <Card className="overflow-hidden p-0">
-        <h2 className="px-4 pt-4 font-semibold text-gray-800">Derniers mouvements</h2>
+        <h2 className="px-4 pt-4 font-semibold text-ink">Derniers mouvements</h2>
         {movements.length === 0 ? (
-          <p className="p-10 text-center text-sm text-gray-500">Aucun mouvement.</p>
+          <p className="p-10 text-center text-sm text-muted">Aucun mouvement.</p>
         ) : (
           <table className="mt-3 w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase text-muted">
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Produit</th>
@@ -187,11 +188,11 @@ export default function StockPage() {
                 <tr
                   key={m.id}
                   onClick={() => router.push(`/dashboard/catalogue/${m.product_id}`)}
-                  className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                  className="cursor-pointer border-b border-line hover:bg-subtle"
                 >
-                  <td className="px-4 py-3 text-gray-600">{new Date(m.created_at).toLocaleString("fr-FR")}</td>
+                  <td className="px-4 py-3 text-muted">{new Date(m.created_at).toLocaleString("fr-FR")}</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                    <span className="inline-flex rounded-full bg-subtle px-2.5 py-0.5 text-xs font-medium text-muted">
                       {m.movement_type}
                     </span>
                   </td>

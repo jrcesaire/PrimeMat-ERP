@@ -193,18 +193,18 @@ interface PayOverlayProps {
 function PayOverlay(p: PayOverlayProps) {
   return (
     <div
-      className="w-full max-w-md space-y-4 rounded-lg bg-white p-6 shadow-xl"
+      className="w-full max-w-md space-y-4 rounded-lg bg-surface p-6 shadow-xl"
       onClick={(e) => e.stopPropagation()}
       role="dialog"
       aria-label="Enregistrer un paiement"
     >
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink">
         <Banknote className="h-5 w-5 text-green-600" />
         Enregistrer un paiement
       </h2>
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-muted">
         Reste dû :{" "}
-        <span className="font-semibold text-gray-900">
+        <span className="font-semibold text-ink">
           {p.remaining} {p.currency}
         </span>
       </p>
@@ -230,7 +230,7 @@ function PayOverlay(p: PayOverlayProps) {
       ) : (
         <>
           <fieldset className="text-sm">
-            <legend className="mb-1 text-xs font-medium text-gray-600">
+            <legend className="mb-1 text-xs font-medium text-muted">
               Type de paiement
             </legend>
             <div className="flex gap-4">
@@ -257,18 +257,18 @@ function PayOverlay(p: PayOverlayProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600">
+              <label className="block text-xs font-medium text-muted">
                 Date
               </label>
               <input
                 type="date"
                 value={p.payDate}
                 onChange={(e) => p.onPayDateChange(e.target.value)}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600">
+              <label className="block text-xs font-medium text-muted">
                 Montant
               </label>
               <input
@@ -279,19 +279,19 @@ function PayOverlay(p: PayOverlayProps) {
                 readOnly={p.mode === "full"}
                 onChange={(e) => p.onAmountChange(e.target.value)}
                 placeholder={String(p.remaining)}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-50"
+                className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm disabled:bg-subtle"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600">
+            <label className="block text-xs font-medium text-muted">
               Méthode
             </label>
             <select
               value={p.method}
               onChange={(e) => p.onMethodChange(e.target.value)}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
             >
               {METHODS.map((m) => (
                 <option key={m.value} value={m.value}>
@@ -302,7 +302,7 @@ function PayOverlay(p: PayOverlayProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600">
+            <label className="block text-xs font-medium text-muted">
               Journal comptable
             </label>
             {p.journals.length > 0 ? (
@@ -310,7 +310,7 @@ function PayOverlay(p: PayOverlayProps) {
                 <select
                   value={p.journalCode}
                   onChange={(e) => p.onJournalChange(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
                 >
                   {p.journals.map((j) => (
                     <option key={j.code} value={j.code}>
@@ -318,12 +318,12 @@ function PayOverlay(p: PayOverlayProps) {
                     </option>
                   ))}
                 </select>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted">
                   Registre où le paiement sera comptabilisé (caisse, banque…).
                 </p>
               </>
             ) : (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted">
                 Journal déduit automatiquement du mode de paiement
                 (comptabilisation automatique).
               </p>

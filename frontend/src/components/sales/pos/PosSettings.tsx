@@ -40,7 +40,7 @@ function hourLabel(hour: number): string {
 
 /** Style des listes déroulantes, aligné sur le composant Input. */
 const SELECT_CLASS =
-  "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50";
+  "flex h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50";
 
 export function PosSettings() {
   const router = useRouter();
@@ -98,7 +98,7 @@ export function PosSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col px-[20px] md:px-[80px] py-6">
+    <div className="min-h-screen bg-subtle flex flex-col px-[20px] md:px-[80px] py-6">
       {/* Bandeau : retour vers le menu du PoS */}
       <header className="flex items-center justify-between gap-4">
         <Button
@@ -110,10 +110,10 @@ export function PosSettings() {
           <ArrowLeft className="h-4 w-4" /> Retour
         </Button>
         <div className="text-right leading-tight">
-          <div className="text-sm font-semibold text-gray-900">
+          <div className="text-sm font-semibold text-ink">
             Réglages du Point de Vente
           </div>
-          <div className="text-xs text-gray-500">Paramètres de la caisse</div>
+          <div className="text-xs text-muted">Paramètres de la caisse</div>
         </div>
       </header>
 
@@ -221,7 +221,7 @@ function PosSettingsForm({
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               Passé cette heure, la session de caisse encore ouverte est
               clôturée automatiquement (tâche planifiée horaire).
             </p>
@@ -244,7 +244,7 @@ function PosSettingsForm({
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               Heure-valeur retenue pour l&apos;écriture comptable des ventes
               comptoir.
             </p>
@@ -263,7 +263,7 @@ function PosSettingsForm({
             disabled={isLoading}
             onChange={(e) => onTicketUrlChange(e.target.value)}
           />
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             Adresse encodée dans le QR code imprimé au bas des tickets de caisse
             (site web, page de contact, avis client…).
           </p>

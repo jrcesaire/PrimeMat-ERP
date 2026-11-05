@@ -59,7 +59,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-subtle">
       {showSidebar && <Sidebar collapsed={collapsed} />}
       <div className="flex flex-1 flex-col overflow-hidden">
         {!posFocus && (

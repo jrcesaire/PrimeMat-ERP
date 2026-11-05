@@ -12,6 +12,7 @@
  *   récent → ancien), ligne cliquable = réimpression du reçu POS.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -385,11 +386,11 @@ function PosPageInner() {
             >
               <ArrowLeft className="h-4 w-4" /> Historique
             </Button>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-ink">
               Vente {detail?.reference ?? ""}
             </h1>
             {detail?.archived && (
-              <span className="rounded bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600">
+              <span className="rounded bg-gray-200 px-2 py-0.5 text-xs font-medium text-muted">
                 Archivée
               </span>
             )}
@@ -430,35 +431,35 @@ function PosPageInner() {
 
         <Card className="p-4">
           {detailLoading ? (
-            <p className="p-6 text-center text-sm text-gray-500">
+            <p className="p-6 text-center text-sm text-muted">
               Chargement…
             </p>
           ) : !detail ? (
-            <p className="p-6 text-center text-sm text-gray-500">
+            <p className="p-6 text-center text-sm text-muted">
               Vente introuvable.
             </p>
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                 <div>
-                  <p className="text-xs uppercase text-gray-500">Date</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-xs uppercase text-muted">Date</p>
+                  <p className="font-medium text-ink">
                     {formatDate(detail.created_at)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase text-gray-500">Client</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-xs uppercase text-muted">Client</p>
+                  <p className="font-medium text-ink">
                     {detail.partner?.name ?? "Client de passage"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase text-gray-500">Statut</p>
-                  <p className="font-medium text-gray-900">{detail.status}</p>
+                  <p className="text-xs uppercase text-muted">Statut</p>
+                  <p className="font-medium text-ink">{detail.status}</p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase text-gray-500">Facture</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-xs uppercase text-muted">Facture</p>
+                  <p className="font-medium text-ink">
                     {detail.invoice
                       ? `${detail.invoice.reference} (${detail.invoice.status})`
                       : "—"}
@@ -468,7 +469,7 @@ function PosPageInner() {
 
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+                  <tr className="border-b border-line text-left text-xs uppercase text-muted">
                     <th className="px-2 py-2">Article</th>
                     <th className="px-2 py-2 text-right">Qté</th>
                     <th className="px-2 py-2 text-right">P.U.</th>
@@ -478,21 +479,21 @@ function PosPageInner() {
                 </thead>
                 <tbody>
                   {detail.lines.map((l, i) => (
-                    <tr key={i} className="border-b border-gray-100">
-                      <td className="px-2 py-2 text-gray-800">
+                    <tr key={i} className="border-b border-line">
+                      <td className="px-2 py-2 text-ink">
                         {l.description ?? `Article ${l.product_id ?? "—"}`}
                         {l.variant_name ? ` — ${l.variant_name}` : ""}
                       </td>
-                      <td className="px-2 py-2 text-right text-gray-600">
+                      <td className="px-2 py-2 text-right text-muted">
                         {l.quantity} {l.unit ?? ""}
                       </td>
-                      <td className="px-2 py-2 text-right text-gray-600">
+                      <td className="px-2 py-2 text-right text-muted">
                         {formatCurrency(l.unit_price)}
                       </td>
-                      <td className="px-2 py-2 text-right text-gray-600">
+                      <td className="px-2 py-2 text-right text-muted">
                         {l.discount_percent > 0 ? `${l.discount_percent} %` : "—"}
                       </td>
-                      <td className="px-2 py-2 text-right font-medium text-gray-900">
+                      <td className="px-2 py-2 text-right font-medium text-ink">
                         {formatCurrency(l.subtotal)}
                       </td>
                     </tr>
@@ -500,14 +501,14 @@ function PosPageInner() {
                 </tbody>
               </table>
 
-              <div className="flex items-center justify-between border-t border-gray-200 pt-3">
-                <p className="text-sm text-gray-600">
+              <div className="flex items-center justify-between border-t border-line pt-3">
+                <p className="text-sm text-muted">
                   Paiement :{" "}
                   {detail.payment
                     ? `${METHOD_LABELS[detail.payment.method] ?? detail.payment.method} — ${formatCurrency(detail.payment.amount)}`
                     : "—"}
                 </p>
-                <p className="text-lg font-bold text-gray-900">
+                <p className="text-lg font-bold text-ink">
                   Total : {formatCurrency(detail.amount_total)}
                 </p>
               </div>
@@ -535,8 +536,8 @@ function PosPageInner() {
               <ArrowLeft className="h-4 w-4" /> Retour
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Point de vente</h1>
-              <p className="text-sm text-gray-600">Historique des ventes comptoir</p>
+              <h1 className="text-[28px] font-semibold leading-tight text-ink">Point de vente</h1>
+              <p className="text-sm text-muted">Historique des ventes comptoir</p>
             </div>
           </div>
           <Button
@@ -578,18 +579,18 @@ function PosPageInner() {
 
         <Card className="overflow-hidden p-0">
           {isLoading ? (
-            <p className="p-10 text-center text-sm text-gray-500">Chargement…</p>
+            <RowsSkeleton className="mx-auto max-w-lg" />
           ) : sales.length === 0 ? (
             <div className="p-10 text-center">
-              <ShoppingCart className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-              <p className="text-sm text-gray-500">
+              <ShoppingCart className="mx-auto mb-3 h-10 w-10 text-faint" />
+              <p className="text-sm text-muted">
                 Aucune vente enregistrée pour le moment.
               </p>
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+                <tr className="border-b border-line text-left text-xs uppercase text-muted">
                   <th className="px-4 py-3">Référence</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Client</th>
@@ -604,25 +605,25 @@ function PosPageInner() {
                   <tr
                     key={s.id}
                     onClick={() => openDetail(s.id)}
-                    className="cursor-pointer border-b border-gray-100 hover:bg-blue-50"
+                    className="cursor-pointer border-b border-line hover:bg-blue-50"
                     title="Cliquer pour voir le détail de la vente"
                   >
-                    <td className="px-4 py-3 font-semibold text-gray-900">
+                    <td className="px-4 py-3 font-semibold text-ink">
                       {s.reference}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-muted">
                       {formatDate(s.created_at)}
                     </td>
-                    <td className="px-4 py-3 text-gray-800">
+                    <td className="px-4 py-3 text-ink">
                       {s.partner_name ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-center text-gray-600">
+                    <td className="px-4 py-3 text-center text-muted">
                       {s.items_count}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                    <td className="px-4 py-3 text-right font-semibold text-ink">
                       {formatCurrency(s.amount_total)}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-muted">
                       {s.payment_method
                         ? METHOD_LABELS[s.payment_method] ?? s.payment_method
                         : "—"}
@@ -634,7 +635,7 @@ function PosPageInner() {
                             e.stopPropagation();
                             openDetail(s.id);
                           }}
-                          className="text-gray-400 hover:text-blue-600"
+                          className="text-faint hover:text-blue-600"
                           title="Voir le détail"
                         >
                           <Eye className="h-4 w-4" />
@@ -644,7 +645,7 @@ function PosPageInner() {
                             e.stopPropagation();
                             reprint(s.id);
                           }}
-                          className={`text-gray-400 hover:text-blue-600 ${
+                          className={`text-faint hover:text-blue-600 ${
                             reprinting === s.id ? "opacity-50" : ""
                           }`}
                           title="Réimprimer le reçu"
@@ -656,7 +657,7 @@ function PosPageInner() {
                             e.stopPropagation();
                             handleArchive(s.id);
                           }}
-                          className={`text-gray-400 hover:text-red-600 ${
+                          className={`text-faint hover:text-red-600 ${
                             archivingId === s.id ? "opacity-50" : ""
                           }`}
                           title="Archiver (masquer de l'historique)"
@@ -677,18 +678,18 @@ function PosPageInner() {
           <Card className="p-4">
             <div className="mb-3 flex items-center gap-2">
               <Pause className="h-4 w-4 text-amber-600" />
-              <h2 className="text-sm font-semibold text-gray-900">
+              <h2 className="text-sm font-semibold text-ink">
                 Ventes suspendues ({suspended.length})
               </h2>
             </div>
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {suspended.map((s) => (
                 <li
                   key={s.id}
                   className="flex items-center justify-between gap-3 py-2"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-800">
+                    <p className="truncate text-sm font-medium text-ink">
                       {s.lines.length} article{s.lines.length > 1 ? "s" : ""} —{" "}
                       {formatCurrency(
                         s.lines.reduce(
@@ -701,7 +702,7 @@ function PosPageInner() {
                         ),
                       )}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted">
                       Suspendue le {formatDate(s.savedAt)}
                       {s.method ? ` — ${METHOD_LABELS[s.method] ?? s.method}` : ""}
                     </p>
@@ -730,7 +731,7 @@ function PosPageInner() {
         )}
 
         {sales.length > 0 && (
-          <div className="flex items-center justify-between text-sm text-gray-600">
+          <div className="flex items-center justify-between text-sm text-muted">
             <span>
               {totalSales} vente{totalSales > 1 ? "s" : ""} — page {page} sur{" "}
               {pageCount}

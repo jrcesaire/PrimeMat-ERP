@@ -152,33 +152,33 @@ export function SearchableSelect<TValue extends string | number>({
         placeholder={query ? "" : placeholder}
       />
       {!disabled && (
-        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4 pointer-events-none" />
+        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-faint h-4 w-4 pointer-events-none" />
       )}
 
       {open && (
-        <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg max-h-60 overflow-y-auto">
-          {busy && <div className="px-3 py-2 text-xs text-gray-400">Recherche…</div>}
+        <div className="absolute z-20 mt-1 w-full rounded-md border border-line bg-surface shadow-lg max-h-60 overflow-y-auto">
+          {busy && <div className="px-3 py-2 text-xs text-faint">Recherche…</div>}
           {results.length > 0 ? (
             results.map((opt) => (
               <button
                 key={String(opt.id)}
                 type="button"
                 onClick={() => select(opt)}
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50"
+                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-subtle"
               >
-                <span className="font-medium text-gray-800">{opt.label}</span>
+                <span className="font-medium text-ink">{opt.label}</span>
                 {opt.subLabel && (
-                  <span className="text-xs text-gray-500">{opt.subLabel}</span>
+                  <span className="text-xs text-muted">{opt.subLabel}</span>
                 )}
               </button>
             ))
           ) : (
-            <div className="px-3 py-2 text-xs text-gray-400">
+            <div className="px-3 py-2 text-xs text-faint">
               Aucun résultat
             </div>
           )}
           {creatable && onCreate && (
-            <div className="border-t border-gray-100 p-2">
+            <div className="border-t border-line p-2">
               <Button
                 size="sm"
                 className="flex w-full items-center gap-2"

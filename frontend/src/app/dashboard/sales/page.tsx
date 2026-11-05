@@ -2,6 +2,7 @@
  * Page Ventes — liste des devis et commandes client.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -348,8 +349,8 @@ export default function SalesPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Ventes</h1>
-          <p className="text-sm text-gray-600">Devis et commandes clients</p>
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Ventes</h1>
+          <p className="text-sm text-muted">Devis et commandes clients</p>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton
@@ -386,13 +387,13 @@ export default function SalesPage() {
       />
 
       {/* Onglets */}
-      <div className="flex gap-4 border-b border-gray-200">
+      <div className="flex gap-4 border-b border-line">
         <button
           onClick={() => switchTab("quotes")}
           className={`flex items-center gap-2 border-b-2 px-4 pb-2 text-sm font-medium ${
             tab === "quotes"
               ? "border-primary text-primary"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              : "border-transparent text-muted hover:text-muted"
           }`}
         >
           <FileText className="h-4 w-4" />
@@ -403,7 +404,7 @@ export default function SalesPage() {
           className={`flex items-center gap-2 border-b-2 px-4 pb-2 text-sm font-medium ${
             tab === "orders"
               ? "border-primary text-primary"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              : "border-transparent text-muted hover:text-muted"
           }`}
         >
           <ShoppingCart className="h-4 w-4" />
@@ -414,7 +415,7 @@ export default function SalesPage() {
       {/* Barre d'outils — recherche, filtres, pagination (façon Odoo) */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
           <input
             value={search}
             onChange={(e) => {
@@ -422,7 +423,7 @@ export default function SalesPage() {
               setPage(1);
             }}
             placeholder="Rechercher : référence, client, téléphone…"
-            className="h-9 w-full rounded-md border border-gray-300 bg-white pl-9 pr-8 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="h-9 w-full rounded-md border border-line bg-surface pl-9 pr-8 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
           {search && (
             <button
@@ -431,7 +432,7 @@ export default function SalesPage() {
                 setPage(1);
               }}
               aria-label="Effacer la recherche"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-faint hover:text-muted"
             >
               <X className="h-4 w-4" />
             </button>
@@ -454,14 +455,14 @@ export default function SalesPage() {
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 statusFilter === value
                   ? "bg-primary text-white"
-                  : "border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                  : "border border-line bg-surface text-muted hover:bg-subtle"
               }`}
             >
               {label}
             </button>
           ))}
         </div>
-        <span className="ml-auto text-xs text-gray-500">
+        <span className="ml-auto text-xs text-muted">
           {docs.length === 0
             ? "0 résultat"
             : `${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, docs.length)} / ${docs.length}`}
@@ -506,7 +507,7 @@ export default function SalesPage() {
             </Button>
           )}
           <button
-            className="ml-auto text-xs text-gray-500 hover:text-gray-700"
+            className="ml-auto text-xs text-muted hover:text-muted"
             onClick={() => setSelected(new Set())}
           >
             Annuler la sélection
@@ -518,18 +519,18 @@ export default function SalesPage() {
       {tab === "quotes" && (
         <Card className="overflow-hidden p-0">
           {loadingQuotes ? (
-            <p className="p-6 text-sm text-gray-500">Chargement…</p>
+            <RowsSkeleton />
           ) : quotes.length === 0 ? (
             <div className="p-10 text-center">
-              <FileText className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-              <p className="text-sm text-gray-500">Aucun devis pour le moment.</p>
+              <FileText className="mx-auto mb-3 h-10 w-10 text-faint" />
+              <p className="text-sm text-muted">Aucun devis pour le moment.</p>
               <Link href="/dashboard/sales/quotes/new" className="mt-3 inline-block">
                 <Button size="sm">Créer le premier devis</Button>
               </Link>
             </div>
           ) : filteredQuotes.length === 0 ? (
             <div className="p-10 text-center">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted">
                 Aucun devis ne correspond à la recherche ou au filtre.
               </p>
             </div>
@@ -537,7 +538,7 @@ export default function SalesPage() {
             <>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+                <tr className="border-b border-line text-left text-xs uppercase text-muted">
                   <th className="px-4 py-3">
                     <input
                       type="checkbox"
@@ -562,7 +563,7 @@ export default function SalesPage() {
                   <tr
                     key={q.id}
                     onClick={() => router.push(`/dashboard/sales/quotes/new?id=${q.id}`)}
-                    className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                    className="cursor-pointer border-b border-line hover:bg-subtle"
                   >
                     <td className="px-4 py-3">
                       <input
@@ -581,7 +582,7 @@ export default function SalesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        className="font-medium text-gray-900 hover:text-primary hover:underline"
+                        className="font-medium text-ink hover:text-primary hover:underline"
                         title="Ouvrir le devis"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -592,16 +593,16 @@ export default function SalesPage() {
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-ink">
                         {partnerName(q.partner_id)}
                       </p>
                       {partnerPhone(q.partner_id) && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted">
                           {partnerPhone(q.partner_id)}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{formatDate(q.quote_date)}</td>
+                    <td className="px-4 py-3 text-muted">{formatDate(q.quote_date)}</td>
                     <td className="px-4 py-3"><StatusBadge status={q.status} /></td>
                     <td className="px-4 py-3 text-right font-semibold">
                       {formatCurrency(q.amount_total)}
@@ -622,7 +623,7 @@ export default function SalesPage() {
                                 className={
                                   isDraft
                                     ? "text-green-600 hover:bg-green-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() => handleConfirm(q.id)}
                               >
@@ -641,7 +642,7 @@ export default function SalesPage() {
                                 className={
                                   q.status === "confirmed"
                                     ? "text-emerald-600 hover:bg-emerald-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() => handleQuoteInvoice(q.id)}
                               >
@@ -657,7 +658,7 @@ export default function SalesPage() {
                                 className={
                                   isDraft
                                     ? "text-blue-600 hover:bg-blue-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() =>
                                   router.push(`/dashboard/sales/quotes/new?id=${q.id}`)
@@ -675,7 +676,7 @@ export default function SalesPage() {
                                 className={
                                   isDraft
                                     ? "text-red-600 hover:bg-red-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() => handleDelete(q.id, q.reference)}
                               >
@@ -691,7 +692,7 @@ export default function SalesPage() {
                                 className={
                                   q.status === "confirmed"
                                     ? "text-amber-600 hover:bg-amber-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() => handleQuoteBackToDraft(q.id, q.reference)}
                               >
@@ -702,7 +703,7 @@ export default function SalesPage() {
                         })()}
                         <IconAction
                           title={`Imprimer le devis ${q.reference} (PDF)`}
-                          className="text-gray-600 hover:bg-gray-100"
+                          className="text-muted hover:bg-subtle"
                           onClick={() => printQuote(q.id).catch(() =>
                             alert("Impossible de générer le PDF du devis.")
                           )}
@@ -732,17 +733,17 @@ export default function SalesPage() {
       {tab === "orders" && (
         <Card className="overflow-hidden p-0">
           {loadingOrders ? (
-            <p className="p-6 text-sm text-gray-500">Chargement…</p>
+            <RowsSkeleton />
           ) : orders.length === 0 ? (
             <div className="p-10 text-center">
-              <ShoppingCart className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-              <p className="text-sm text-gray-500">
+              <ShoppingCart className="mx-auto mb-3 h-10 w-10 text-faint" />
+              <p className="text-sm text-muted">
                 Aucune commande. Confirmez un devis pour en générer une.
               </p>
             </div>
           ) : filteredOrders.length === 0 ? (
             <div className="p-10 text-center">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted">
                 Aucune commande ne correspond à la recherche ou au filtre.
               </p>
             </div>
@@ -750,7 +751,7 @@ export default function SalesPage() {
             <>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+                <tr className="border-b border-line text-left text-xs uppercase text-muted">
                   <th className="px-4 py-3">
                     <input
                       type="checkbox"
@@ -777,7 +778,7 @@ export default function SalesPage() {
                   <tr
                     key={o.id}
                     onClick={() => router.push(`/dashboard/sales/quotes/new?orderId=${o.id}`)}
-                    className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                    className="cursor-pointer border-b border-line hover:bg-subtle"
                   >
                     <td className="px-4 py-3">
                       <input
@@ -796,7 +797,7 @@ export default function SalesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        className="font-medium text-gray-900 hover:text-primary hover:underline"
+                        className="font-medium text-ink hover:text-primary hover:underline"
                         title="Ouvrir la commande"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -807,17 +808,17 @@ export default function SalesPage() {
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-ink">
                         {partnerName(o.partner_id)}
                       </p>
                       {partnerPhone(o.partner_id) && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted">
                           {partnerPhone(o.partner_id)}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{formatDate(o.order_date)}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="px-4 py-3 text-muted">{formatDate(o.order_date)}</td>
+                    <td className="px-4 py-3 text-xs text-muted">
                       {o.fulfillment_mode === "hybrid"
                         ? "Hybride"
                         : o.fulfillment_mode === "purchase"
@@ -830,7 +831,7 @@ export default function SalesPage() {
                     <td className="px-4 py-3 text-right font-semibold">
                       {formatCurrency(o.amount_total)}
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-600">
+                    <td className="px-4 py-3 text-right text-muted">
                       {formatCurrency(o.paid_amount)}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -851,7 +852,7 @@ export default function SalesPage() {
                                 className={
                                   isDraft
                                     ? "text-green-600 hover:bg-green-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() => handleConfirm(o.id)}
                               >
@@ -867,7 +868,7 @@ export default function SalesPage() {
                                 className={
                                   isDraft
                                     ? "text-blue-600 hover:bg-blue-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() =>
                                   router.push(`/dashboard/sales/quotes/new?orderId=${o.id}`)
@@ -885,7 +886,7 @@ export default function SalesPage() {
                                 className={
                                   isDraft
                                     ? "text-red-600 hover:bg-red-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() => handleDeleteOrder(o.id, o.reference)}
                               >
@@ -901,7 +902,7 @@ export default function SalesPage() {
                                 className={
                                   isConfirmed
                                     ? "text-indigo-600 hover:bg-indigo-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() => printOrder(o.id).catch(() =>
                                   alert("Impossible de générer le bon de commande.")
@@ -919,7 +920,7 @@ export default function SalesPage() {
                                 className={
                                   isConfirmed
                                     ? "text-amber-600 hover:bg-amber-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() => handleBackToDraft(o.id, o.reference)}
                               >
@@ -939,7 +940,7 @@ export default function SalesPage() {
                                 className={
                                   isConfirmed && remainingFor(o.id, o.amount_total) > 0
                                     ? "text-emerald-600 hover:bg-emerald-50"
-                                    : "text-gray-300"
+                                    : "text-faint"
                                 }
                                 onClick={() => setInvoiceFor(o)}
                               >
@@ -951,7 +952,7 @@ export default function SalesPage() {
                                     ? `Imprimer le ticket ${o.reference}`
                                     : `Imprimer la facture de ${o.reference}`
                                 }
-                                className="text-gray-600 hover:bg-gray-100"
+                                className="text-muted hover:bg-subtle"
                                 onClick={() => printOrder(o.id).catch(() =>
                                   alert("Impossible de générer le PDF de la commande.")
                                 )}
@@ -1056,15 +1057,15 @@ function CreateInvoiceDialog({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-xl bg-surface p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-ink">
           Créer facture — {order.reference}
         </h3>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-muted">
           Total commande : {formatCurrency(order.amount_total)} · Reste à facturer :{" "}
-          <span className="font-semibold text-gray-800">{formatCurrency(remaining)}</span>
+          <span className="font-semibold text-ink">{formatCurrency(remaining)}</span>
         </p>
 
         <div className="mt-4 space-y-2">
@@ -1078,7 +1079,7 @@ function CreateInvoiceDialog({
             <label
               key={m}
               className={`flex cursor-pointer items-center gap-3 rounded-md border p-3 ${
-                mode === m ? "border-primary bg-primary/5" : "border-gray-200"
+                mode === m ? "border-primary bg-primary/5" : "border-line"
               }`}
             >
               <input
@@ -1089,8 +1090,8 @@ function CreateInvoiceDialog({
                 className="h-4 w-4 accent-primary"
               />
               <span>
-                <span className="block text-sm font-medium text-gray-900">{label}</span>
-                <span className="block text-xs text-gray-500">{hint}</span>
+                <span className="block text-sm font-medium text-ink">{label}</span>
+                <span className="block text-xs text-muted">{hint}</span>
               </span>
             </label>
           ))}
@@ -1098,7 +1099,7 @@ function CreateInvoiceDialog({
 
         {mode !== "full" && (
           <div className="mt-3">
-            <label className="text-xs font-medium text-gray-600">
+            <label className="text-xs font-medium text-muted">
               {mode === "down_payment_percent" ? "Pourcentage (%)" : "Montant"}
             </label>
             <input
@@ -1107,10 +1108,10 @@ function CreateInvoiceDialog({
               step="any"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
             />
             {valueNum > 0 && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted">
                 Montant de la facture : <strong>{formatCurrency(preview)}</strong>
               </p>
             )}
@@ -1118,7 +1119,7 @@ function CreateInvoiceDialog({
         )}
 
         <div className="mt-3">
-          <label className="text-xs font-medium text-gray-600">
+          <label className="text-xs font-medium text-muted">
             Délai de paiement (jours)
           </label>
           <input
@@ -1126,13 +1127,13 @@ function CreateInvoiceDialog({
             min="0"
             value={dueDays}
             onChange={(e) => setDueDays(e.target.value)}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
           />
         </div>
 
         {existing.length > 0 && (
-          <div className="mt-3 rounded-md bg-gray-50 p-3 text-xs text-gray-600">
-            <p className="font-medium text-gray-700">Déjà facturé :</p>
+          <div className="mt-3 rounded-md bg-subtle p-3 text-xs text-muted">
+            <p className="font-medium text-muted">Déjà facturé :</p>
             <ul className="mt-1 space-y-0.5">
               {existing.map((i) => (
                 <li key={i.id}>
@@ -1177,13 +1178,13 @@ function ListPager({
   onPage: (p: number) => void;
 }) {
   return (
-    <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-xs text-gray-500">
+    <div className="flex items-center justify-between border-t border-line px-4 py-2 text-xs text-muted">
       <span>{total === 0 ? "0 résultat" : `${from}–${to} / ${total}`}</span>
       <div className="flex items-center gap-1">
         <IconAction
           title="Page précédente"
           disabled={page <= 1}
-          className="text-gray-600 hover:bg-gray-100"
+          className="text-muted hover:bg-subtle"
           onClick={() => onPage(page - 1)}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -1191,7 +1192,7 @@ function ListPager({
         <IconAction
           title="Page suivante"
           disabled={page >= totalPages}
-          className="text-gray-600 hover:bg-gray-100"
+          className="text-muted hover:bg-subtle"
           onClick={() => onPage(page + 1)}
         >
           <ChevronRight className="h-4 w-4" />

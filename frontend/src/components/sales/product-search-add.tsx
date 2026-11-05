@@ -102,9 +102,9 @@ export function ProductSearchAdd({ onAdd, categoryId }: Props) {
         placeholder="Tapez le nom du produit (ex. ciment, fer à béton…)"
       />
       {open && (
-        <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+        <div className="absolute z-20 mt-1 w-full rounded-md border border-line bg-surface shadow-lg">
           {results.length === 0 && (
-            <p className="px-3 py-2 text-sm text-gray-500">Aucun produit trouvé.</p>
+            <p className="px-3 py-2 text-sm text-muted">Aucun produit trouvé.</p>
           )}
           {results.map((p, i) => (
             <button
@@ -113,21 +113,21 @@ export function ProductSearchAdd({ onAdd, categoryId }: Props) {
               onClick={() => add(p)}
               onMouseEnter={() => setHighlight(i)}
               className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
-                i === highlight ? "bg-blue-50" : "hover:bg-gray-50"
+                i === highlight ? "bg-blue-50" : "hover:bg-subtle"
               }`}
             >
-              <span className="font-medium text-gray-800">
+              <span className="font-medium text-ink">
                 {p.name}
-                <span className="ml-2 text-xs text-gray-400">{p.reference}</span>
+                <span className="ml-2 text-xs text-faint">{p.reference}</span>
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted">
                 {p.sell_by_length
                   ? `${formatCurrency(p.price_per_meter ?? 0)}/ml`
                   : formatCurrency(p.selling_price ?? 0)}
               </span>
             </button>
           ))}
-          <div className="border-t border-gray-100 p-2">
+          <div className="border-t border-line p-2">
             <Button
               size="sm"
               className="flex w-full items-center gap-2"

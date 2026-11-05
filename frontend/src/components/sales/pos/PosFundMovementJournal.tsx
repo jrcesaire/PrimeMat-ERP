@@ -5,6 +5,7 @@
  * Conforme au PRD §4.1.2 §5 — Journal des mouvements de fonds manuels.
  */
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
 import { Plus, ArrowLeft, RefreshCw } from "lucide-react";
@@ -75,9 +76,9 @@ export function PosFundMovementJournal({ sessionId, onBack, readOnly = false }: 
           <Button variant="outline" size="sm" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" /> Retour
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">Mouvements de fonds</h1>
+          <h1 className="text-[28px] font-semibold leading-tight text-ink">Mouvements de fonds</h1>
         </div>
-        <p className="p-10 text-center text-sm text-gray-500">Chargement…</p>
+        <RowsSkeleton className="mx-auto max-w-lg" />
       </div>
     );
   }
@@ -122,7 +123,7 @@ export function PosFundMovementJournal({ sessionId, onBack, readOnly = false }: 
             </Button>
           )}
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Mouvements de fonds</h1>
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">Mouvements de fonds</h1>
       </div>
 
       {sessionId === null && (
@@ -132,7 +133,7 @@ export function PosFundMovementJournal({ sessionId, onBack, readOnly = false }: 
       )}
 
       {readOnly && sessionId !== null && (
-        <div className="p-4 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 text-sm">
+        <div className="p-4 rounded-lg bg-subtle border border-line text-muted text-sm">
           Session clôturée : le journal reste consultable, mais aucun mouvement ne peut
           plus y être ajouté.
         </div>
@@ -144,7 +145,7 @@ export function PosFundMovementJournal({ sessionId, onBack, readOnly = false }: 
         </CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="space-y-1">
-            <div className="text-xs uppercase text-gray-500">Mouvements</div>
+            <div className="text-xs uppercase text-muted">Mouvements</div>
             <div className="text-lg font-medium">{movements.length}</div>
           </div>
           <div className="space-y-1">
@@ -160,7 +161,7 @@ export function PosFundMovementJournal({ sessionId, onBack, readOnly = false }: 
             </div>
           </div>
           <div className="space-y-1">
-            <div className="text-xs uppercase text-gray-900">Solde net</div>
+            <div className="text-xs uppercase text-ink">Solde net</div>
             <div className="text-lg font-medium font-bold">
               {formatCurrency(totalDeposit - totalWithdrawal)}
             </div>
@@ -174,14 +175,14 @@ export function PosFundMovementJournal({ sessionId, onBack, readOnly = false }: 
         </CardHeader>
         <CardContent>
           {movements.length === 0 ? (
-            <p className="p-4 text-center text-sm text-gray-500">
+            <p className="p-4 text-center text-sm text-muted">
               Aucun mouvement de fonds enregistré pour cette session.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+                  <tr className="border-b border-line text-left text-xs uppercase text-muted">
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3">Type</th>
                     <th className="px-4 py-3">Montant</th>
@@ -191,8 +192,8 @@ export function PosFundMovementJournal({ sessionId, onBack, readOnly = false }: 
                 </thead>
                 <tbody>
                   {movements.map((m) => (
-                    <tr key={m.id} className="border-b border-gray-100">
-                      <td className="px-4 py-3 text-gray-600">
+                    <tr key={m.id} className="border-b border-line">
+                      <td className="px-4 py-3 text-muted">
                         {formatDate(m.created_at)}
                       </td>
                       <td className="px-4 py-3">{movementTypeBadge(m.movement_type)}</td>
@@ -200,15 +201,15 @@ export function PosFundMovementJournal({ sessionId, onBack, readOnly = false }: 
                         {m.movement_type === "deposit" ? "+" : "-"}
                         {formatCurrency(m.amount)}
                       </td>
-                      <td className="px-4 py-3 text-gray-800">
+                      <td className="px-4 py-3 text-ink">
                         {m.label}
                         {m.reference && (
-                          <span className="ml-1 text-xs text-gray-400">
+                          <span className="ml-1 text-xs text-faint">
                             ({m.reference})
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right text-xs text-gray-500">
+                      <td className="px-4 py-3 text-right text-xs text-muted">
                         #{m.created_by ?? "—"}
                       </td>
                     </tr>

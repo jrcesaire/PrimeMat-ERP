@@ -1,4 +1,5 @@
 "use client";
+import { RowsSkeleton } from "@/components/ui/skeleton";
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -34,8 +35,8 @@ function LineDetail({ line, currency }: { line: InvoiceLine; currency: string })
   const fmt = (n: number) => formatCurrency(n, currency);
   if (line.sell_by_length && line.cuts && line.cuts.length > 0) {
     return (
-      <div className="border-b border-gray-100 py-3">
-        <div className="font-medium text-gray-900">
+      <div className="border-b border-line py-3">
+        <div className="font-medium text-ink">
           {line.description ?? `Ligne #${line.id}`}
           {line.variant_name && (
             <span className="ml-2 inline-block rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 align-middle text-[11px] font-semibold text-blue-700">
@@ -43,14 +44,14 @@ function LineDetail({ line, currency }: { line: InvoiceLine; currency: string })
             </span>
           )}
         </div>
-        <div className="mt-1 space-y-0.5 text-xs text-gray-500">
+        <div className="mt-1 space-y-0.5 text-xs text-muted">
           {line.cuts.map((c, i) => (
             <div key={i} className="flex justify-between">
               <span>{c.quantity} pièces × {c.length.toFixed(2)} m</span>
               <span>= {(c.quantity * c.length).toFixed(2)} m</span>
             </div>
           ))}
-          <div className="flex justify-between border-t border-gray-200 pt-1 font-medium text-gray-700">
+          <div className="flex justify-between border-t border-line pt-1 font-medium text-muted">
             <span>Total: {line.cuts.reduce((s, c) => s + c.quantity * c.length, 0).toFixed(2)} m × {fmt(line.unit_price)}</span>
             <span>{fmt(line.subtotal)}</span>
           </div>
@@ -59,9 +60,9 @@ function LineDetail({ line, currency }: { line: InvoiceLine; currency: string })
     );
   }
   return (
-    <div className="flex justify-between border-b border-gray-100 py-3">
+    <div className="flex justify-between border-b border-line py-3">
       <div>
-        <div className="font-medium text-gray-900">
+        <div className="font-medium text-ink">
           {line.description ?? `Ligne #${line.id}`}
           {line.variant_name && (
             <span className="ml-2 inline-block rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 align-middle text-[11px] font-semibold text-blue-700">
@@ -69,11 +70,11 @@ function LineDetail({ line, currency }: { line: InvoiceLine; currency: string })
             </span>
           )}
         </div>
-        <div className="text-xs text-gray-500">Quantité: {line.quantity}</div>
+        <div className="text-xs text-muted">Quantité: {line.quantity}</div>
       </div>
       <div className="text-right">
         <div className="font-medium">{fmt(line.unit_price)}</div>
-        <div className="text-sm font-semibold text-gray-900">{fmt(line.subtotal)}</div>
+        <div className="text-sm font-semibold text-ink">{fmt(line.subtotal)}</div>
       </div>
     </div>
   );
@@ -103,7 +104,7 @@ export default function InvoiceDetailPage() {
 
   // --- Enregistrement d'un paiement ---
 
-  if (isLoading) return <p className="p-6 text-sm text-gray-500">Chargement…</p>;
+  if (isLoading) return <RowsSkeleton />;
   if (error || !invoice) return <p className="p-6 text-sm text-red-500">Facture introuvable.</p>;
 
   const client = clients.find((c) => c.id === invoice.partner_id);
@@ -245,12 +246,12 @@ export default function InvoiceDetailPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="rounded-md p-2 hover:bg-gray-100">
+          <button onClick={() => router.back()} className="rounded-md p-2 hover:bg-subtle">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{invoice.reference}</h1>
-            <p className="text-sm text-gray-600">
+            <h1 className="text-[28px] font-semibold leading-tight text-ink">{invoice.reference}</h1>
+            <p className="text-sm text-muted">
               Facture — {client?.name ?? `Client #${invoice.partner_id}`}
             </p>
           </div>
@@ -356,27 +357,27 @@ export default function InvoiceDetailPage() {
 
       <Card className="grid grid-cols-2 gap-6 p-4 text-sm md:grid-cols-3">
         <div>
-          <p className="text-xs text-gray-500">Client</p>
-          <p className="font-medium text-gray-900">{client?.name ?? "—"}</p>
+          <p className="text-xs text-muted">Client</p>
+          <p className="font-medium text-ink">{client?.name ?? "—"}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Statut</p>
+          <p className="text-xs text-muted">Statut</p>
           <StatusBadge status={invoice.status} />
         </div>
         <div>
-          <p className="text-xs text-gray-500">Date</p>
-          <p className="font-medium text-gray-900">{formatDate(invoice.invoice_date)}</p>
+          <p className="text-xs text-muted">Date</p>
+          <p className="font-medium text-ink">{formatDate(invoice.invoice_date)}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Échéance</p>
-          <p className="font-medium text-gray-900">{invoice.due_date ? formatDate(invoice.due_date) : "—"}</p>
+          <p className="text-xs text-muted">Échéance</p>
+          <p className="font-medium text-ink">{invoice.due_date ? formatDate(invoice.due_date) : "—"}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Total</p>
-          <p className="font-medium text-gray-900">{formatCurrency(invoice.amount_total, currency)}</p>
+          <p className="text-xs text-muted">Total</p>
+          <p className="font-medium text-ink">{formatCurrency(invoice.amount_total, currency)}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Payé</p>
+          <p className="text-xs text-muted">Payé</p>
           <p className="font-medium text-green-600">{formatCurrency(invoice.paid_amount, currency)}</p>
         </div>
       </Card>
@@ -384,7 +385,7 @@ export default function InvoiceDetailPage() {
       <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+            <tr className="border-b border-line text-left text-xs uppercase text-muted">
               <th className="px-4 py-3">Produit</th>
               <th className="px-4 py-3 text-right">Qté</th>
               <th className="px-4 py-3 text-right">P.U.</th>
@@ -393,8 +394,8 @@ export default function InvoiceDetailPage() {
           </thead>
           <tbody>
             {invoice.lines?.map((l) => (
-              <tr key={l.id} className="border-b border-gray-100">
-                <td className="px-4 py-3 font-medium text-gray-900">
+              <tr key={l.id} className="border-b border-line">
+                <td className="px-4 py-3 font-medium text-ink">
                   {l.description ?? `Produit #${l.product_id}`}
                   {l.variant_name && (
                     <span className="ml-2 inline-block rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 align-middle text-[11px] font-semibold text-blue-700">
@@ -402,7 +403,7 @@ export default function InvoiceDetailPage() {
                     </span>
                   )}
                   {l.cuts && l.cuts.length > 0 && (
-                    <p className="mt-0.5 text-xs italic text-gray-500">
+                    <p className="mt-0.5 text-xs italic text-muted">
                       {l.cuts.map((c) => `${c.quantity} × ${c.length} m`).join(", ")}
                     </p>
                   )}
@@ -414,7 +415,7 @@ export default function InvoiceDetailPage() {
             ))}
             {(!invoice.lines || invoice.lines.length === 0) && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
+                <td colSpan={4} className="px-4 py-6 text-center text-sm text-muted">
                   Aucune ligne.
                 </td>
               </tr>
@@ -425,29 +426,29 @@ export default function InvoiceDetailPage() {
 
       <Card className="space-y-2 p-4">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Montant hors taxes</span>
-          <span className="font-medium text-gray-900">{formatCurrency(invoice.amount_untaxed, currency)}</span>
+          <span className="text-muted">Montant hors taxes</span>
+          <span className="font-medium text-ink">{formatCurrency(invoice.amount_untaxed, currency)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-500">TVA</span>
-          <span className="font-medium text-gray-900">{formatCurrency(invoice.tax_amount, currency)}</span>
+          <span className="text-muted">TVA</span>
+          <span className="font-medium text-ink">{formatCurrency(invoice.tax_amount, currency)}</span>
         </div>
         <div className="flex justify-between text-base font-bold">
-          <span className="text-gray-700">Total</span>
+          <span className="text-muted">Total</span>
           <span>{formatCurrency(invoice.amount_total, currency)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Payé</span>
+          <span className="text-muted">Payé</span>
           <span className="font-medium text-green-600">{formatCurrency(invoice.paid_amount, currency)}</span>
         </div>
         <div className="flex justify-between text-sm font-semibold">
-          <span className="text-gray-500">Reste dû</span>
-          <span className={remaining > 0 ? "text-red-600" : "text-gray-600"}>
+          <span className="text-muted">Reste dû</span>
+          <span className={remaining > 0 ? "text-red-600" : "text-muted"}>
             {formatCurrency(remaining, currency)}
           </span>
         </div>
         {invoice.order_id && (
-          <div className="mt-2 border-t border-gray-100 pt-2 text-xs">
+          <div className="mt-2 border-t border-line pt-2 text-xs">
             <Link
               href="/dashboard/sales"
               className="inline-flex items-center gap-1 text-primary hover:underline"
@@ -471,7 +472,7 @@ export default function InvoiceDetailPage() {
       {/* Historique des paiements + reçus (étape 5) */}
       {invoicePayments.length > 0 && (
         <Card className="space-y-2 p-4">
-          <h2 className="flex items-center gap-2 font-semibold text-gray-800">
+          <h2 className="flex items-center gap-2 font-semibold text-ink">
             <Banknote className="h-4 w-4 text-green-600" />
             Paiements ({invoicePayments.length})
           </h2>
@@ -479,13 +480,13 @@ export default function InvoiceDetailPage() {
             <div
               key={p.id}
               onClick={() => router.push(`/dashboard/payments/${p.id}`)}
-              className="-mx-2 flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-md border-b border-gray-100 px-2 py-2 text-sm transition-colors last:border-0 hover:bg-gray-50"
+              className="-mx-2 flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-md border-b border-line px-2 py-2 text-sm transition-colors last:border-0 hover:bg-subtle"
             >
               <div>
-                <span className="font-medium text-gray-900 hover:text-primary hover:underline">
+                <span className="font-medium text-ink hover:text-primary hover:underline">
                   {p.reference}
                 </span>
-                <span className="ml-2 text-xs text-gray-500">
+                <span className="ml-2 text-xs text-muted">
                   {formatDate(p.payment_date)} — {formatCurrency(p.amount, currency)}
                 </span>
               </div>
@@ -508,11 +509,11 @@ export default function InvoiceDetailPage() {
       {delivery != null && (
         <Card
           onClick={() => router.push(`/dashboard/delivery/${delivery.id}`)}
-          className="flex cursor-pointer flex-wrap items-center justify-between gap-2 p-4 text-sm transition-colors hover:bg-gray-50"
+          className="flex cursor-pointer flex-wrap items-center justify-between gap-2 p-4 text-sm transition-colors hover:bg-subtle"
         >
           <div>
-            <span className="text-gray-500">Bon de livraison : </span>
-            <span className="font-medium text-gray-900 hover:text-primary hover:underline">
+            <span className="text-muted">Bon de livraison : </span>
+            <span className="font-medium text-ink hover:text-primary hover:underline">
               {delivery.reference}
             </span>
             <span className="ml-2">

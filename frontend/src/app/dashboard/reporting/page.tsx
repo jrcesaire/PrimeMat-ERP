@@ -66,7 +66,7 @@ const METHOD_LABELS: Record<string, string> = {
 function KpiCard({
   label,
   value,
-  cls = "text-gray-900",
+  cls = "text-ink",
 }: {
   label: string;
   value: number;
@@ -74,8 +74,8 @@ function KpiCard({
 }) {
   return (
     <Card className="min-w-0 p-4">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className={`mt-1 break-words text-2xl font-bold leading-tight ${cls}`}>
+      <p className="text-sm text-muted">{label}</p>
+      <p className={`mt-1 break-words text-[28px] font-semibold leading-tight leading-tight ${cls}`}>
         {formatCurrency(value)}
       </p>
     </Card>
@@ -106,8 +106,8 @@ export default function ReportingPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Reporting</h1>
-        <p className="text-sm text-gray-600">
+        <h1 className="text-[28px] font-semibold leading-tight text-ink">Reporting</h1>
+        <p className="text-sm text-muted">
           Tableau de bord BI — 12 derniers mois
         </p>
       </div>
@@ -127,7 +127,7 @@ export default function ReportingPage() {
       </div>
 
       {!hasData && (
-        <Card className="p-6 text-center text-sm text-gray-500">
+        <Card className="p-6 text-center text-sm text-muted">
           Aucune donnée sur la période — les graphiques se rempliront dès les
           premières factures.
         </Card>
@@ -135,7 +135,7 @@ export default function ReportingPage() {
 
       {/* ---------- Tendance mensuelle ---------- */}
       <Card className="p-4">
-        <h2 className="mb-4 text-sm font-semibold text-gray-800">
+        <h2 className="mb-4 text-sm font-semibold text-ink">
           CA facturé vs encaissements vs dépenses
         </h2>
         <div className="h-72">
@@ -160,11 +160,11 @@ export default function ReportingPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* ---------- Top produits ---------- */}
         <Card className="p-4">
-          <h2 className="mb-4 text-sm font-semibold text-gray-800">
+          <h2 className="mb-4 text-sm font-semibold text-ink">
             Top produits (par CA)
           </h2>
           {topProducts.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-400">Aucune vente.</p>
+            <p className="py-10 text-center text-sm text-faint">Aucune vente.</p>
           ) : (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -196,11 +196,11 @@ export default function ReportingPage() {
 
         {/* ---------- Top clients ---------- */}
         <Card className="p-4">
-          <h2 className="mb-4 text-sm font-semibold text-gray-800">
+          <h2 className="mb-4 text-sm font-semibold text-ink">
             Top clients (par CA)
           </h2>
           {topPartners.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-400">Aucune vente.</p>
+            <p className="py-10 text-center text-sm text-faint">Aucune vente.</p>
           ) : (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -234,11 +234,11 @@ export default function ReportingPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* ---------- Statuts de factures ---------- */}
         <Card className="p-4">
-          <h2 className="mb-4 text-sm font-semibold text-gray-800">
+          <h2 className="mb-4 text-sm font-semibold text-ink">
             Factures par statut (montants)
           </h2>
           {statusPie.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-400">Aucune facture.</p>
+            <p className="py-10 text-center text-sm text-faint">Aucune facture.</p>
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -265,11 +265,11 @@ export default function ReportingPage() {
 
         {/* ---------- Modes de paiement ---------- */}
         <Card className="p-4">
-          <h2 className="mb-4 text-sm font-semibold text-gray-800">
+          <h2 className="mb-4 text-sm font-semibold text-ink">
             Encaissements par mode de paiement
           </h2>
           {methodPie.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-400">Aucun paiement.</p>
+            <p className="py-10 text-center text-sm text-faint">Aucun paiement.</p>
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -296,11 +296,11 @@ export default function ReportingPage() {
 
         {/* ---------- Dépenses par catégorie ---------- */}
         <Card className="p-4">
-          <h2 className="mb-4 text-sm font-semibold text-gray-800">
+          <h2 className="mb-4 text-sm font-semibold text-ink">
             Dépenses par catégorie
           </h2>
           {expensesByCategory.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-400">Aucune dépense.</p>
+            <p className="py-10 text-center text-sm text-faint">Aucune dépense.</p>
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -324,7 +324,7 @@ export default function ReportingPage() {
         </Card>
       </div>
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-faint">
         {kpis
           ? `${kpis.invoice_count} facture(s) comptabilisée(s) · ${kpis.orders_confirmed} commande(s) confirmée(s) · ${kpis.orders_draft} brouillon(s)`
           : "Chargement des indicateurs…"}

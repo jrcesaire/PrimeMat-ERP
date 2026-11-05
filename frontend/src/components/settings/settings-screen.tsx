@@ -468,8 +468,8 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-        <Lock className="h-3 w-3 text-gray-400" /> Compte standard
+      <span className="inline-flex items-center gap-1 text-xs text-muted">
+        <Lock className="h-3 w-3 text-faint" /> Compte standard
       </span>
     );
   };
@@ -477,8 +477,8 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Paramètres</h1>
-        <p className="text-gray-600">{SECTION_DESCRIPTIONS[section]}</p>
+        <h1 className="text-[28px] font-semibold leading-tight">Paramètres</h1>
+        <p className="text-muted">{SECTION_DESCRIPTIONS[section]}</p>
       </div>
 
       {section === "general" && (
@@ -488,17 +488,17 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
               <Building2 className="h-5 w-5 text-blue-600" />
               Informations de l'entreprise
             </h2>
-            <p className="mb-4 text-sm text-gray-500">
+            <p className="mb-4 text-sm text-muted">
               Ces informations identifient l'entreprise dans le tableau de bord et sur les
               documents. Le logo s'affiche dans la barre latérale.
             </p>
 
             {loadingCompany ? (
-              <p className="flex items-center gap-2 text-gray-500">
+              <p className="flex items-center gap-2 text-muted">
                 <Loader2 className="h-4 w-4 animate-spin" /> Chargement...
               </p>
             ) : !company ? (
-              <p className="text-gray-500">Aucune entreprise associée à votre compte.</p>
+              <p className="text-muted">Aucune entreprise associée à votre compte.</p>
             ) : (
               <div className="space-y-5">
                 {/* Logo */}
@@ -508,10 +508,10 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     <img
                       src={companyForm.logo}
                       alt="Logo de l'entreprise"
-                      className="h-20 w-20 rounded-md border border-gray-200 bg-white object-contain p-1"
+                      className="h-20 w-20 rounded-md border border-line bg-surface object-contain p-1"
                     />
                   ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-md border-2 border-dashed border-gray-300 text-gray-400">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-md border-2 border-dashed border-line text-faint">
                       <ImagePlus className="h-6 w-6" />
                     </div>
                   )}
@@ -539,7 +539,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                           </Button>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400">PNG, JPG ou SVG — 300 Ko max.</p>
+                      <p className="text-xs text-faint">PNG, JPG ou SVG — 300 Ko max.</p>
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -554,7 +554,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                 {/* Champs */}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-muted">
                       Nom de l'entreprise *
                     </label>
                     <Input
@@ -565,7 +565,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Code *</label>
+                    <label className="mb-1 block text-sm font-medium text-muted">Code *</label>
                     <Input
                       value={companyForm.code}
                       disabled={!canEditCompany}
@@ -574,7 +574,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-muted">
                       Établissement
                     </label>
                     <Input
@@ -587,7 +587,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Téléphone</label>
+                    <label className="mb-1 block text-sm font-medium text-muted">Téléphone</label>
                     <Input
                       value={companyForm.phone}
                       disabled={!canEditCompany}
@@ -596,7 +596,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+                    <label className="mb-1 block text-sm font-medium text-muted">Email</label>
                     <Input
                       type="email"
                       value={companyForm.email}
@@ -606,7 +606,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Site web</label>
+                    <label className="mb-1 block text-sm font-medium text-muted">Site web</label>
                     <Input
                       value={companyForm.website}
                       disabled={!canEditCompany}
@@ -615,7 +615,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-muted">
                       Devise (code ISO)
                     </label>
                     <Input
@@ -629,7 +629,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-muted">
                       Adresse — rue / quartier
                     </label>
                     <Input
@@ -639,7 +639,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Ville</label>
+                    <label className="mb-1 block text-sm font-medium text-muted">Ville</label>
                     <Input
                       value={companyForm.city}
                       disabled={!canEditCompany}
@@ -647,7 +647,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Pays</label>
+                    <label className="mb-1 block text-sm font-medium text-muted">Pays</label>
                     <Input
                       value={companyForm.country}
                       disabled={!canEditCompany}
@@ -655,7 +655,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-muted">
                       Pays fiscal (code, ex. CI)
                     </label>
                     <Input
@@ -668,7 +668,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div className="sm:col-span-2 lg:col-span-3">
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-muted">
                       Slogan (affiché sur les documents)
                     </label>
                     <Input
@@ -682,12 +682,12 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
 
                 {/* Informations fiscales & légales */}
                 <div>
-                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
                     Informations fiscales &amp; légales
                   </h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                      <label className="mb-1 block text-sm font-medium text-muted">
                         N° Compte Contribuable (NCC)
                       </label>
                       <Input
@@ -698,7 +698,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-gray-700">RCCM</label>
+                      <label className="mb-1 block text-sm font-medium text-muted">RCCM</label>
                       <Input
                         value={companyForm.rccm}
                         disabled={!canEditCompany}
@@ -707,7 +707,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                      <label className="mb-1 block text-sm font-medium text-muted">
                         Capital social
                       </label>
                       <Input
@@ -723,7 +723,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                 </div>
 
                 {!canEditCompany && (
-                  <p className="flex items-center gap-1 text-xs text-gray-400">
+                  <p className="flex items-center gap-1 text-xs text-faint">
                     <Lock className="h-3 w-3" /> Lecture seule — modification réservée au
                     superadministrateur.
                   </p>
@@ -754,7 +754,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                 <div><span className="font-medium">Debug :</span> {appInfo.debug ? "Activé" : "Désactivé"}</div>
               </div>
             ) : (
-              <p className="text-gray-500">Chargement...</p>
+              <p className="text-muted">Chargement...</p>
             )}
           </Card>
         </div>
@@ -765,7 +765,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
       {section === "categories" && canManageCategories && <CategoriesTab />}
       {section === "categories" && !canManageCategories && (
         <Card className="p-6">
-          <p className="text-gray-500">
+          <p className="text-muted">
             Accès réservé aux profils autorisés à gérer le catalogue.
           </p>
         </Card>
@@ -781,12 +781,12 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
       )}
 
       {section === "modules" && !canManageModules && (
-        <Card className="p-6"><p className="text-gray-500">Accès réservé au superadministrateur.</p></Card>
+        <Card className="p-6"><p className="text-muted">Accès réservé au superadministrateur.</p></Card>
       )}
 
       {section === "users" && !canManageUsers && (
         <Card className="p-6">
-          <p className="text-gray-500">
+          <p className="text-muted">
             Accès réservé aux profils autorisés à gérer les utilisateurs.
           </p>
         </Card>
@@ -802,13 +802,13 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                 <UserRound className="h-5 w-5 text-blue-600" />
                 Nouvel utilisateur
               </h2>
-              <p className="mb-4 text-sm text-gray-500">
+              <p className="mb-4 text-sm text-muted">
                 Crée un compte avec un niveau d'autorisation précis (rôle).
               </p>
 
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+                  <label className="mb-1 block text-sm font-medium text-muted">Email</label>
                   <Input
                     type="email"
                     value={form.email}
@@ -817,7 +817,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Mot de passe (min. 8 car.)</label>
+                  <label className="mb-1 block text-sm font-medium text-muted">Mot de passe (min. 8 car.)</label>
                   <Input
                     type="password"
                     value={form.password}
@@ -826,7 +826,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Prénom</label>
+                  <label className="mb-1 block text-sm font-medium text-muted">Prénom</label>
                   <Input
                     value={form.first_name}
                     onChange={(e) => setForm({ ...form, first_name: e.target.value })}
@@ -834,7 +834,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Nom</label>
+                  <label className="mb-1 block text-sm font-medium text-muted">Nom</label>
                   <Input
                     value={form.last_name}
                     onChange={(e) => setForm({ ...form, last_name: e.target.value })}
@@ -842,11 +842,11 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Entreprise</label>
+                  <label className="mb-1 block text-sm font-medium text-muted">Entreprise</label>
                   <select
                     value={form.company_id || ""}
                     onChange={(e) => setForm({ ...form, company_id: Number(e.target.value) })}
-                    className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                    className="h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
                   >
                     <option value="">— Sélectionner —</option>
                     {companies.map((c) => (
@@ -855,7 +855,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-muted">
                     Niveau d'autorisation (rôles)
                   </label>
                   <RoleMultiSelect
@@ -902,16 +902,16 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
               </p>
             )}
             {loadingUsers ? (
-              <p className="flex items-center gap-2 text-gray-500">
+              <p className="flex items-center gap-2 text-muted">
                 <Loader2 className="h-4 w-4 animate-spin" /> Chargement...
               </p>
             ) : users.length === 0 ? (
-              <p className="text-gray-500">Aucun utilisateur.</p>
+              <p className="text-muted">Aucun utilisateur.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+                    <tr className="border-b border-line text-left text-xs uppercase text-muted">
                       <th className="px-3 py-2">Nom</th>
                       <th className="px-3 py-2">Email</th>
                       <th className="px-3 py-2">Statut</th>
@@ -921,13 +921,13 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                   </thead>
                   <tbody>
                     {users.map((u) => (
-                      <tr key={u.id} className="border-b border-gray-100">
-                        <td className="px-3 py-2 font-medium text-gray-900">
+                      <tr key={u.id} className="border-b border-line">
+                        <td className="px-3 py-2 font-medium text-ink">
                           {u.first_name} {u.last_name}
                         </td>
-                        <td className="px-3 py-2 text-gray-600">{u.email}</td>
+                        <td className="px-3 py-2 text-muted">{u.email}</td>
                         <td className="px-3 py-2">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${u.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${u.is_active ? "bg-green-100 text-green-700" : "bg-subtle text-muted"}`}>
                             {u.is_active ? "Actif" : "Inactif"}
                           </span>
                         </td>
@@ -939,7 +939,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                                 type="button"
                                 title={`Modifier ${u.email}`}
                                 onClick={() => void openEdit(u)}
-                                className="rounded p-1.5 text-gray-500 transition hover:bg-blue-50 hover:text-blue-600"
+                                className="rounded p-1.5 text-muted transition hover:bg-blue-50 hover:text-blue-600"
                               >
                                 <Pencil className="h-4 w-4" />
                               </button>
@@ -952,7 +952,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                                 onClick={() => void handleToggleActive(u)}
                                 className={`rounded p-1.5 transition hover:bg-amber-50 ${
                                   u.is_active
-                                    ? "text-gray-500 hover:text-amber-600"
+                                    ? "text-muted hover:text-amber-600"
                                     : "text-green-600 hover:bg-green-50"
                                 }`}
                               >
@@ -969,7 +969,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                                 title={`Supprimer ${u.email}`}
                                 disabled={deleteUser.isPending}
                                 onClick={() => void handleDelete(u)}
-                                className="rounded p-1.5 text-gray-500 transition hover:bg-red-50 hover:text-red-600"
+                                className="rounded p-1.5 text-muted transition hover:bg-red-50 hover:text-red-600"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -991,7 +991,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
               onClick={() => setEditingUser(null)}
             >
               <div
-                className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl"
+                className="w-full max-w-lg rounded-lg bg-surface p-6 shadow-xl"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="mb-4 flex items-center justify-between">
@@ -1002,7 +1002,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                   <button
                     type="button"
                     onClick={() => setEditingUser(null)}
-                    className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    className="rounded p-1 text-faint hover:bg-subtle hover:text-muted"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -1010,7 +1010,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+                    <label className="mb-1 block text-sm font-medium text-muted">Email</label>
                     <Input
                       type="email"
                       value={editForm.email}
@@ -1018,7 +1018,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Téléphone</label>
+                    <label className="mb-1 block text-sm font-medium text-muted">Téléphone</label>
                     <Input
                       value={editForm.phone}
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
@@ -1026,21 +1026,21 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Prénom</label>
+                    <label className="mb-1 block text-sm font-medium text-muted">Prénom</label>
                     <Input
                       value={editForm.first_name}
                       onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Nom</label>
+                    <label className="mb-1 block text-sm font-medium text-muted">Nom</label>
                     <Input
                       value={editForm.last_name}
                       onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-muted">
                       Nouveau mot de passe (optionnel)
                     </label>
                     <Input
@@ -1051,7 +1051,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-muted">
                       Niveau d'autorisation (rôles)
                     </label>
                     <RoleMultiSelect
@@ -1125,11 +1125,11 @@ function RoleMultiSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex min-h-[2.5rem] w-full items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm"
+        className="flex min-h-[2.5rem] w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-3 py-2 text-left text-sm"
       >
         <span className="flex flex-wrap items-center gap-1">
           {selected.length === 0 ? (
-            <span className="text-gray-400">— Sélectionner un ou plusieurs rôles —</span>
+            <span className="text-faint">— Sélectionner un ou plusieurs rôles —</span>
           ) : (
             selected.map((r) => (
               <span
@@ -1142,13 +1142,13 @@ function RoleMultiSelect({
             ))
           )}
         </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted" />
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+        <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-line bg-surface py-1 shadow-lg">
           {roles.length === 0 && (
-            <p className="px-3 py-2 text-sm text-gray-500">Aucun rôle disponible.</p>
+            <p className="px-3 py-2 text-sm text-muted">Aucun rôle disponible.</p>
           )}
           {roles.map((r) => {
             const checked = value.includes(r.id);
@@ -1157,17 +1157,17 @@ function RoleMultiSelect({
                 key={r.id}
                 type="button"
                 onClick={() => toggle(r.id)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-subtle"
               >
                 <span
                   className={`flex h-4 w-4 items-center justify-center rounded border ${
-                    checked ? "border-blue-600 bg-blue-600" : "border-gray-300"
+                    checked ? "border-blue-600 bg-blue-600" : "border-line"
                   }`}
                 >
                   {checked && <Check className="h-3 w-3 text-white" />}
                 </span>
-                <span className="font-medium text-gray-800">{r.name}</span>
-                <span className="text-xs text-gray-500">{r.code}</span>
+                <span className="font-medium text-ink">{r.name}</span>
+                <span className="text-xs text-muted">{r.code}</span>
               </button>
             );
           })}
@@ -1194,19 +1194,19 @@ function ModuleManager({
         <Boxes className="h-5 w-5 text-blue-600" />
         Gestion des modules
       </h2>
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-4 text-sm text-muted">
         Activez ou désactivez les modules métier. Le module Core est toujours actif.
       </p>
 
       {loading ? (
-        <p className="flex items-center gap-2 text-gray-500">
+        <p className="flex items-center gap-2 text-muted">
           <Loader2 className="h-4 w-4 animate-spin" /> Chargement des modules...
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+              <tr className="border-b border-line text-left text-xs uppercase text-muted">
                 <th className="px-3 py-2">Module</th>
                 <th className="px-3 py-2">Version</th>
                 <th className="px-3 py-2">Statut</th>
@@ -1218,14 +1218,14 @@ function ModuleManager({
                 const isCore = m.name === "core";
                 const active = m.status === "active";
                 return (
-                  <tr key={m.name} className="border-b border-gray-100">
-                    <td className="px-3 py-2 font-medium text-gray-900">
+                  <tr key={m.name} className="border-b border-line">
+                    <td className="px-3 py-2 font-medium text-ink">
                       {moduleName(m.name)}
                       {isCore && (
-                        <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">Core</span>
+                        <span className="ml-2 rounded-full bg-subtle px-2 py-0.5 text-xs text-muted">Core</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-gray-500">{m.version}</td>
+                    <td className="px-3 py-2 text-muted">{m.version}</td>
                     <td className="px-3 py-2">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
                         {active ? "Actif" : m.status === "installed" ? "Installé" : "Inactif"}

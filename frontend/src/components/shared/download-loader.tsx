@@ -29,12 +29,12 @@ export function DownloadLoader() {
       aria-busy="true"
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/50"
     >
-      <div className="flex flex-col items-center gap-3 rounded-xl bg-white px-8 py-7 shadow-2xl dark:bg-slate-800">
+      <div className="flex flex-col items-center gap-3 rounded-xl bg-surface px-8 py-7 shadow-2xl dark:bg-slate-800">
         <FadeArc
           className="h-9 w-9 text-blue-600"
           style={{ "--duration": "1.2s" } as CSSProperties}
         />
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+        <p className="text-sm font-medium text-muted dark:text-gray-200">
           {message}
         </p>
       </div>
