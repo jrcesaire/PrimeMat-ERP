@@ -20,6 +20,7 @@ import { ArrowUpRight, Search, Settings, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useModuleStates } from "@/hooks/useModules";
 import { APP_TILES, type AppTile } from "@/lib/module-registry";
+import { APP_ICONS } from "@/components/icons/app-icons";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,6 +37,8 @@ function Tile({ app, disabled = false }: { app: AppTile; disabled?: boolean }) {
   const tooltip = disabled
     ? `${app.label} — Désactivé`
     : `${app.label} — ${app.description}`;
+  // Icône SVG dédiée quand elle existe, sinon l'icône Lucide du registre.
+  const SvgIcon = APP_ICONS[app.key];
   const inner = (
     <Card
       title={tooltip}
@@ -46,7 +49,11 @@ function Tile({ app, disabled = false }: { app: AppTile; disabled?: boolean }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-primary-soft">
-          <app.icon className="h-5 w-5 text-primary" />
+          {SvgIcon ? (
+            <SvgIcon className="h-6 w-6" />
+          ) : (
+            <app.icon className="h-5 w-5 text-primary" />
+          )}
         </div>
         {!disabled && (
           <ArrowUpRight className="h-4 w-4 shrink-0 text-faint transition-colors group-hover:text-primary" />
