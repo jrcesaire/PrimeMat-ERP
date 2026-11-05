@@ -90,10 +90,25 @@ def nearest_token(hex_color: str) -> str:
     return best
 
 
-def clean_svg(svg: str, remap: bool) -> str:
+def clean_svg(svg: str, remap: bool, size: tuple[int, int]) -> str:
     """Normalise le SVG produit par vtracer."""
-    # Dimensions explicites retirées : le composant React les fixe.
-    svg = re.sub(r'\s(width|height)="[^"]*"', "", svg, count=2)
+    width, height = size
+
+    # vtracer empile les calques : le premier est le fond opaque issu de
+    # l'aplatissement. On le retire pour retrouver un fond transparent.
+    first = re.search(r"<path\b[^>]*/>", svg)
+    if first:
+        box = re.search(r'\sd="([^"]*)"', first.group(0))
+        if (
+            box
+            and box.group(1).strip().startswith("M0 0")
+            and f"{width} {height}" in box.group(1)
+        ):
+            svg = svg[: first.start()] + svg[first.end() :]
+
+    # Dimensions explicites -> viewBox (le composant React fixe la taille).
+    svg = re.sub(r'\s(width|height)="[^"]*"', "", svg)
+    svg = svg.replace("<svg ", f'<svg viewBox="0 0 {width} {height}" ', 1)
     svg = re.sub(r'\s(xml:space|version|id|data-name)="[^"]*"', "", svg)
 
     if remap:
@@ -133,7 +148,8 @@ def main() -> int:
         # couleur à part.
         with Image.open(path) as img:
             rgba = img.convert("RGBA")
-            flat = Image.new("RGB", img.size, (255, 255, 255))
+            size = img.size
+            flat = Image.new("RGB", size, (255, 255, 255))
             flat.paste(rgba, mask=rgba.split()[3])
             prepared = args.out / f"_flat_{path.stem}.png"
             flat.save(prepared)
@@ -155,7 +171,10 @@ def main() -> int:
         )
 
         target = args.out / f"{path.stem}.svg"
-        target.write_text(clean_svg(raw.read_text(encoding="utf-8"), args.remap), encoding="utf-8")
+        target.write_text(
+            clean_svg(raw.read_text(encoding="utf-8"), args.remap, size),
+            encoding="utf-8",
+        )
         raw.unlink()
         prepared.unlink()
         print(f"  {path.name} -> {target.name}")
