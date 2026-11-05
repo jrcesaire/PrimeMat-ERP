@@ -28,7 +28,7 @@ export function PosTotalsBar({
 }: Props) {
   if (variant === "giant") {
     return (
-      <div className="rounded-card border border-line bg-surface p-4">
+      <div>
         <dl className="space-y-2 text-[13px]">
           <div className="flex items-baseline justify-between gap-3">
             <dt className="text-muted">Sous-total HT</dt>

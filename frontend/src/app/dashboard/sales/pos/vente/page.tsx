@@ -28,6 +28,7 @@ import {
   Play,
   Plus,
   Printer,
+  ScanBarcode,
   ShoppingCart,
   Trash2,
   UserRound,
@@ -44,6 +45,7 @@ import { PosPartnerDialog } from "@/components/sales/pos/PosPartnerDialog";
 import { PosSessionsManager } from "@/components/sales/pos/PosSessionsManager";
 import { useCategoryTree, useProducts } from "@/hooks/useCatalogue";
 import { useClients } from "@/hooks/useCRM";
+import { usePosSessions } from "@/hooks/usePosSessions";
 import {
   SALES_KEYS,
   useArchivePosSale,
@@ -54,7 +56,7 @@ import { apiClient } from "@/lib/api/client";
 import { printPosTicket } from "@/lib/api/pdf";
 import { attachHidScanner } from "@/lib/hid-scanner";
 import { setPosFocus } from "@/lib/pos-focus";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 
 interface PosLine {
   key: number;
@@ -144,6 +146,13 @@ function PosPageInner() {
   const sales = history?.items ?? [];
   const { data: detail, isLoading: detailLoading } = usePosSale(detailId);
   const { data: categoryTree = [] } = useCategoryTree();
+
+  // Statut de la caisse : session ouverte de l'entreprise courante. Sert de
+  // repère au caissier (une vente hors session n'est rattachée à aucune caisse).
+  const { data: sessionsPage } = usePosSessions(0, 20);
+  const openSession =
+    (sessionsPage?.items ?? []).find((session) => session.status === "open") ??
+    null;
   const { data: products = [], isLoading: productsLoading } = useProducts(
     undefined,
     240,
@@ -798,160 +807,268 @@ function PosPageInner() {
     return <PosSessionsManager onBack={() => setView("history")} />;
   }
 
-  // Vue 2 : nouvelle vente — split caisse tactile (mode focus plein écran)
+  // Vue 2 : nouvelle vente — disposition de la maquette « GEA ERP » :
+  // en-tête de page, puis catalogue à gauche et ticket de caisse à droite.
   return (
-    <div className="flex h-full gap-4">
-      {/* Rail caisse — client, panier, totaux, encaissement.
-          `order-2` le place à droite : la maquette présente le catalogue à
-          gauche et le ticket à droite. */}
-      <div className="order-2 flex h-full min-h-0 w-[380px] shrink-0 flex-col gap-3 overflow-y-auto pl-1">
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-          <div className="min-w-0">
-            <h1 className="text-[17px] font-semibold text-ink">Nouvelle vente</h1>
-            <p className="text-[11px] text-muted">
-              Vente comptoir — encaissement direct
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Retour au menu du point de vente (les 6 tuiles). */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push("/dashboard/sales/pos")}
-              title="Retour au menu du point de vente"
-            >
-              <ArrowLeft className="h-4 w-4" /> Retour
-            </Button>
-            {/* Fermer la caisse → tableau de bord. */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/dashboard")}
-              title="Fermer la caisse et revenir au tableau de bord"
-            >
-              <LogOut className="h-4 w-4" /> Fermer la caisse
-            </Button>
-          </div>
+    <div className="flex h-full flex-col gap-5 overflow-hidden px-8 py-6">
+      {/* En-tête de page */}
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-primary">
+            Point de vente
+          </p>
+          <h1 className="mt-1 text-[28px] font-semibold leading-tight text-ink">
+            Votre caisse, en toute simplicité.
+          </h1>
         </div>
-
-        {scanMsg && (
-          <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-700">
-            {scanMsg}
-          </div>
-        )}
-
-        {/* Client facultatif — défaut : « Client de passage » (walk-in) */}
-        <div className="shrink-0 rounded-card border border-line bg-surface p-3">
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
-              <UserRound className="h-3.5 w-3.5" /> Client (facultatif)
-            </label>
-            <button
-              type="button"
-              onClick={() => setPartnerDialogOpen(true)}
-              className="flex items-center gap-1 rounded-chip border border-line px-2 py-1 text-[11px] font-medium text-muted transition-colors hover:bg-subtle hover:text-ink"
-              title="Créer un nouveau client sans quitter la vente"
-            >
-              <Plus className="h-3.5 w-3.5" /> Nouveau client
-            </button>
-          </div>
-          <select
-            className="w-full rounded-control border border-line bg-surface px-3 py-2 text-[13px] text-ink"
-            value={partnerId ?? ""}
-            onChange={(e) =>
-              setPartnerId(e.target.value ? Number(e.target.value) : null)
+        <div className="flex items-center gap-2">
+          {/* Statut de la caisse — le clic ouvre la gestion des sessions. */}
+          <button
+            type="button"
+            onClick={() => setView("sessions")}
+            title={
+              openSession
+                ? `Session ${openSession.reference} ouverte — gérer les sessions de caisse`
+                : "Aucune session ouverte — ouvrir une session de caisse"
             }
+            className={cn(
+              "inline-flex items-center gap-2 rounded-control px-3 py-1.5 transition-colors",
+              openSession ? "bg-success-soft" : "bg-warning-soft",
+            )}
           >
-            <option value="">Client de passage (sans compte)</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+            <span
+              className={cn(
+                "h-2 w-2 shrink-0 rounded-full",
+                openSession ? "bg-success" : "bg-warning",
+              )}
+            />
+            {openSession ? (
+              <>
+                <span className="text-[12px] font-semibold text-success">
+                  {openSession.reference}
+                </span>
+                <span className="text-[12px] text-success/80">
+                  Session ouverte
+                </span>
+              </>
+            ) : (
+              <span className="text-[12px] font-medium text-warning">
+                Aucune session ouverte
+              </span>
+            )}
+          </button>
 
-        {/* Suspendre la vente en cours — reprise depuis l'historique */}
-        <div className="flex shrink-0 items-center justify-between gap-2">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setView("history")}
-            title="Retour à l'historique (la vente en cours reste en mémoire)"
+            onClick={() => router.push("/dashboard/sales/pos")}
+            title="Retour au menu du point de vente"
           >
-            <ArrowLeft className="h-4 w-4" /> Historique
+            <ArrowLeft className="h-4 w-4" /> Retour
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={handleSuspend}
-            disabled={lines.length === 0}
-            title="Mettre la vente en pause et la reprendre plus tard"
+            onClick={() => router.push("/dashboard")}
+            title="Fermer la caisse et revenir au tableau de bord"
           >
-            <Pause className="h-4 w-4" /> Suspendre
+            <LogOut className="h-4 w-4" /> Fermer la caisse
           </Button>
-        </div>
-
-        {/* Panier — SEULE zone défilante du rail : le pavé numérique et le
-            bouton d'encaissement restent ainsi toujours visibles, quelle que
-            soit la longueur de la vente. */}
-        <div className="min-h-[140px] flex-1 overflow-y-auto">
-          <PosCartTable
-            lines={lines}
-            selectedKey={selectedKey}
-            onSelect={setSelectedKey}
-            onQuantity={(key, qty) => updateLine(key, { quantity: qty })}
-            onPrice={(key, price) => updateLine(key, { unit_price: price })}
-            onDiscount={(key, pct) => updateLine(key, { discount_percent: pct })}
-            onRemove={removeLine}
-          />
-        </div>
-
-        {/* Totaux — ancrés en bas, jamais rognés */}
-        <div className="shrink-0">
-          <PosTotalsBar
-            variant="giant"
-            subtotal={totals.subtotal}
-            discountAmount={totals.discountAmount}
-            taxPercent={POS_TAX_PERCENT}
-            taxAmount={totals.taxAmount}
-            total={totals.total}
-            itemsCount={totals.itemsCount}
-          />
-        </div>
-
-        {/* Encaissement — tuiles de méthode + pavé numérique + bouton géant */}
-        <div className="shrink-0">
-          <PosPaymentPanel
-            method={method}
-            onMethod={setMethod}
-            amount={amountStr}
-            onAmount={setAmountStr}
-            total={totals.total}
-            disabled={lines.length === 0}
-            submitting={submitting}
-            error={error}
-            onSubmit={handleSubmit}
-          />
         </div>
       </div>
 
-      {/* Colonne produits — recherche + catégories + grille tactile (à gauche) */}
-      <div className="order-1 flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-        <ProductSearchAdd onAdd={addProduct} categoryId={categoryFilter} />
-        <PosCategoryRail
-          tree={categoryTree}
-          selectedId={categoryFilter}
-          onSelect={setCategoryFilter}
-        />
-        <div className="min-h-0 flex-1 overflow-y-auto pb-1">
-          {productsLoading ? (
-            <p className="p-6 text-center text-sm text-gray-500">
-              Chargement des produits…
+      {scanMsg && (
+        <div className="shrink-0 rounded-control bg-warning-soft px-3 py-2 text-[12px] text-warning">
+          {scanMsg}
+        </div>
+      )}
+
+      {/* Catalogue (gauche) + ticket de caisse (droite) */}
+      <div className="flex min-h-0 flex-1 gap-5">
+        {/* ---- Colonne catalogue ---- */}
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          {/* Recherche + scan */}
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <ProductSearchAdd onAdd={addProduct} categoryId={categoryFilter} />
+            </div>
+            <Button
+              variant="outline"
+              className="shrink-0"
+              onClick={() => setView("history")}
+              title="Historique des ventes et recherche par code-barres"
+            >
+              <ScanBarcode className="h-4 w-4" /> Scanner
+            </Button>
+          </div>
+
+          {/* Catégories */}
+          <PosCategoryRail
+            tree={categoryTree}
+            selectedId={categoryFilter}
+            onSelect={setCategoryFilter}
+          />
+
+          {/* Bandeau de la grille */}
+          <div className="flex shrink-0 items-center justify-between text-[13px]">
+            <span className="font-semibold text-ink">
+              Catalogue{" "}
+              <span className="font-normal text-muted">
+                · {products.length} produit{products.length > 1 ? "s" : ""}
+              </span>
+            </span>
+            <span className="text-muted">Prix TTC</span>
+          </div>
+
+          {/* Grille produits — seule zone défilante de la colonne */}
+          <div className="min-h-0 flex-1 overflow-y-auto pb-1">
+            {productsLoading ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-[148px] animate-pulse rounded-card bg-subtle"
+                  />
+                ))}
+              </div>
+            ) : (
+              <PosProductGrid products={products} onPick={addProduct} />
+            )}
+          </div>
+
+          {/* Rappel des raccourcis — encart de la maquette */}
+          <div className="shrink-0 rounded-card bg-primary-soft px-4 py-3">
+            <p className="text-[11px] font-semibold text-primary">
+              Une caisse pensée pour aller vite.
             </p>
-          ) : (
-            <PosProductGrid products={products} onPick={addProduct} />
-          )}
+            <p className="mt-1 text-[10px] text-primary/70">
+              F2 Rechercher · F4 Client · F8 Encaisser
+            </p>
+          </div>
+        </div>
+
+        {/* ---- Ticket de caisse ---- */}
+        <div className="flex w-[380px] shrink-0 flex-col overflow-hidden rounded-card border border-line bg-surface">
+          {/* En-tête du ticket */}
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-3.5">
+            <div className="min-w-0">
+              <h2 className="text-[17px] font-semibold text-ink">
+                Ticket en cours
+              </h2>
+              <p className="mt-0.5 text-[11px] text-muted" suppressHydrationWarning>
+                {new Date().toLocaleDateString("fr-FR", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <span className="rounded-chip bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary">
+                {formatNumber(totals.itemsCount)} article
+                {totals.itemsCount > 1 ? "s" : ""}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLines([])}
+                disabled={lines.length === 0}
+                title="Vider le ticket"
+                aria-label="Vider le ticket"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Client du ticket — facultatif, « client de passage » par défaut */}
+          <div className="shrink-0 px-5 pt-3">
+            <div className="flex items-center gap-3 rounded-control bg-subtle px-3 py-2">
+              <UserRound className="h-4 w-4 shrink-0 text-muted" />
+              <div className="min-w-0 flex-1">
+                <select
+                  className="w-full cursor-pointer bg-transparent text-[12px] font-medium text-ink focus:outline-none"
+                  value={partnerId ?? ""}
+                  onChange={(e) =>
+                    setPartnerId(e.target.value ? Number(e.target.value) : null)
+                  }
+                  title="Client rattaché au ticket"
+                >
+                  <option value="">Client de passage</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPartnerDialogOpen(true)}
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-chip bg-primary-soft text-primary"
+                title="Créer un nouveau client sans quitter la vente"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Lignes du ticket — seule zone défilante du panneau. `min-h-0`
+              laisse la liste céder de la place si le pavé numérique est
+              déplié, plutôt que de rogner le bouton d'encaissement. */}
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
+            <PosCartTable
+              lines={lines}
+              selectedKey={selectedKey}
+              onSelect={setSelectedKey}
+              onQuantity={(key, qty) => updateLine(key, { quantity: qty })}
+              onPrice={(key, price) => updateLine(key, { unit_price: price })}
+              onDiscount={(key, pct) => updateLine(key, { discount_percent: pct })}
+              onRemove={removeLine}
+            />
+          </div>
+
+          {/* Pied du ticket : remise, totaux, encaissement */}
+          <div className="shrink-0 space-y-3 border-t border-line px-5 py-4">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setSelectedKey(lines[0]?.key ?? null)}
+                disabled={lines.length === 0}
+                className="text-[12px] font-medium text-primary hover:underline disabled:opacity-50"
+                title="Sélectionnez une ligne du ticket pour saisir sa remise"
+              >
+                Ajouter une remise
+              </button>
+              <Plus className="h-4 w-4 text-primary" />
+            </div>
+
+            <PosTotalsBar
+              variant="giant"
+              subtotal={totals.subtotal}
+              discountAmount={totals.discountAmount}
+              taxPercent={POS_TAX_PERCENT}
+              taxAmount={totals.taxAmount}
+              total={totals.total}
+              itemsCount={totals.itemsCount}
+            />
+
+            <PosPaymentPanel
+              method={method}
+              onMethod={setMethod}
+              amount={amountStr}
+              onAmount={setAmountStr}
+              total={totals.total}
+              disabled={lines.length === 0}
+              submitting={submitting}
+              error={error}
+              onSubmit={handleSubmit}
+            />
+
+            <p className="text-center text-[10px] text-faint">
+              Paiement sécurisé · Ticket imprimé après encaissement
+            </p>
+          </div>
         </div>
       </div>
 

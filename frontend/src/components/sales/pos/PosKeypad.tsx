@@ -27,7 +27,7 @@ export function PosKeypad({ value, onChange, onExact }: Props) {
   };
 
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className="grid grid-cols-4 gap-1.5">
       {["7", "8", "9"].map((d) => (
         <Key key={d} label={d} onPress={() => press(d)} />
       ))}
@@ -72,7 +72,7 @@ function Key({
       type="button"
       onClick={onPress}
       className={cn(
-        "h-11 rounded-control border text-[17px] font-semibold transition-colors active:scale-[0.97]",
+        "h-10 rounded-control border text-[15px] font-semibold transition-colors active:scale-[0.97]",
         muted
           ? "border-line bg-subtle text-muted hover:bg-line"
           : "border-line bg-surface text-ink hover:bg-subtle",
