@@ -32,7 +32,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Applications" />
+      <Header title="Applications" showCompany={false} />
       <main className="mx-auto w-full max-w-[1212px] px-6 py-8">
         {company?.logo ? (
           <div className="mb-6 flex items-center gap-3">

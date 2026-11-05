@@ -35,12 +35,15 @@ export function Header({
   showBackButton = false,
   showSidebarToggle = false,
   sidebarCollapsed = false,
+  showCompany = true,
   onToggleSidebar,
 }: {
   title?: string;
   showBackButton?: boolean;
   showSidebarToggle?: boolean;
   sidebarCollapsed?: boolean;
+  /** Affiche le nom de l'entreprise, son établissement et la pastille de site. */
+  showCompany?: boolean;
   onToggleSidebar?: () => void;
 }) {
   const router = useRouter();
@@ -143,16 +146,20 @@ export function Header({
           </>
         )}
 
-        <div className="hidden min-w-0 md:block">
-          <p className="truncate text-[13px] font-semibold leading-tight text-ink">
-            {company?.name ?? "Entreprise"}
-          </p>
-          <p className="truncate text-[11px] leading-tight text-muted">
-            {company?.establishment ?? "Espace entreprise"}
-          </p>
-        </div>
+        {showCompany && (
+          <>
+            <div className="hidden min-w-0 md:block">
+              <p className="truncate text-[13px] font-semibold leading-tight text-ink">
+                {company?.name ?? "Entreprise"}
+              </p>
+              <p className="truncate text-[11px] leading-tight text-muted">
+                {company?.establishment ?? "Espace entreprise"}
+              </p>
+            </div>
 
-        <span className="hidden text-[13px] text-faint md:inline">/</span>
+            <span className="hidden text-[13px] text-faint md:inline">/</span>
+          </>
+        )}
         <h2 className="truncate text-[13px] font-semibold text-ink">
           {currentLabel}
         </h2>
@@ -215,12 +222,14 @@ export function Header({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="hidden items-center gap-2 rounded-control bg-primary-soft px-3 py-1.5 lg:flex">
-          <Store className="h-4 w-4 text-primary" />
-          <span className="max-w-[140px] truncate text-[12px] font-medium text-primary">
-            {company?.establishment ?? company?.name ?? "Site"}
-          </span>
-        </div>
+        {showCompany && (
+          <div className="hidden items-center gap-2 rounded-control bg-primary-soft px-3 py-1.5 lg:flex">
+            <Store className="h-4 w-4 text-primary" />
+            <span className="max-w-[140px] truncate text-[12px] font-medium text-primary">
+              {company?.establishment ?? company?.name ?? "Site"}
+            </span>
+          </div>
+        )}
       </div>
     </header>
   );
