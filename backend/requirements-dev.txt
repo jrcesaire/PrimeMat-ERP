@@ -11,3 +11,8 @@ debugpy==1.8.10
 # Pilote SQLite asynchrone — requis par les suites de tests
 # (backend/test_*.py et backend/tests/) qui utilisent `sqlite+aiosqlite`.
 aiosqlite==0.22.1
+# Régénération du référentiel pays et devises
+# (backend/scripts/build_countries_currencies.py). `babel` apporte la base
+# CLDR : libellés de pays, symboles et décimales ISO 4217. Version figée :
+# elle détermine le résultat du contrôle automatique de la génération.
+babel==2.17.0
