@@ -31,7 +31,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useCurrentCompany, useCurrentUser } from "@/hooks/useAuth";
+import { useCurrentCompany, useCurrentUser, useUpdateCompany } from "@/hooks/useAuth";
 import {
   useOHADAConstraints,
   useCurrentFiscalYear,
@@ -43,7 +43,14 @@ import {
   useSetting,
   type SeedResult,
 } from "@/hooks/useOHADA";
+import {
+  CHART_OPTIONS,
+  DEFAULT_CHART,
+  chartLabel,
+  type ChartOfAccounts,
+} from "@/lib/accounting-charts";
 import { apiClient } from "@/lib/api/client";
+import { COUNTRIES, countryByCode } from "@/lib/countries-currencies";
 
 // --- Constantes du wizard ---
 const STEPS = [
@@ -59,28 +66,6 @@ interface OhadaCountry {
   name: string;
   currency: string;
 }
-
-/** Les 17 États membres OHADA avec leur devise courante. */
-const OHADA_COUNTRIES: OhadaCountry[] = [
-  { code: "BF", name: "Burkina Faso", currency: "XOF" },
-  { code: "BJ", name: "Bénin", currency: "XOF" },
-  { code: "CI", name: "Côte d'Ivoire", currency: "XOF" },
-  { code: "SN", name: "Sénégal", currency: "XOF" },
-  { code: "TG", name: "Togo", currency: "XOF" },
-  { code: "ML", name: "Mali", currency: "XOF" },
-  { code: "NE", name: "Niger", currency: "XOF" },
-  { code: "GW", name: "Guinée-Bissau", currency: "XOF" },
-  { code: "CM", name: "Cameroun", currency: "XAF" },
-  { code: "GA", name: "Gabon", currency: "XAF" },
-  { code: "CG", name: "Congo", currency: "XAF" },
-  { code: "TD", name: "Tchad", currency: "XAF" },
-  { code: "CF", name: "Centrafrique", currency: "XAF" },
-  { code: "GQ", name: "Guinée équatoriale", currency: "XAF" },
-  { code: "GN", name: "Guinée", currency: "GNF" },
-  { code: "MR", name: "Mauritanie", currency: "MRU" },
-  { code: "CD", name: "RD Congo", currency: "USD" },
-];
-
 const LEGAL_FORMS = [
   "SARL",
   "SAS",
@@ -111,6 +96,15 @@ interface CompanyInfo {
   rccm?: string | null;
   share_capital?: string | null;
   tax_country?: string | null;
+  /** Renseignements d'entité (assistant de configuration fiscale). */
+  greffe?: string | null;
+  importer_code?: string | null;
+  social_security_code?: string | null;
+  activity_code?: string | null;
+  closing_date?: string | null;
+  fiscal_year_months?: number;
+  /** Référentiel du plan comptable (SYSCOHADA commercial ou SYCEBNL). */
+  chart_of_accounts?: ChartOfAccounts;
 }
 
 export default function AccountingSetupPage() {
@@ -128,6 +122,7 @@ export default function AccountingSetupPage() {
   const upsertRate = useUpsertExchangeRate();
   const createFiscalYear = useCreateFiscalYear();
   const seedPlan = useSeedOhadaPlan();
+  const updateCompany = useUpdateCompany();
 
   const [step, setStep] = useState(0);
   const [hydrated, setHydrated] = useState(false);
@@ -135,6 +130,8 @@ export default function AccountingSetupPage() {
     null,
   );
   const [seedResult, setSeedResult] = useState<SeedResult | null>(null);
+  // Référentiel comptable retenu à l'étape 5.
+  const [chart, setChart] = useState<ChartOfAccounts>(DEFAULT_CHART);
 
   // Étape 1 — Identification
   const [legalName, setLegalName] = useState("");
@@ -156,6 +153,12 @@ export default function AccountingSetupPage() {
   const [ncc, setNcc] = useState("");
   const [rccm, setRccm] = useState("");
   const [capital, setCapital] = useState("");
+  // Renseignements d'entité — repris sur les documents officiels.
+  const [greffe, setGreffe] = useState("");
+  const [importerCode, setImporterCode] = useState("");
+  const [socialSecurityCode, setSocialSecurityCode] = useState("");
+  const [closingDate, setClosingDate] = useState("31/12");
+  const [fiscalYearMonths, setFiscalYearMonths] = useState("12");
 
   // Étape 4 — Exercice
   const currentYear = new Date().getFullYear();
@@ -163,10 +166,18 @@ export default function AccountingSetupPage() {
   const [fyStart, setFyStart] = useState(`${currentYear}-01-01`);
   const [fyEnd, setFyEnd] = useState(`${currentYear}-12-31`);
 
-  const selectedCountry = useMemo(
-    () => OHADA_COUNTRIES.find((c) => c.code === countryCode) ?? OHADA_COUNTRIES[0],
-    [countryCode],
-  );
+  // Le pays choisi pilote la devise de tenue de compte. Deux pays de la liste
+  // sont déclarés sans devise (Antarctique, territoires palestiniens) : la
+  // devise de l'entreprise prend alors le relais, plutôt que de laisser un code
+  // vide dans les paramètres comptables.
+  const selectedCountry = useMemo(() => {
+    const found = countryByCode(countryCode);
+    return {
+      code: countryCode,
+      name: found?.name ?? countryCode,
+      currency: found?.currency || company?.currency_code || "XOF",
+    };
+  }, [countryCode, company?.currency_code]);
 
   // Pré-remplissage depuis la société + les paramètres enregistrés
   useEffect(() => {
@@ -184,23 +195,35 @@ export default function AccountingSetupPage() {
       setNcc((prev) => prev || company.ncc || "");
       setRccm((prev) => prev || company.rccm || "");
       setCapital((prev) => prev || company.share_capital || "");
+      // Renseignements d'entité déjà saisis à la configuration initiale.
+      setGreffe((prev) => prev || company.greffe || "");
+      setImporterCode((prev) => prev || company.importer_code || "");
+      setSocialSecurityCode(
+        (prev) => prev || company.social_security_code || "",
+      );
+      setClosingDate((prev) => prev || company.closing_date || "31/12");
+      setFiscalYearMonths((prev) =>
+        prev !== "12" ? prev : String(company.fiscal_year_months ?? 12),
+      );
+      if (company.chart_of_accounts) setChart(company.chart_of_accounts);
       const addr = company.address ?? {};
       setAddressLine((prev) => prev || addr.line1 || addr.address || "");
       setCity((prev) => prev || addr.city || "");
       setPostalCode((prev) => prev || addr.postal_code || "");
       if (company.tax_country) {
-        const found = OHADA_COUNTRIES.find(
-          (c) => c.code === company.tax_country?.toUpperCase(),
-        );
+        const found = countryByCode(company.tax_country);
         if (found) setCountryCode(found.code);
       }
     }
     if (settingLegalForm.data?.value) {
       setLegalForm(settingLegalForm.data.value);
     }
-    if (settingActivity.data?.value) {
-      setActivity(settingActivity.data.value);
-    }
+    // Le code d'activité est porté par l'entreprise depuis la configuration
+    // initiale : il prime sur le paramètre historique `accounting_naf_activity`.
+    // Aucune valeur par défaut n'est proposée — le code dépend de l'activité
+    // déclarée par l'entreprise.
+    const storedActivity = company?.activity_code || settingActivity.data?.value;
+    setActivity((prev) => prev || storedActivity || "");
     if (currentFiscalYear.data) {
       setFyName(currentFiscalYear.data.name);
       setFyStart(currentFiscalYear.data.start_date);
@@ -302,6 +325,13 @@ export default function AccountingSetupPage() {
       ncc: ncc.trim() || null,
       rccm: rccm.trim() || null,
       share_capital: capital.trim() || null,
+      // Renseignements d'entité — figurent sur les documents officiels.
+      greffe: greffe.trim() || null,
+      importer_code: importerCode.trim() || null,
+      social_security_code: socialSecurityCode.trim() || null,
+      activity_code: activity.trim() || null,
+      closing_date: closingDate.trim() || null,
+      fiscal_year_months: Number(fiscalYearMonths) || 12,
       address: {
         ...(company?.address ?? {}),
         line1: addressLine.trim(),
@@ -333,8 +363,20 @@ export default function AccountingSetupPage() {
     });
   };
 
+  /**
+   * Enregistre le référentiel retenu puis initialise le plan comptable.
+   *
+   * Le serveur charge le plan d'après ``Company.chart_of_accounts`` :
+   * l'entreprise doit donc porter le bon référentiel *avant* le seed.
+   */
   const handleSeedPlan = async () => {
     setNotice(null);
+    if (company && chart !== (company.chart_of_accounts ?? DEFAULT_CHART)) {
+      await updateCompany.mutateAsync({
+        id: company.id,
+        chart_of_accounts: chart,
+      });
+    }
     const result = await seedPlan.mutateAsync();
     setSeedResult(result);
   };
@@ -365,16 +407,16 @@ export default function AccountingSetupPage() {
                   active
                     ? "bg-[#0a2a6b] text-white"
                     : done
-                      ? "text-[#0a2a6b] hover:bg-blue-50"
+                      ? "text-ink hover:bg-info-soft"
                       : "text-faint"
                 }`}
               >
                 <span
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
                     active
-                      ? "bg-amber-400 text-ink"
+                      ? "bg-accent text-white"
                       : done
-                        ? "bg-blue-100"
+                        ? "bg-info-soft"
                         : "bg-subtle"
                   }`}
                 >
@@ -446,15 +488,16 @@ export default function AccountingSetupPage() {
                 </select>
               </div>
               <div>
-                <label className={labelClass}>Pays OHADA</label>
+                <label className={labelClass}>Pays</label>
                 <select
                   className={inputClass}
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
                 >
-                  {OHADA_COUNTRIES.map((c) => (
+                  {COUNTRIES.map((c) => (
                     <option key={c.code} value={c.code}>
-                      {c.name} ({c.currency})
+                      {c.name}
+                      {c.currency ? ` (${c.currency})` : ""}
                     </option>
                   ))}
                 </select>
@@ -531,12 +574,11 @@ export default function AccountingSetupPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelClass}>Activité (code NAF/OHADA)</label>
+                <label className={labelClass}>Code activité principale</label>
                 <input
                   className={inputClass}
                   value={activity}
                   onChange={(e) => setActivity(e.target.value)}
-                  placeholder="Ex. 46690 — Commerce de gros"
                 />
               </div>
               <div>
@@ -608,6 +650,70 @@ export default function AccountingSetupPage() {
                   value={capital}
                   onChange={(e) => setCapital(e.target.value)}
                 />
+              </div>
+            </div>
+
+            {/* Renseignements d'entité — recommandés, repris sur les documents. */}
+            <div className="border-t border-line pt-4">
+              <p className="mb-1 text-sm font-semibold text-ink">
+                Renseignements d&apos;entité
+              </p>
+              <p className="mb-3 text-xs text-muted">
+                Facultatifs, mais exigés par l&apos;administration : ils
+                apparaissent sur les documents officiels.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Greffe (tribunal)</label>
+                  <input
+                    className={inputClass}
+                    value={greffe}
+                    onChange={(e) => setGreffe(e.target.value)}
+                    placeholder="Ex. Tribunal de commerce d'Abidjan"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>N° code importateur</label>
+                  <input
+                    className={inputClass}
+                    value={importerCode}
+                    onChange={(e) => setImporterCode(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>N° de caisse sociale</label>
+                  <input
+                    className={inputClass}
+                    value={socialSecurityCode}
+                    onChange={(e) => setSocialSecurityCode(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>
+                    Date d&apos;arrêté des comptes
+                  </label>
+                  <input
+                    className={inputClass}
+                    value={closingDate}
+                    onChange={(e) => setClosingDate(e.target.value)}
+                    placeholder="31/12"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>
+                    Durée de l&apos;exercice
+                  </label>
+                  <select
+                    className={inputClass}
+                    value={fiscalYearMonths}
+                    onChange={(e) => setFiscalYearMonths(e.target.value)}
+                  >
+                    <option value="12">12 mois (année civile)</option>
+                    <option value="9">9 mois</option>
+                    <option value="6">6 mois</option>
+                    <option value="3">3 mois</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -686,49 +792,68 @@ export default function AccountingSetupPage() {
                 Reprise des éléments comptables
               </h2>
               <p className="mt-1 text-sm text-muted">
-                Le plan comptable SYSCOHADA Révisé (9 classes) et les journaux
-                par défaut sont initialisés en une seule opération.
+                Choisissez le référentiel : le plan comptable complet (9 classes)
+                et les journaux par défaut sont initialisés en une seule
+                opération.
               </p>
             </div>
 
-            <div className="space-y-2">
-              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-[#0a2a6b] bg-blue-50 p-3">
-                <input
-                  type="radio"
-                  name="seed-mode"
-                  checked
-                  readOnly
-                  className="mt-1"
-                />
-                <span className="text-sm">
-                  <strong>Modèle standard OHADA (recommandé)</strong>
-                  <br />
-                  <span className="text-muted">
-                    Plan comptable complet, journaux Achat/Vente/Banque/Caisse/
-                    Paie/OD pré-configurés.
-                  </span>
-                </span>
-              </label>
-              <label className="flex cursor-not-allowed items-start gap-3 rounded-md border p-3 opacity-50">
-                <input type="radio" name="seed-mode" disabled className="mt-1" />
-                <span className="text-sm">Sélection partielle (bientôt)</span>
-              </label>
-              <label className="flex cursor-not-allowed items-start gap-3 rounded-md border p-3 opacity-50">
-                <input type="radio" name="seed-mode" disabled className="mt-1" />
-                <span className="text-sm">Paramétrage entièrement manuel (bientôt)</span>
-              </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {CHART_OPTIONS.map((option) => {
+                const active = chart === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => {
+                      setChart(option.value);
+                      // Le plan déjà chargé ne correspond plus : on redemande
+                      // l'initialisation pour le nouveau référentiel.
+                      setSeedResult(null);
+                    }}
+                    className={`rounded-lg border p-4 text-left transition-colors ${
+                      active
+                        ? "border-primary bg-info-soft"
+                        : "border-line hover:border-primary/40"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="chart-of-accounts"
+                        value={option.value}
+                        checked={active}
+                        readOnly
+                        className="pointer-events-none"
+                      />
+                      <strong className="text-sm text-ink">{option.label}</strong>
+                    </span>
+                    <span className="mt-2 block text-sm text-muted">
+                      {option.summary}
+                    </span>
+                    <span className="mt-2 block space-y-0.5 text-xs text-faint">
+                      {option.highlights.map((item) => (
+                        <span key={item} className="block">
+                          {item}
+                        </span>
+                      ))}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {!seedResult && (
               <Button
                 onClick={handleSeedPlan}
-                disabled={seedPlan.isPending}
+                disabled={seedPlan.isPending || updateCompany.isPending}
                 className="bg-[#0a2a6b] text-white hover:bg-[#0d3a8f]"
               >
                 {seedPlan.isPending && (
                   <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                 )}
-                Initialiser le plan comptable OHADA
+                Initialiser le plan {chartLabel(chart)}
               </Button>
             )}
 
@@ -737,9 +862,9 @@ export default function AccountingSetupPage() {
                 <BadgeCheck className="mr-1 inline h-4 w-4" />
                 {seedResult.created > 0
                   ? `${seedResult.created} comptes créés`
-                  : "Plan comptable déjà initialisé"}
-                — {seedResult.total} comptes au total, {seedResult.journals_created}{" "}
-                journaux par défaut.
+                  : "Plan comptable déjà initialisé"}{" "}
+                au format {chartLabel(chart)} — {seedResult.total} comptes au
+                total, {seedResult.journals_created} journaux par défaut.
               </div>
             )}
 

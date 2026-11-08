@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.shared.enums import ChartOfAccounts
+
 
 # ------------------------------------------------------------------ #
 # Company
@@ -28,6 +30,17 @@ class CompanyBase(BaseModel):
     ncc: str | None = Field(default=None, max_length=100)
     rccm: str | None = Field(default=None, max_length=100)
     share_capital: str | None = Field(default=None, max_length=100)
+    # Renseignements d'entité (assistant de configuration fiscale)
+    greffe: str | None = Field(default=None, max_length=120)
+    importer_code: str | None = Field(default=None, max_length=60)
+    social_security_code: str | None = Field(default=None, max_length=60)
+    activity_code: str | None = Field(default=None, max_length=60)
+    closing_date: str | None = Field(default=None, max_length=32)
+    fiscal_year_months: int = Field(default=12, ge=1, le=24)
+    chart_of_accounts: ChartOfAccounts = Field(
+        default=ChartOfAccounts.SYSCOHADA,
+        description="Référentiel du plan comptable (assistant de configuration).",
+    )
     is_active: bool = True
 
 
@@ -53,6 +66,14 @@ class CompanyUpdate(BaseModel):
     ncc: str | None = Field(default=None, max_length=100)
     rccm: str | None = Field(default=None, max_length=100)
     share_capital: str | None = Field(default=None, max_length=100)
+    # Renseignements d'entité (assistant de configuration fiscale)
+    greffe: str | None = Field(default=None, max_length=120)
+    importer_code: str | None = Field(default=None, max_length=60)
+    social_security_code: str | None = Field(default=None, max_length=60)
+    activity_code: str | None = Field(default=None, max_length=60)
+    closing_date: str | None = Field(default=None, max_length=32)
+    fiscal_year_months: int | None = Field(default=None, ge=1, le=24)
+    chart_of_accounts: ChartOfAccounts | None = None
     is_active: bool | None = None
 
 

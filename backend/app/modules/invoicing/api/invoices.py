@@ -8,7 +8,9 @@ from fastapi.responses import StreamingResponse
 
 from app.api.deps import SessionDep
 from app.core.dependencies.auth import get_current_active_user
+from app.core.dependencies.company import require_company_profile
 from app.core.dependencies.permissions import require_permission
+from app.core.models.company import Company
 from app.core.models.user import User
 from app.modules.invoicing.schemas import InvoiceFromOrder, InvoiceRead
 # noqa: F401  (import enregistre les modèles)
@@ -78,6 +80,7 @@ async def create_invoice_from_order(
     body: InvoiceFromOrder,
     session: SessionDep,
     _: User = Depends(require_permission("invoice", "create")),
+    _company: Company = Depends(require_company_profile),
 ):
     """Crée une facture depuis une commande (totale, solde ou acompte)."""
     service = InvoiceService(session)

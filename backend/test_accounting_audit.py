@@ -116,10 +116,10 @@ async def main() -> int:
                 description=description,
                 lines=[
                     JournalEntryLineCreate(
-                        account_code="601", label="Achats", debit=100_000, credit=0
+                        account_code="601000", label="Achats", debit=100_000, credit=0
                     ),
                     JournalEntryLineCreate(
-                        account_code="401",
+                        account_code="401000",
                         label="Fournisseur",
                         debit=0,
                         credit=100_000,

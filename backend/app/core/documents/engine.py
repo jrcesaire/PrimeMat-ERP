@@ -254,6 +254,21 @@ def _fmt_addr(company: Any) -> str:
     return ", ".join(str(p) for p in parts if p)
 
 
+def _company_monogram(company: Any) -> str:
+    """Initiales de l'entreprise — miniature affichée à défaut de logo.
+
+    Évite un en-tête sans marque quand l'utilisateur n'a pas fourni d'image :
+    l'entreprise reste identifiable, dans le même esprit que le repli de
+    l'écran de configuration initiale.
+    """
+    words = str(getattr(company, "name", "") or "").strip().split()
+    if not words:
+        return "?"
+    if len(words) == 1:
+        return words[0][:2].upper()
+    return (words[0][0] + words[1][0]).upper()
+
+
 def _fmt_contacts(company: Any) -> str:
     """Formate les contacts d'une entreprise : 'Tél : ... • email'."""
     if not company:
@@ -475,6 +490,7 @@ class DocumentEngine:
         )
         # Helpers disponibles dans tous les templates de documents
         self.jinja_env.globals["fmt_addr"] = _fmt_addr
+        self.jinja_env.globals["company_monogram"] = _company_monogram
         self.jinja_env.globals["fmt_contacts"] = _fmt_contacts
         self.jinja_env.globals["amount_in_words"] = amount_in_words
         self.jinja_env.globals["cut_label"] = cut_label
@@ -1056,6 +1072,31 @@ class DocumentEngine:
         context = await self.context_builder.load_pos(order_id)
         return await asyncio.to_thread(
             self.render_to_pdf, "pos_ticket.html", context, None, None
+        )
+
+    async def arender_payslip(self, payslip_id: int) -> str:
+        """Bulletin de paie (routes FastAPI)."""
+        import asyncio
+
+        context = await self.context_builder.load_payslip(payslip_id)
+        return await asyncio.to_thread(self.render_to_pdf, "payslip.html", context)
+
+    async def arender_cnps(self, company_id: int, period_id: int) -> str:
+        """Bordereau CNPS d'une période (routes FastAPI)."""
+        import asyncio
+
+        context = await self.context_builder.load_cnps(company_id, period_id)
+        return await asyncio.to_thread(
+            self.render_to_pdf, "cnps_return.html", context
+        )
+
+    async def arender_its(self, company_id: int, period_id: int) -> str:
+        """État ITS d'une période (routes FastAPI)."""
+        import asyncio
+
+        context = await self.context_builder.load_its(company_id, period_id)
+        return await asyncio.to_thread(
+            self.render_to_pdf, "its_return.html", context
         )
 
     async def _acgv_pdf_path(self) -> str | None:

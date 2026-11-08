@@ -1,16 +1,21 @@
 /**
  * Page Comptabilité — états financiers SYSCOHADA.
  *
- * Onglets : Balance de vérification, Compte de résultat, Bilan,
- * Écritures du journal. Bouton de rattrapage pour comptabiliser
- * en masse les flux métier non encore traités.
+ * Rend l'état financier sélectionné : balance de vérification, compte de
+ * résultat, bilan ou écritures du journal. **La navigation est fournie par
+ * `layout.tsx`** (onglets des états + chips des pages du module) : la page ne
+ * rejoue plus sa propre rangée de liens, qui dupliquait chaque entrée. L'onglet
+ * actif est déduit de l'URL, ce qui rend l'adresse partageable.
+ *
+ * Reste ici ce qui est propre à l'écran : son titre et le bouton de rattrapage
+ * qui comptabilise en masse les flux métier non encore traités.
  */
 "use client";
 
-import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, lastRouteSegment } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
+import { accountingStatementFromPath } from "@/lib/nav-config";
 import { usePathname } from "next/navigation";
 import {
   useTrialBalance,
@@ -20,40 +25,9 @@ import {
   useBackfill,
 } from "@/hooks/useAccounting";
 
-export type Tab = "balance" | "income" | "sheet" | "entries";
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "balance", label: "Balance de vérification" },
-  { key: "income", label: "Compte de résultat" },
-  { key: "sheet", label: "Bilan" },
-  { key: "entries", label: "Écritures" },
-];
-
-const QUICK_LINKS: { label: string; href: string }[] = [
-  { label: "Lettrage", href: "/dashboard/accounting/allocations" },
-  { label: "Avoirs", href: "/dashboard/accounting/credit-notes" },
-  { label: "Régime fiscal", href: "/dashboard/accounting/fiscal-regime" },
-  { label: "Balance âgée", href: "/dashboard/accounting/aged-balance" },
-  { label: "Cash-flow", href: "/dashboard/accounting/cash-flow" },
-  { label: "Grand livre", href: "/dashboard/accounting/ledger" },
-  { label: "Grand livre auxiliaire", href: "/dashboard/accounting/partner-ledger" },
-  { label: "Chéancier", href: "/dashboard/accounting/payment-schedule" },
-  { label: "TVA déclarative", href: "/dashboard/accounting/vat" },
-  { label: "Immobilisations", href: "/dashboard/accounting/fixed-assets" },
-  { label: "Clôture d'exercice", href: "/dashboard/accounting/fiscal-year" },
-  { label: "Journal d'audit", href: "/dashboard/accounting/audit" },
-];
-
-/** Sous-route → onglet : /dashboard/accounting/sheet ouvre le bilan. */
-function tabFromPath(pathname: string | null): Tab {
-  const segment = lastRouteSegment(pathname);
-  const match = TABS.find((t) => t.key === segment);
-  return match ? match.key : "balance";
-}
-
 export default function AccountingPage() {
   const pathname = usePathname();
-  const [tab, setTab] = useState<Tab>(tabFromPath(pathname));
+  const tab = accountingStatementFromPath(pathname);
   const trial = useTrialBalance();
   const income = useIncomeStatement();
   const sheet = useBalanceSheet();
@@ -72,14 +46,9 @@ export default function AccountingPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {
-              window.location.href = "/dashboard/accounting/setup";
-            }}
-          >
-            Assistant de configuration
-          </Button>
+          {/* « Assistant de configuration » n'est plus répété ici : l'entrée
+              figure déjà dans la barre de chips du module, avec sa permission
+              (`account:edit`). */}
           <Button
             onClick={() => backfill.mutate()}
             disabled={backfill.isPending}
@@ -92,44 +61,16 @@ export default function AccountingPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {QUICK_LINKS.map((l) => (
-          <a
-            key={l.href}
-            href={l.href}
-            className="rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted shadow-sm transition-colors hover:bg-subtle"
-          >
-            {l.label}
-          </a>
-        ))}
-      </div>
-
       {backfill.isSuccess && (
-        <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+        <div className="rounded-md border border-success/30 bg-success-soft px-4 py-3 text-sm text-success">
           {backfill.data.message}
         </div>
       )}
       {backfill.isError && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           Erreur lors du rattrapage : {(backfill.error as Error)?.message}
         </div>
       )}
-
-      <div className="flex flex-wrap gap-1 border-b border-line">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              tab === t.key
-                ? "border-b-2 border-gray-900 text-ink"
-                : "text-muted hover:text-ink"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
 
       {loading ? (
         <p className="py-10 text-center text-sm text-faint">Chargement…</p>
@@ -154,7 +95,7 @@ export default function AccountingPage() {
                       <td className="px-4 py-2.5">{l.account_name}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(l.debit)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(l.credit)}</td>
-                      <td className={`px-4 py-2.5 text-right tabular-nums font-medium ${l.balance >= 0 ? "text-ink" : "text-red-600"}`}>
+                      <td className={`px-4 py-2.5 text-right tabular-nums font-medium ${l.balance >= 0 ? "text-ink" : "text-danger"}`}>
                         {formatCurrency(l.balance)}
                       </td>
                     </tr>
@@ -165,9 +106,9 @@ export default function AccountingPage() {
                     <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(trial.data.total_credit)}</td>
                     <td className="px-4 py-2.5 text-right">
                       {trial.data.balanced ? (
-                        <span className="text-green-700">✓ Équilibrée</span>
+                        <span className="text-success">✓ Équilibrée</span>
                       ) : (
-                        <span className="text-red-600">✗ Déséquilibrée</span>
+                        <span className="text-danger">✗ Déséquilibrée</span>
                       )}
                     </td>
                   </tr>
@@ -179,7 +120,7 @@ export default function AccountingPage() {
           {tab === "income" && income.data && (
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Card className="p-4">
-                <h2 className="mb-3 font-semibold text-green-700">Produits</h2>
+                <h2 className="mb-3 font-semibold text-success">Produits</h2>
                 <ul className="divide-y divide-gray-50">
                   {income.data.income.map((l) => (
                     <li key={l.label} className="flex justify-between py-2 text-sm">
@@ -198,7 +139,7 @@ export default function AccountingPage() {
                 </ul>
               </Card>
               <Card className="p-4">
-                <h2 className="mb-3 font-semibold text-red-600">Charges</h2>
+                <h2 className="mb-3 font-semibold text-danger">Charges</h2>
                 <ul className="divide-y divide-gray-50">
                   {income.data.expenses.map((l) => (
                     <li key={l.label} className="flex justify-between py-2 text-sm">
@@ -223,7 +164,7 @@ export default function AccountingPage() {
                   </p>
                   <p
                     className={`text-[28px] font-semibold leading-tight tabular-nums ${
-                      income.data.net_income >= 0 ? "text-green-700" : "text-red-600"
+                      income.data.net_income >= 0 ? "text-success" : "text-danger"
                     }`}
                   >
                     {formatCurrency(income.data.net_income)}
@@ -277,8 +218,8 @@ export default function AccountingPage() {
               <Card
                 className={`p-4 lg:col-span-2 ${
                   Math.abs(sheet.data.total_assets - sheet.data.total_liabilities) < 0.01
-                    ? "border-green-200 bg-green-50"
-                    : "border-red-200 bg-red-50"
+                    ? "border-success/30 bg-success-soft"
+                    : "border-danger/30 bg-danger-soft"
                 }`}
               >
                 <p className="text-sm font-medium">
@@ -299,7 +240,7 @@ export default function AccountingPage() {
                       <span className="font-mono text-xs font-semibold text-muted">
                         {e.reference}
                       </span>
-                      <span className="rounded bg-gray-200 px-2 py-0.5 text-xs font-medium text-muted">
+                      <span className="rounded bg-neutral-soft px-2 py-0.5 text-xs font-medium text-muted">
                         {e.journal_code}
                       </span>
                       <span className="text-sm text-muted">
@@ -315,8 +256,8 @@ export default function AccountingPage() {
                       <span
                         className={`rounded px-2 py-0.5 text-xs font-medium ${
                           e.status === "posted"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-amber-100 text-amber-700"
+                            ? "bg-success-soft text-success"
+                            : "bg-warning-soft text-warning"
                         }`}
                       >
                         {e.status === "posted" ? "publiée" : "brouillon"}

@@ -28,6 +28,9 @@ DOC_TITLES: dict[str, str] = {
     "receipt": "Reçu de Paiement",
     "pos_ticket": "Ticket de caisse",
     "purchase_order": "Bon de Commande",
+    "payslip": "Bulletin de Paie",
+    "cnps_return": "Déclaration CNPS",
+    "its_return": "État ITS",
 }
 
 #: Caractères interdits dans un nom de fichier (Windows) + séparateurs de chemin.

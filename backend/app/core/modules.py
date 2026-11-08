@@ -28,6 +28,7 @@ AVAILABLE_MODULES: dict[str, str] = {
     "finance": "app.modules.finance",
     "reporting": "app.modules.reporting",
     "accounting": "app.modules.accounting",
+    "payroll": "app.modules.payroll",
 }
 
 

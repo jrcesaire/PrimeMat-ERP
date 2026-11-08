@@ -236,3 +236,111 @@ TAX_REGIME_THRESHOLDS: dict[TaxRegime, int] = {
     TaxRegime.RSI: 500_000_000,
     TaxRegime.RNI: 0,  # pas de plafond supérieur
 }
+
+
+# Référentiels de plan comptable ---------------------------------------
+CHART_OF_ACCOUNTS_DEFAULT = "SYSCOHADA"
+
+
+class ChartOfAccounts(str, enum.Enum):
+    """Référentiel du plan comptable tenu par l'entreprise.
+
+    Les deux plans relèvent du même acte uniforme OHADA et partagent
+    l'arborescence des classes 1 à 9, mais diffèrent sur les comptes de
+    capitaux et sur la finalité :
+
+    - ``SYSCOHADA`` — plan commercial (sociétés, entreprises individuelles) :
+      ``10`` Capital, ``70`` Ventes, ``60`` Achats ;
+    - ``SYCEBNL`` — Système Comptable des Entités à But Non Lucratif
+      (associations, ONG, fondations, projets) : ``100`` Dotation, ``700``
+      Revenus, ``103`` Droit d'entrée.
+
+    Le référentiel est choisi à l'initialisation (assistant de configuration)
+    puis reste pilotable depuis les paramètres comptables.
+    """
+
+    SYSCOHADA = "SYSCOHADA"
+    SYCEBNL = "SYCEBNL"
+
+
+# ------------------------------------------------------------------ #
+# Module Paie
+# ------------------------------------------------------------------ #
+class EmployeeStatus(str, enum.Enum):
+    """État d'un salarié dans le registre du personnel."""
+
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    TERMINATED = "terminated"
+
+
+class MaritalStatus(str, enum.Enum):
+    """Situation matrimoniale (parts fiscales / charges de famille)."""
+
+    SINGLE = "single"
+    MARRIED = "married"
+    DIVORCED = "divorced"
+    WIDOWED = "widowed"
+    OTHER = "other"
+
+
+class WageType(str, enum.Enum):
+    """Base de rémunération d'un contrat."""
+
+    MONTHLY = "monthly"
+    DAILY = "daily"
+    HOURLY = "hourly"
+
+
+class ContractState(str, enum.Enum):
+    """Workflow d'un contrat de travail."""
+
+    DRAFT = "draft"
+    OPEN = "open"
+    DONE = "done"
+    CANCELLED = "cancelled"
+
+
+class RuleAmountType(str, enum.Enum):
+    """Mode de calcul d'une règle de paie."""
+
+    FIXED = "fixed"
+    PERCENTAGE = "percentage"
+    FORMULA = "formula"
+
+
+class PayrollPeriodState(str, enum.Enum):
+    """Cycle de vie d'une période de paie."""
+
+    DRAFT = "draft"
+    OPEN = "open"
+    CLOSED = "closed"
+
+
+class PayrollRunState(str, enum.Enum):
+    """Cycle de vie d'un lot de bulletins."""
+
+    DRAFT = "draft"
+    VALIDATED = "validated"
+    PAID = "paid"
+    CANCELLED = "cancelled"
+
+
+class PayslipState(str, enum.Enum):
+    """Workflow d'un bulletin de paie."""
+
+    DRAFT = "draft"
+    VERIFY = "verify"
+    DONE = "done"
+    PAID = "paid"
+    CANCELLED = "cancelled"
+
+
+class WorkEntryType(str, enum.Enum):
+    """Nature d'un jour / d'une heure pris en compte au bulletin."""
+
+    WORKED = "worked"
+    PAID_LEAVE = "paid_leave"
+    UNPAID_LEAVE = "unpaid_leave"
+    SICK = "sick"
+    ABSENCE = "absence"

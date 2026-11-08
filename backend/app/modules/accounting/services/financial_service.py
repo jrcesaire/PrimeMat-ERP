@@ -59,12 +59,13 @@ BALANCE_SHEET_ASSETS: list[tuple[str, list[str], bool]] = [
 ]
 
 BALANCE_SHEET_LIABILITIES: list[tuple[str, list[str]]] = [
-    ("Capital social", ["101", "102", "103", "109"]),
-    ("Primes et réserves", ["104", "105", "106", "107", "108", "15"]),
-    ("Report à nouveau", ["11"]),
-    ("Résultat net de l'exercice", ["12"]),
-    ("Subventions d'investissement", ["13"]),
-    ("Provisions réglementées", ["14"]),
+    ("Capital ou dotation", ["101", "102", "103", "104", "109"]),
+    ("Primes et écarts de réévaluation", ["105", "106", "107", "108"]),
+    ("Réserves", ["11"]),
+    ("Report à nouveau", ["12"]),
+    ("Résultat net de l'exercice", ["13"]),
+    ("Subventions d'investissement", ["14"]),
+    ("Provisions réglementées", ["15"]),
     ("Dettes financières et assimilées", ["16", "17", "18"]),
     ("Provisions financières pour risques et charges", ["19"]),
     ("Fournisseurs et comptes rattachés", ["40"]),
@@ -79,23 +80,27 @@ BALANCE_SHEET_LIABILITIES: list[tuple[str, list[str]]] = [
 # Sections du compte de résultat
 # ------------------------------------------------------------------ #
 INCOME_SECTIONS: list[tuple[str, str, list[str]]] = [
-    ("Ventes", "income", ["70", "71", "72", "73"]),
-    ("Subventions d'exploitation", "income", ["74"]),
-    ("Autres produits d'exploitation", "income", ["75", "78", "79"]),
-    ("Produits financiers", "income", ["76"]),
-    ("Produits exceptionnels", "income", ["77"]),
+    ("Ventes", "income", ["70"]),
+    ("Subventions d'exploitation", "income", ["71"]),
+    ("Production immobilisée", "income", ["72"]),
+    ("Variations des stocks", "income", ["73"]),
+    ("Autres produits", "income", ["75"]),
+    ("Revenus financiers", "income", ["77"]),
+    ("Transferts de charges", "income", ["78"]),
+    ("Reprises de provisions", "income", ["79"]),
 ]
 
 EXPENSE_SECTIONS: list[tuple[str, str, list[str]]] = [
     ("Achats", "expense", ["60"]),
     ("Transports", "expense", ["61"]),
     ("Services extérieurs", "expense", ["62"]),
-    ("Impôts et taxes", "expense", ["63"]),
-    ("Charges de personnel", "expense", ["64"]),
-    ("Autres charges d'exploitation", "expense", ["65", "68"]),
-    ("Charges financières", "expense", ["66"]),
-    ("Charges exceptionnelles", "expense", ["67"]),
-    ("Impôts sur le résultat", "expense", ["69"]),
+    ("Autres services extérieurs", "expense", ["63"]),
+    ("Impôts et taxes", "expense", ["64"]),
+    ("Autres charges", "expense", ["65"]),
+    ("Charges de personnel", "expense", ["66"]),
+    ("Frais financiers et charges assimilées", "expense", ["67"]),
+    ("Dotations aux amortissements", "expense", ["68"]),
+    ("Dotations aux provisions", "expense", ["69"]),
 ]
 
 
@@ -372,7 +377,7 @@ class FinancialService:
             2,
         )
         has_account_12 = any(
-            b["account_code"].startswith("12") and abs(b["balance"]) > 0.005
+            b["account_code"].startswith("13") and abs(b["balance"]) > 0.005
             for b in balances
         )
         if not has_account_12:

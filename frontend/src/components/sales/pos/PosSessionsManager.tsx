@@ -198,7 +198,7 @@ export function PosSessionsManager({ onBack }: Props) {
                       }}
                       className={`cursor-pointer border-b border-line ${
                         selectedSession?.id === s.id
-                          ? "bg-blue-50"
+                          ? "bg-info-soft"
                           : "hover:bg-subtle"
                       }`}
                       title="Cliquer pour voir le détail de la session"
@@ -274,10 +274,10 @@ export function PosSessionsManager({ onBack }: Props) {
       )}
 
       {activeSession && (
-        <Card className="border-green-100 bg-green-50">
+        <Card className="border-success/30 bg-success-soft">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-green-900">Session active : {activeSession.reference}</CardTitle>
+              <CardTitle className="text-success">Session active : {activeSession.reference}</CardTitle>
               <CardDescription>Solde initial : {formatCurrency(activeSession.initial_balance)} — Ouverte le {formatDate(activeSession.opened_at)}</CardDescription>
             </div>
             <Badge variant="default">En cours</Badge>

@@ -8,7 +8,9 @@ from fastapi.responses import StreamingResponse
 
 from app.api.deps import SessionDep
 from app.core.dependencies.auth import get_current_active_user
+from app.core.dependencies.company import require_company_profile
 from app.core.dependencies.permissions import require_permission
+from app.core.models.company import Company
 from app.core.models.user import User
 from app.modules.delivery.schemas import DeliveryFromOrder, DeliveryRead
 from app.modules.delivery.services.delivery_service import DeliveryService
@@ -72,6 +74,7 @@ async def create_delivery_from_order(
     body: DeliveryFromOrder,
     session: SessionDep,
     _: User = Depends(require_permission("delivery", "create")),
+    _company: Company = Depends(require_company_profile),
 ):
     service = DeliveryService(session)
     try:

@@ -273,6 +273,16 @@ class VATService:
             "vat_return", "TVA", company_id=company_id
         )
 
+        # Comptes par défaut du référentiel : la TVA due se solde sur le compte
+        # d'État « T.V.A. due ou crédit de T.V.A. », et le règlement sort de la
+        # banque. En dur, ces codes seraient faux pour l'un des deux plans.
+        from app.modules.accounting.data import resolve_accounts
+        from app.modules.accounting.services.account_service import AccountService
+
+        aliases = resolve_accounts(
+            await AccountService(self.session).company_template(company_id)
+        )
+
         vat_return = VATReturn(
             company_id=company_id,
             reference=reference,
@@ -280,8 +290,9 @@ class VATService:
             period_start=data.period_start,
             period_end=data.period_end,
             status="draft",
-            counterpart_account=data.counterpart_account.strip() or "441",
-            payment_account=data.payment_account.strip() or "521",
+            counterpart_account=data.counterpart_account.strip()
+            or aliases["vat_payable"],
+            payment_account=data.payment_account.strip() or aliases["bank"],
             journal_code=data.journal_code.strip() or "OD",
             notes=data.notes,
         )

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>{{ doc_title }}</title><style>
+/*__OPEN_SANS_FACES__*/
+@page { size: A4; margin: 14mm 12mm 16mm 12mm; }
+* { box-sizing: border-box; }
+body { font-family: "Open Sans", Arial, sans-serif; color: #1f2430; font-size: 10px; }
+.pg-head { display: flex; justify-content: space-between; align-items: flex-start;
+  border-bottom: 2px solid #1b2a4a; padding-bottom: 8px; margin-bottom: 10px; }
+.brand { font-weight: 800; font-size: 15px; color: #1b2a4a; }
+.brand .mono { display: inline-block; width: 26px; height: 26px; border-radius: 6px;
+  background: #1b2a4a; color: #fff; text-align: center; line-height: 26px; margin-right: 8px; font-size: 13px; }
+.title { text-align: right; }
+.title h1 { margin: 0; font-size: 18px; color: #1b2a4a; letter-spacing: 1px; }
+.title .ref { color: #5a6272; font-size: 10px; margin-top: 3px; }
+.emp { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
+.card { border: 1px solid #d8dce6; border-radius: 6px; padding: 8px 10px; flex: 1; }
+.card h2 { margin: 0 0 5px; font-size: 9px; text-transform: uppercase; letter-spacing: .5px; color: #1b2a4a; }
+.kv { display: flex; justify-content: space-between; padding: 1px 0; border-bottom: 1px dotted #e6e8ef; }
+.kv span:first-child { color: #5a6272; }
+table.lines { width: 100%; border-collapse: collapse; margin-top: 6px; }
+table.lines th { background: #1b2a4a; color: #fff; font-size: 9px; text-align: left; padding: 4px 6px; text-transform: uppercase; }
+table.lines td { padding: 3px 6px; border-bottom: 1px solid #eceef4; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.totals { width: 48%; margin-left: auto; margin-top: 8px; }
+.totals .row { display: flex; justify-content: space-between; padding: 3px 6px; border-bottom: 1px solid #eceef4; }
+.totals .grand { background: #1b2a4a; color: #fff; font-weight: 700; padding: 6px; border-radius: 4px; display: flex; justify-content: space-between; }
+.foot { margin-top: 12px; font-size: 8px; color: #8a8fa3; border-top: 1px solid #e6e8ef; padding-top: 6px; }
+</style></head>
+<body>
+{% set emp = employee %}
+<div class="pg-head">
+  <div class="brand">
+    {% if company %}<span class="mono">{{ company_monogram(company) }}</span>{{ company.name }}{% else %}Entreprise{% endif %}
+    <div style="font-size:8px;color:#5a6272;font-weight:400;margin-top:2px">{{ fmt_addr(company) if company else '' }}</div>
+  </div>
+  <div class="title">
+    <h1>BULLETIN DE PAIE</h1>
+    <div class="ref">N° {{ payslip.number }}</div>
+    <div class="ref">Période : {{ fmt_date(payslip.date_from) }} → {{ fmt_date(payslip.date_to) }}</div>
+  </div>
+</div>
+
+<div class="emp">
+  <div class="card">
+    <h2>Salarié</h2>
+    <div class="kv"><span>Nom</span><b>{{ emp.full_name if emp else '—' }}</b></div>
+    <div class="kv"><span>Matricule</span><b>{{ emp.reference if emp else '—' }}</b></div>
+    <div class="kv"><span>Emploi</span><b>{{ emp.job_title or (contract.job_title if contract else '') or '—' }}</b></div>
+    <div class="kv"><span>N° CNPS</span><b>{{ emp.cnps_number or '—' }}</b></div>
+    <div class="kv"><span>Parts fiscales</span><b>{{ emp.tax_parts if emp else '—' }}</b></div>
+  </div>
+  <div class="card">
+    <h2>Éléments de paie</h2>
+    <div class="kv"><span>Structure</span><b>{{ structure.name if structure else '—' }}</b></div>
+    <div class="kv"><span>Salaire de base</span><b>{{ fmt_num(contract.wage) if contract else '—' }}</b></div>
+    <div class="kv"><span>Date de paiement</span><b>{{ fmt_date(payslip.payment_date) or '—' }}</b></div>
+    <div class="kv"><span>État</span><b>{{ payslip.state }}</b></div>
+  </div>
+</div>
+
+<table class="lines">
+  <thead><tr>
+    <th style="width:12%">Code</th><th>Libellé</th>
+    <th style="width:18%" class="num">Base</th>
+    <th style="width:20%" class="num">Montant ({{ currency }})</th>
+  </tr></thead>
+  <tbody>
+  {% for cat, cat_lines in groups.items() %}
+    {% for line in cat_lines %}
+      <tr>
+        <td>{{ line.code }}</td>
+        <td>{{ line.name }}{% if line.category_code %} <span style="color:#8a8fa3">[{{ line.category_code }}]</span>{% endif %}</td>
+        <td class="num">{{ fmt_num(line.rate) }}</td>
+        <td class="num">{{ fmt_num(line.total) }}</td>
+      </tr>
+    {% endfor %}
+  {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals">
+  <div class="row"><span>Salaire brut</span><b>{{ fmt_num(payslip.gross) }}</b></div>
+  <div class="row"><span>Total retenues</span><b>- {{ fmt_num(payslip.total_deductions) }}</b></div>
+  <div class="grand"><span>NET À PAYER</span><span>{{ fmt_num(payslip.net_wage) }} {{ currency }}</span></div>
+  <div class="row"><span>Coût employeur</span><b>{{ fmt_num(payslip.employer_cost) }}</b></div>
+</div>
+
+<div class="foot">
+  {% if company %}{{ company.name }}{% if company.rccm %} · RCCM {{ company.rccm }}{% endif %}{% if company.ncc %} · NCC {{ company.ncc }}{% endif %}{% endif %}
+  · Document confidentiel — à conserver
+</div>
+</body></html>

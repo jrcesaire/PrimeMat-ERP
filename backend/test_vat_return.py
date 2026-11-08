@@ -145,15 +145,15 @@ async def main() -> int:
         print("[1] Écritures de la période (mars 2026)")
         await post(
             date(2026, 3, 10), "VTE", "Facture client FA-100",
-            [("411", "Client", 1_200_000, 0),
-             ("701", "Ventes", 0, 1_000_000),
-             ("4431", "TVA facturée sur ventes", 0, 200_000)],
+            [("411000", "Client", 1_200_000, 0),
+             ("701000", "Ventes", 0, 1_000_000),
+             ("443000", "TVA facturée sur ventes", 0, 200_000)],
         )
         await post(
             date(2026, 3, 20), "ACH", "Facture fournisseur FF-100",
-            [("601", "Achats", 400_000, 0),
-             ("4452", "TVA récupérable sur achats", 80_000, 0),
-             ("401", "Fournisseur", 0, 480_000)],
+            [("601000", "Achats", 400_000, 0),
+             ("445000", "TVA récupérable sur achats", 80_000, 0),
+             ("401000", "Fournisseur", 0, 480_000)],
         )
         print("  écritures enregistrées (collectée 200 000 / déductible 80 000)")
 
@@ -189,8 +189,8 @@ async def main() -> int:
             f"({preview['label']})",
         )
         kinds = {l["account_code"]: l["kind"] for l in preview["lines"]}
-        check("4431 classé collectée", kinds.get("4431") == "collected")
-        check("4452 classé déductible", kinds.get("4452") == "deductible")
+        check("4431 classé collectée", kinds.get("443000") == "collected")
+        check("4452 classé déductible", kinds.get("445000") == "deductible")
 
         # --- 3. Création de la déclaration ---
         print("\n[3] Création de la déclaration (brouillon)")
@@ -223,17 +223,17 @@ async def main() -> int:
         balances = await balances_map()
         check(
             "compte 4431 soldé (0)",
-            close_to(balances.get("4431", 0), 0),
+            close_to(balances.get("443000", 0), 0),
             f"({balances.get('4431')})",
         )
         check(
             "compte 4452 soldé (0)",
-            close_to(balances.get("4452", 0), 0),
+            close_to(balances.get("445000", 0), 0),
             f"({balances.get('4452')})",
         )
         check(
             "TVA due au crédit du compte 441 (-120 000)",
-            close_to(balances.get("441", 0), -120_000),
+            close_to(balances.get("444000", 0), -120_000),
             f"({balances.get('441')})",
         )
         check(
@@ -271,12 +271,12 @@ async def main() -> int:
         balances = await balances_map()
         check(
             "compte 441 soldé (0)",
-            close_to(balances.get("441", 0), 0),
+            close_to(balances.get("444000", 0), 0),
             f"({balances.get('441')})",
         )
         check(
             "décaissement banque 521 (-120 000)",
-            close_to(balances.get("521", 0), -120_000),
+            close_to(balances.get("521000", 0), -120_000),
             f"({balances.get('521')})",
         )
         check(
@@ -288,9 +288,9 @@ async def main() -> int:
         print("\n[7] Crédit de TVA (avril 2026 : achats > ventes)")
         await post(
             date(2026, 4, 15), "ACH", "Facture fournisseur FF-200",
-            [("601", "Achats", 500_000, 0),
-             ("4452", "TVA récupérable sur achats", 100_000, 0),
-             ("401", "Fournisseur", 0, 600_000)],
+            [("601000", "Achats", 500_000, 0),
+             ("445000", "TVA récupérable sur achats", 100_000, 0),
+             ("401000", "Fournisseur", 0, 600_000)],
         )
         credit_return = await service.create_return(
             company_id,
@@ -324,7 +324,7 @@ async def main() -> int:
         balances = await balances_map()
         check(
             "crédit constaté au débit du compte 441 (+100 000)",
-            close_to(balances.get("441", 0), 100_000),
+            close_to(balances.get("444000", 0), 100_000),
             f"({balances.get('441')})",
         )
         check(

@@ -14,15 +14,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Loader2, Rocket } from "lucide-react";
 
-import { useSetupAdmin, useSetupStatus } from "@/hooks/useSetup";
 import { useLogin } from "@/hooks/useAuth";
-
-const CURRENCIES = [
-  { code: "XOF", label: "Franc CFA (XOF)" },
-  { code: "EUR", label: "Euro (EUR)" },
-  { code: "USD", label: "Dollar US (USD)" },
-  { code: "NGN", label: "Naira (NGN)" },
-];
+import { useSetupAdmin, useSetupStatus } from "@/hooks/useSetup";
+import { CURRENCIES, currencyLabel } from "@/lib/countries-currencies";
 
 const setupSchema = z
   .object({
@@ -52,7 +46,7 @@ const setupSchema = z
 type SetupForm = z.infer<typeof setupSchema>;
 
 const inputClass =
-  "w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-blue-600";
+  "w-full rounded-md border border-gray-300 bg-surface px-3 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-ghost focus:border-blue-600";
 
 export default function SetupPage() {
   const { data: status, isLoading } = useSetupStatus();
@@ -171,7 +165,7 @@ export default function SetupPage() {
               <select className={inputClass} {...register("currency_code")}>
                 {CURRENCIES.map((c) => (
                   <option key={c.code} value={c.code}>
-                    {c.label}
+                    {currencyLabel(c.code)}
                   </option>
                 ))}
               </select>

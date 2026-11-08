@@ -1,0 +1,66 @@
+Sur Vercel, ce n'est pas un bug de ton code, c'est un problème de **Root Directory**.
+
+## Pourquoi ça casse
+
+Ton log dit :
+
+```
+Cloning github.com/jrcesaire/PrimeMat-ERP (Branch: main, Commit: 2bc2b5c)
+Running "vercel build"
+[PYTHON_ENTRYPOINT_NOT_FOUND] ... found potential entrypoints:
+  backend/app/main.py (variable: app)
+```
+
+Vercel build à la **racine du repo**. Il y trouve `backend/` + `frontend/` et il en déduit : « c'est un projet Python ». Il cherche donc un entrypoint serverless `api/index.py`, ne le trouve pas, et te propose d'ajouter :
+
+```toml
+[tool.vercel]
+entrypoint = "backend.app.main:app"
+```
+
+**Ne fais pas ça.** Ton backend n'est pas déployable en serverless Vercel :
+
+* `requirements.txt` : `playwright==1.49.1` (~170 Mo de Chromium), `celery`, `redis`, `websockets`, `boto3`, `reportlab`, `dropbox`, `google-api` → dépasse les limites / timeouts des Functions (10s en Hobby, filesystem éphémère).
+* `app/main.py` : lifespan, `Alembic upgrade`, worker/beat Celery, génération PDF Chromium, stockage local `resources/uploads`, `generated/` → incompatible avec l'éphémère Vercel.
+* Le frontend est un Next.js 15 classique (`frontend/package.json` : `next build`), c'est lui qui doit aller sur Vercel.
+
+Architecture correcte :
+
+```
+Vercel (frontend uniquement)  →  https://ton-front.vercel.app
+Backend FastAPI ailleurs      →  VPS Docker / Render / Railway / Fly
+DB déjà OK                    →  Supabase Postgres
+```
+
+## Correctif : 2 minutes dans le dashboard Vercel
+
+1. Vercel Dashboard → ton projet → **Settings → General → Root Directory** → `Edit` → mets `frontend` → Save.
+2. **Build & Development Settings** :
+   * Framework Preset : `Next.js`
+   * Build Command : `npm run build` (défaut, ne mets pas `cd frontend && ...` une fois le Root Directory fixé)
+   * Output Directory : `.next` (défaut)
+   * Install Command : `npm install`
+3. **Environment Variables** (Production + Preview) :
+   * `NEXT_PUBLIC_API_URL=https://ton-backend-prod/api/v1`
+4. **Redeploy** : Deployments → dernier → `⋯` → Redeploy (sans cache si besoin).
+
+Pas besoin de `vercel.json` dans ce cas. Si tu veux quand même verrouiller en code, mets à la racine :
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs"
+}
+```
+avec Root Directory = `frontend`, et rien d'autre.
+
+## Pour le backend, ne le mets pas sur Vercel
+
+Garde ton `backend/Dockerfile` + `docker-compose.yml` existants. Options :
+
+* **VPS (recommandé pour toi)** : `docker compose up -d --build` tel quel, Postgres → pointe `DATABASE_URL` vers Supabase, Redis en local ou Upstash.
+* **Render / Railway** : Root Directory = `backend`, Start : `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, ajoute `playwright install chromium` au build si tu gardes le rendu PDF Chromium.
+
+Et côté frontend, `src/lib/api/client.ts` utilise déjà `NEXT_PUBLIC_API_URL` avec fallback `http://localhost:8000` — donc une fois la variable posée en prod, plus rien à changer dans le code.
+
+En résumé : **Root Directory → `frontend`, redéploie, et laisse le backend hors Vercel.** Si tu veux, je te prépare ensuite le `Dockerfile` prod backend + les variables d'env Render/Railway.

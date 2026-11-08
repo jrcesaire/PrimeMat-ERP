@@ -31,11 +31,19 @@ export function ModuleNav({
   className,
   /** Retire l'entrée qui pointe vers la racine du module (déjà dans l'en-tête). */
   excludeRoot = true,
+  /**
+   * Routes à ne pas afficher : les vues rendues ailleurs par un moyen plus
+   * adapté. Le module Comptabilité en fait usage pour ses quatre états
+   * financiers, exposés en onglets par le layout — sans cette exclusion, les
+   * mêmes quatre entrées apparaissaient deux fois sur l'écran.
+   */
+  excludeHrefs = [],
 }: {
   /** Route d'accueil du module, ex. `/dashboard/accounting`. */
   moduleHref: string;
   className?: string;
   excludeRoot?: boolean;
+  excludeHrefs?: string[];
 }) {
   const pathname = usePathname();
   const { data: currentUser } = useCurrentUser();
@@ -46,7 +54,10 @@ export function ModuleNav({
 
   const navItem = NAV_ITEMS.find((item) => item.href === moduleHref);
   const leaves = flattenLeaves(navItem?.children).filter(
-    (leaf) => isAllowed(leaf.permission) && !(excludeRoot && leaf.href === moduleHref),
+    (leaf) =>
+      isAllowed(leaf.permission) &&
+      !(excludeRoot && leaf.href === moduleHref) &&
+      !excludeHrefs.includes(leaf.href),
   );
 
   if (leaves.length === 0) return null;

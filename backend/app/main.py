@@ -46,6 +46,19 @@ async def lifespan(app: FastAPI):
 
         await run_bootstrap_if_needed()
 
+    # Données de référence (devises). Indispensables au parcours de première
+    # installation : `/setup/admin` valide la devise choisie AVANT toute autre
+    # écriture, donc avant que le bootstrap ne la crée. Hors du bloc `debug` à
+    # dessein — en production les tables viennent des migrations Alembic et le
+    # bootstrap automatique est désactivé, les devises doivent exister quand
+    # même. Idempotent.
+    try:
+        from app.core.services.seed_service import seed_reference_data
+
+        await seed_reference_data()
+    except Exception:  # pragma: no cover — défensif (DB indisponible)
+        logger.exception("Peuplement des données de référence impossible")
+
     # Synchronisation add-only des permissions système : le bootstrap ne
     # tourne que sur une base vide, toute permission ajoutée après coup
     # (ex. les actions « delete » de la cascade de suppression) serait
@@ -56,6 +69,16 @@ async def lifespan(app: FastAPI):
         await sync_system_permissions()
     except Exception:  # pragma: no cover — défensif (DB indisponible)
         logger.exception("Synchronisation des permissions système impossible")
+
+    # Structures de paie : le socle n'est semé qu'au bootstrap (base vide).
+    # Sur une base existante, la liste déroulante du salarié serait sans option.
+    # Idempotent, sans effet de bord.
+    try:
+        from app.core.services.seed_service import sync_payroll_defaults
+
+        await sync_payroll_defaults()
+    except Exception:  # pragma: no cover — défensif (DB indisponible)
+        logger.exception("Synchronisation des structures de paie impossible")
 
     # Charge les modules activés
     registry = ModuleRegistry()

@@ -77,7 +77,7 @@ class VATReturn(Base, TenantMixin):
     credit_carry: Mapped[float] = MappedColumn(Numeric(16, 2), default=0)
 
     #: Compte de l'État servant de contrepartie (``441`` par défaut).
-    counterpart_account: Mapped[str] = MappedColumn(String(10), default="441")
+    counterpart_account: Mapped[str] = MappedColumn(String(10), default="444000")
     #: Compte de trésorerie débité au règlement (``521`` par défaut).
     payment_account: Mapped[str] = MappedColumn(String(10), default="521")
     #: Journal des écritures de liquidation et de règlement.

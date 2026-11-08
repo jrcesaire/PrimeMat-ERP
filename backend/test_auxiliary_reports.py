@@ -171,20 +171,20 @@ async def main() -> int:
 
         await post(
             date(2026, 3, 1), "VTE", "Facture FA-001",
-            [("411", "Client Alpha", 1_200_000, 0, partner_id),
-             ("701", "Ventes", 0, 1_000_000, None),
-             ("4431", "TVA facturée", 0, 200_000, None)],
+            [("411000", "Client Alpha", 1_200_000, 0, partner_id),
+             ("701000", "Ventes", 0, 1_000_000, None),
+             ("443000", "TVA facturée", 0, 200_000, None)],
         )
         await post(
             date(2026, 3, 20), "BAN", "Encaissement FA-001",
-            [("521", "Banque", 200_000, 0, None),
-             ("411", "Client Alpha", 0, 200_000, partner_id)],
+            [("521000", "Banque", 200_000, 0, None),
+             ("411000", "Client Alpha", 0, 200_000, partner_id)],
         )
         await post(
             date(2026, 4, 1), "VTE", "Facture FA-002",
-            [("411", "Client Alpha", 500_000, 0, partner_id),
-             ("701", "Ventes", 0, 416_667, None),
-             ("4431", "TVA facturée", 0, 83_333, None)],
+            [("411000", "Client Alpha", 500_000, 0, partner_id),
+             ("701000", "Ventes", 0, 416_667, None),
+             ("443000", "TVA facturée", 0, 83_333, None)],
         )
         await session.commit()
 

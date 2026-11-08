@@ -443,3 +443,93 @@ class ContextBuilder:
             "qr_data_uri": qr_data_uri,
         }
 
+    async def load_payslip(self, payslip_id: int) -> dict[str, Any]:
+        """Contexte pour un bulletin de paie."""
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+
+        from app.core.database import AsyncSessionLocal
+        from app.core.models.company import Company
+        from app.modules.payroll.models.payslip import Payslip
+
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(Payslip)
+                .options(
+                    selectinload(Payslip.employee),
+                    selectinload(Payslip.contract),
+                    selectinload(Payslip.structure),
+                )
+                .where(Payslip.id == payslip_id)
+            )
+            payslip = result.scalar_one_or_none()
+            if payslip is None:
+                raise ValueError(f"Bulletin {payslip_id} introuvable")
+            company = (
+                await session.get(Company, payslip.company_id)
+                if payslip.company_id
+                else None
+            )
+            groups: dict[str, list] = {}
+            for line in payslip.lines:
+                groups.setdefault(line.category_code or "AUTRE", []).append(line)
+
+        return {
+            "payslip": payslip,
+            "employee": payslip.employee,
+            "contract": payslip.contract,
+            "structure": payslip.structure,
+            "company": company,
+            "lines": payslip.lines,
+            "groups": groups,
+            "currency": getattr(company, "currency_code", "XOF") if company else "XOF",
+            "document_type": "payslip",
+            **_naming("payslip", payslip.number),
+        }
+
+    async def load_cnps(self, company_id: int, period_id: int) -> dict[str, Any]:
+        """Contexte pour le bordereau CNPS d'une période."""
+        from app.core.database import AsyncSessionLocal
+        from app.core.models.company import Company
+        from app.modules.payroll.services.declaration_service import (
+            PayrollDeclarationService,
+        )
+
+        async with AsyncSessionLocal() as session:
+            data = await PayrollDeclarationService(session).cnps_bordereau(
+                company_id, period_id
+            )
+            company = await session.get(Company, company_id) if company_id else None
+
+        return {
+            "declaration": data,
+            "period": data["period"],
+            "company": company,
+            "currency": getattr(company, "currency_code", "XOF") if company else "XOF",
+            "document_type": "cnps_return",
+            **_naming("cnps_return", data["period"]["name"]),
+        }
+
+    async def load_its(self, company_id: int, period_id: int) -> dict[str, Any]:
+        """Contexte pour l'état ITS d'une période."""
+        from app.core.database import AsyncSessionLocal
+        from app.core.models.company import Company
+        from app.modules.payroll.services.declaration_service import (
+            PayrollDeclarationService,
+        )
+
+        async with AsyncSessionLocal() as session:
+            data = await PayrollDeclarationService(session).its_declaration(
+                company_id, period_id
+            )
+            company = await session.get(Company, company_id) if company_id else None
+
+        return {
+            "declaration": data,
+            "period": data["period"],
+            "company": company,
+            "currency": getattr(company, "currency_code", "XOF") if company else "XOF",
+            "document_type": "its_return",
+            **_naming("its_return", data["period"]["name"]),
+        }
+

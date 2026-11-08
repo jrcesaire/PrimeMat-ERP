@@ -40,6 +40,26 @@ DEFAULT_SETTINGS: dict[str, dict[str, Any]] = {
         "is_public": True,
         "description": "Conditions Générales de Vente (page finale des devis et factures)",
     },
+    # Configuration initiale de l'entreprise.
+    #   - `company_configured` : l'étape a été terminée (ou tentée) ;
+    #   - `company_setup_skipped` : l'utilisateur l'a reportée à plus tard.
+    # La connexion ne ramène à l'écran que si aucun des deux n'est vrai. La
+    # création d'un document, elle, dépend de la *complétude* réelle des
+    # informations obligatoires (voir `app.core.services.company_profile`).
+    # Valeurs booléennes Python : `SettingService.get` ne désérialise pas les
+    # valeurs par défaut, un "false" textuel serait évalué comme vrai.
+    "company_configured": {
+        "value": False,
+        "type": "boolean",
+        "is_public": True,
+        "description": "Profil de l'entreprise complété à l'installation",
+    },
+    "company_setup_skipped": {
+        "value": False,
+        "type": "boolean",
+        "is_public": True,
+        "description": "Configuration de l'entreprise reportée à plus tard",
+    },
     # Opacité du filigrane des documents A4 (pourcentage 1-100)
     "watermark_opacity": {
         "value": "10",

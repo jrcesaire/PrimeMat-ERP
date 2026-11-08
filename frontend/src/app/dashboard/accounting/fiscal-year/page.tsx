@@ -281,8 +281,8 @@ export default function FiscalYearClosingPage() {
                 <span
                   className={`mt-1 rounded px-2 py-0.5 text-xs font-medium ${
                     y.status === "closed"
-                      ? "bg-gray-200 text-muted"
-                      : "bg-green-100 text-green-700"
+                      ? "bg-neutral-soft text-muted"
+                      : "bg-success-soft text-success"
                   }`}
                 >
                   {y.status === "closed" ? "clôturé" : "ouvert"}

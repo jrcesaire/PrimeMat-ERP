@@ -9,6 +9,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { apiClient } from "@/lib/api/client";
+import { COMPANY_KEY } from "@/hooks/useAuth";
 
 export const OHADA_KEYS = {
   parameters: "ohada-parameters",
@@ -18,6 +19,7 @@ export const OHADA_KEYS = {
   exchangeRates: "ohada-exchange-rates",
   seedResult: "ohada-seed-result",
   closingPreview: "ohada-closing-preview",
+  chart: "accounting-chart",
 };
 
 // --- Types (miroir des schémas backend) ---
@@ -284,6 +286,59 @@ export function useSeedOhadaPlan() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.seedResult] });
+    },
+  });
+}
+
+// --- Référentiel comptable (SYSCOHADA commercial / SYCEBNL) ---
+export interface ChartOptionRead {
+  value: string;
+  label: string;
+  account_count: number;
+}
+
+export interface ChartSettings {
+  chart_of_accounts: string;
+  label: string;
+  account_count: number;
+  /** Faux tant que la comptabilité n'est pas vierge (cf. ``blockers``). */
+  can_change: boolean;
+  /** Ce qui empêche la bascule — « 12 écritures », « 3 immobilisations »… */
+  blockers: string[];
+  available: ChartOptionRead[];
+}
+
+export function useAccountingChart() {
+  return useQuery({
+    queryKey: [OHADA_KEYS.chart],
+    queryFn: async (): Promise<ChartSettings> => {
+      const res = await apiClient.get("/accounting/accounts/chart");
+      return res.data;
+    },
+  });
+}
+
+/**
+ * Bascule le référentiel comptable et recharge le plan correspondant.
+ *
+ * Réservé à une comptabilité vierge : un changement remplace tout le plan. En
+ * cas de blocage, l'API répond 409 avec la raison (écritures, immobilisations,
+ * déclarations de TVA restantes).
+ */
+export function useChangeAccountingChart() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (chartOfAccounts: string): Promise<ChartSettings> => {
+      const res = await apiClient.put("/accounting/accounts/chart", {
+        chart_of_accounts: chartOfAccounts,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.chart] });
+      queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.seedResult] });
+      queryClient.invalidateQueries({ queryKey: [OHADA_KEYS.constraints] });
+      queryClient.invalidateQueries({ queryKey: COMPANY_KEY });
     },
   });
 }

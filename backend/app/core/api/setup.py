@@ -25,6 +25,7 @@ from app.core.dependencies.auth import get_current_active_user
 from app.core.dependencies.permissions import require_superuser
 from app.core.models.company import Company
 from app.core.models.user import User
+from app.core.services.company_profile import company_profile
 from app.core.services.seed_service import bootstrap_defaults
 from app.core.services.setting_service import SettingService
 
@@ -80,7 +81,13 @@ class SetupAdminRequest(BaseModel):
 
 
 class SetupCompanyRequest(BaseModel):
-    """Profil de l'entreprise (étape 2, admin connecté)."""
+    """Profil de l'entreprise (étape 2, admin connecté).
+
+    Tous les champs sont facultatifs : l'étape peut être reportée. Seule la
+    complétude — nom, téléphone, devise, adresse, ville, pays — conditionne
+    ensuite la création des devis et des factures. Les informations fiscales,
+    le logo et les CGV sont recommandés mais jamais exigés.
+    """
 
     name: str | None = Field(default=None, max_length=200)
     establishment: str | None = Field(default=None, max_length=120)
@@ -88,11 +95,26 @@ class SetupCompanyRequest(BaseModel):
     phone: str | None = Field(default=None, max_length=50)
     email: str | None = Field(default=None, max_length=200)
     website: str | None = Field(default=None, max_length=200)
+    logo: str | None = Field(default=None, max_length=800_000)
+    # Adresse — les clés `address_line1` / `address_city` restent acceptées
+    # pour les appels déjà déployés ; elles alimentent les mêmes clés JSON.
+    street: str | None = Field(default=None, max_length=200)
+    city: str | None = Field(default=None, max_length=100)
+    country: str | None = Field(default=None, max_length=100)
     address_line1: str | None = Field(default=None, max_length=200)
     address_city: str | None = Field(default=None, max_length=100)
+    # Informations fiscales et légales — recommandées, non obligatoires.
     ncc: str | None = Field(default=None, max_length=100)
     rccm: str | None = Field(default=None, max_length=100)
     share_capital: str | None = Field(default=None, max_length=100)
+    greffe: str | None = Field(default=None, max_length=120)
+    importer_code: str | None = Field(default=None, max_length=60)
+    social_security_code: str | None = Field(default=None, max_length=60)
+    activity_code: str | None = Field(default=None, max_length=60)
+    closing_date: str | None = Field(default=None, max_length=32)
+    fiscal_year_months: int | None = Field(default=None, ge=1, le=24)
+    # Conditions générales de vente — page finale des devis et factures.
+    cgv: str | None = None
 
 
 def _validate_password(password: str) -> None:
@@ -126,14 +148,20 @@ async def _setup_state(session) -> dict:
         select(Company).order_by(Company.id).limit(1)
     )).scalars().first()
 
-    configured = False
+    configured = skipped = False
     if company is not None:
         svc = SettingService(session)
         configured = bool(await svc.get("company_configured", False))
+        skipped = bool(await svc.get("company_setup_skipped", False))
 
     return {
         "needs_admin": not has_users,
-        "needs_company": (company is None) or not configured,
+        # Étape de premier lancement : la connexion y ramène tant qu'elle n'a
+        # été ni terminée ni explicitement reportée par l'utilisateur.
+        "needs_company": (company is None) or not (configured or skipped),
+        # La complétude, elle, conditionne la création des documents. Un report
+        # ne la change pas : l'écran revient à la première tentative.
+        **company_profile(company),
         "company_name": company.name if company else None,
         "company_code": company.code if company else None,
         "currency_code": company.currency_code if company else None,
@@ -227,20 +255,68 @@ async def setup_configure_company(
         raise HTTPException(404, "Entreprise introuvable")
 
     updates = body.model_dump(exclude_unset=True, exclude_none=True)
-    if "address_line1" in updates or "address_city" in updates:
-        addr = dict(company.address or {})
-        if "address_line1" in updates:
-            addr["street"] = updates.pop("address_line1")
-        if "address_city" in updates:
-            addr["city"] = updates.pop("address_city")
-        company.address = addr
-    for field, value in updates.items():
-        setattr(company, field, value)
+    cgv = updates.pop("cgv", None)
 
-    await SettingService(session).set(
+    # Adresse : les clés historiques (`address_line1`, `address_city`) sont
+    # retirées dans tous les cas, sinon elles seraient recopiées comme
+    # attributs fantômes sur l'instance.
+    legacy_street = updates.pop("address_line1", None)
+    legacy_city = updates.pop("address_city", None)
+    street = updates.pop("street", None) or legacy_street
+    city = updates.pop("city", None) or legacy_city
+    country = updates.pop("country", None)
+    if street or city or country:
+        addr = dict(company.address or {})
+        if street:
+            addr["street"] = street
+        if city:
+            addr["city"] = city
+        if country:
+            addr["country"] = country
+        company.address = addr
+
+    for field, value in updates.items():
+        # Filtre défensif : seules les colonnes réelles sont écrites.
+        if hasattr(Company, field):
+            setattr(company, field, value)
+
+    settings = SettingService(session)
+    await settings.set(
         "company_configured", True, type="boolean", company_id=company.id,
         is_public=True, description="Configuration initiale terminée",
     )
+    if cgv is not None:
+        await settings.set(
+            "cgv_content", cgv, type="string", company_id=company.id,
+            is_public=True,
+            description="Conditions Générales de Vente (page finale des devis et factures)",
+        )
     await session.commit()
     await session.refresh(company)
-    return {"message": "Entreprise configurée.", "company_id": company.id}
+    return {
+        "message": "Entreprise configurée.",
+        "company_id": company.id,
+        **company_profile(company),
+    }
+
+
+@router.post("/company/skip")
+async def setup_skip_company(
+    session: SessionDep,
+    user: User = Depends(require_superuser),
+):
+    """Reporte l'étape de configuration initiale.
+
+    L'utilisateur n'est plus ramené à l'écran à la connexion, mais la création
+    d'un devis ou d'une facture reste refusée (409) tant que les informations
+    obligatoires ne sont pas renseignées.
+    """
+    if user.company_id is None:
+        raise HTTPException(400, "Aucune entreprise associée au compte.")
+
+    await SettingService(session).set(
+        "company_setup_skipped", True, type="boolean",
+        company_id=user.company_id, is_public=True,
+        description="Configuration de l'entreprise reportée à plus tard",
+    )
+    return {"message": "Configuration reportée.", "company_id": user.company_id}

@@ -31,7 +31,15 @@ from app.modules.accounting.schemas import (
     JournalRead,
     SeedResult,
 )
-from app.modules.accounting.services.account_service import AccountService
+from app.modules.accounting.schemas.chart import (
+    ChartSettingsRead,
+    ChartSettingsUpdate,
+)
+from app.modules.accounting.services.account_service import (
+    ACCOUNT_FETCH_LIMIT,
+    AccountService,
+    ChartChangeBlocked,
+)
 from app.modules.accounting.services.journal_service import LedgerService
 
 router = APIRouter()
@@ -60,16 +68,63 @@ async def seed_plan(
     company_id: int = Depends(get_current_company_id),
     _: User = Depends(require_permission("account", "create")),
 ):
-    """(Ré)initialise le plan comptable OHADA pour l'entreprise — idempotent."""
+    """(Ré)initialise le plan comptable du référentiel de l'entreprise — idempotent.
+
+    Le référentiel (SYSCOHADA commercial ou SYCEBNL) est celui porté par
+    ``Company.chart_of_accounts`` : il se choisit dans l'assistant de
+    configuration et se modifie dans les paramètres comptables.
+    """
     service = AccountService(session)
     created = await service.seed_ohada_chart(company_id)
     j_created = await service.seed_default_journals(company_id)
     await session.commit()
     return SeedResult(
         created=created,
-        total=len(await service.list_accounts(company_id, active_only=False, limit=2000)),
+        total=len(
+            await service.list_accounts(
+                company_id, active_only=False, limit=ACCOUNT_FETCH_LIMIT
+            )
+        ),
         journals_created=j_created,
     )
+
+
+# ------------------------------------------------------------------ #
+# Référentiel comptable (SYSCOHADA commercial / SYCEBNL)
+# ------------------------------------------------------------------ #
+@router.get("/accounts/chart", response_model=ChartSettingsRead)
+async def get_accounts_chart(
+    session: SessionDep,
+    company_id: int = Depends(get_current_company_id),
+    _: User = Depends(require_permission("account", "view")),
+):
+    """Référentiel comptable de l'entreprise et possibilité de le modifier."""
+    return await AccountService(session).chart_state(company_id)
+
+
+@router.put("/accounts/chart", response_model=ChartSettingsRead)
+async def update_accounts_chart(
+    body: ChartSettingsUpdate,
+    session: SessionDep,
+    company_id: int = Depends(get_current_company_id),
+    _: User = Depends(require_permission("account", "edit")),
+):
+    """Bascule le référentiel comptable et recharge le plan correspondant.
+
+    Réservé à une comptabilité vierge : le changement **remplace** le plan, les
+    codes de l'ancien référentiel n'ayant plus de sens dans le nouveau. Toute
+    écriture, immobilisation ou déclaration de TVA existante bloque donc
+    l'opération (409).
+    """
+    service = AccountService(session)
+    try:
+        await service.change_chart(company_id, body.chart_of_accounts)
+    except ChartChangeBlocked as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    await session.commit()
+    return await service.chart_state(company_id)
 
 
 @router.get("/journals", response_model=list[JournalRead])

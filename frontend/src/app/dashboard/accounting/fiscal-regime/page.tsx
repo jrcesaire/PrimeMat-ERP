@@ -164,7 +164,7 @@ export default function FiscalRegimePage() {
 
       {/* Alerte de dépassement de seuil */}
       {regime && regime.ca_exceeds_threshold && suggestedInfo && (
-        <Alert className="border-amber-200 bg-amber-50">
+        <Alert className="border-warning/30 bg-warning-soft">
           <TriangleAlert className="h-4 w-4" />
           <AlertTitle>Dépassement de seuil CA détecté</AlertTitle>
           <AlertDescription className="sm:flex">

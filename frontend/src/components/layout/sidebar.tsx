@@ -24,6 +24,14 @@ import {
   type NavChild,
 } from "@/lib/nav-config";
 import { NavSubmenu } from "@/components/layout/nav-submenu";
+import {
+  NAV_ENTRY_ACTIVE,
+  NAV_ENTRY_ICON,
+  NAV_ENTRY_IDLE,
+  NAV_ENTRY_LINK,
+  NAV_ENTRY_ROW,
+  NAV_GROUP_LABEL,
+} from "@/lib/nav-styles";
 
 /** Vrai si l'un des liens du sous-menu mène à la route courante. */
 function containsRoute(items: NavChild[], route: string): boolean {
@@ -121,22 +129,17 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
             de clic distinctes). */}
         <div
           className={cn(
-            "flex items-center rounded-control transition-colors",
-            isActive
-              ? "bg-primary-soft text-primary"
-              : "text-muted hover:bg-subtle hover:text-ink",
+            NAV_ENTRY_ROW,
+            isActive ? NAV_ENTRY_ACTIVE : NAV_ENTRY_IDLE,
           )}
         >
           <Link
             href={item.href}
             title={item.label}
             aria-label={item.label}
-            className={cn(
-              "flex flex-1 items-center gap-3 px-3 py-2 text-[11px] font-medium",
-              collapsed && "justify-center px-0",
-            )}
+            className={cn(NAV_ENTRY_LINK, collapsed && "justify-center px-0")}
           >
-            <item.icon className="h-[18px] w-[18px] shrink-0" />
+            <item.icon className={NAV_ENTRY_ICON} />
             {!collapsed && <span className="truncate">{item.label}</span>}
           </Link>
 
@@ -229,7 +232,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         {groups.map((group) => (
           <div key={group.key} className="space-y-0.5">
             {!collapsed && (
-              <p className="px-3 pb-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-faint">
+              <p className={NAV_GROUP_LABEL}>
                 {group.label}
               </p>
             )}

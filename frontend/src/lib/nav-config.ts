@@ -11,6 +11,7 @@
  * `/dashboard/accounting/balance`, …) : l'URL reste partageable et la page
  * ouvre directement le bon onglet.
  */
+import { lastRouteSegment } from "@/lib/utils";
 import type { ElementType } from "react";
 import {
   BarChart3,
@@ -29,6 +30,7 @@ import {
   Users,
   Warehouse,
 } from "lucide-react";
+import { Wallet } from "lucide-react";
 
 /** Page cible d'un sous-menu. */
 export interface NavLeaf {
@@ -362,7 +364,7 @@ export const NAV_ITEMS: NavItem[] = [
             permission: "account:view",
           },
           {
-            label: "Chéancier",
+            label: "Échéancier",
             href: "/dashboard/accounting/payment-schedule",
             permission: "account:view",
           },
@@ -386,18 +388,90 @@ export const NAV_ITEMS: NavItem[] = [
             href: "/dashboard/accounting/audit",
             permission: "audit_log:view",
           },
-          {
-            label: "Assistant de configuration",
-            href: "/dashboard/accounting/setup",
-            permission: "account:edit",
-          },
         ],
       },
     ],
   },
+  {
+    label: "Paie",
+    href: "/dashboard/payroll",
+    icon: Wallet,
+    permission: "payslip:view",
+    section: "finance",
+    children: [
+      {
+        label: "Employés",
+        href: "/dashboard/payroll/employees",
+        permission: "employee:view",
+      },
+      {
+        label: "Bulletins",
+        href: "/dashboard/payroll/payslips",
+        permission: "payslip:view",
+      },
+      {
+        label: "Périodes & lots",
+        href: "/dashboard/payroll/runs",
+        permission: "payroll_period:view",
+      },
+      {
+        label: "Déclarations",
+        href: "/dashboard/payroll/declarations",
+        permission: "report:view",
+      },
+      {
+        label: "Paramètres de paie",
+        href: "/dashboard/payroll/settings",
+        permission: "payroll_structure:view",
+      },
+    ],
+  },
+
   { label: "Reporting", href: "/dashboard/reporting", icon: BarChart3 },
   { label: "Paramètres", href: "/dashboard/settings", icon: Settings },
 ];
+
+/**
+ * Les quatre états financiers du module Comptabilité.
+ *
+ * Particularité de ce module : ces quatre entrées ne sont pas des écrans
+ * distincts, mais **les vues d'un même écran**. La page Comptabilité affiche
+ * l'état sélectionné et les quatre routes (`/accounting/balance`, `/income`,
+ * `/sheet`, `/entries`) rendent cette même page avec l'onglet correspondant.
+ *
+ * Le layout du module les expose donc en **onglets**, et `ModuleNav` les exclut
+ * de sa barre de chips : sans cela, chaque état apparaissait deux fois dans
+ * deux rangées concurrentes — c'était la duplication constatée sur l'écran.
+ *
+ * `key` est le dernier segment de l'URL : c'est lui qui permet de déduire
+ * l'onglet actif du chemin, y compris sur la racine du module (qui ouvre la
+ * balance de vérification).
+ */
+export const ACCOUNTING_STATEMENTS = [
+  { key: "balance", label: "Balance de vérification", href: "/dashboard/accounting/balance" },
+  { key: "income", label: "Compte de résultat", href: "/dashboard/accounting/income" },
+  { key: "sheet", label: "Bilan", href: "/dashboard/accounting/sheet" },
+  { key: "entries", label: "Écritures", href: "/dashboard/accounting/entries" },
+] as const;
+
+/** Clé d'un état financier, déduite de sa route. */
+export type AccountingStatement = (typeof ACCOUNTING_STATEMENTS)[number]["key"];
+
+/** Routes des états financiers — à retirer de la barre de chips du module. */
+export const ACCOUNTING_STATEMENT_HREFS: string[] = ACCOUNTING_STATEMENTS.map(
+  (statement) => statement.href,
+);
+
+/** Onglet actif d'après l'URL ; la racine du module ouvre la balance. */
+export function accountingStatementFromPath(
+  pathname: string | null | undefined,
+): AccountingStatement {
+  const segment = lastRouteSegment(pathname);
+  const match = ACCOUNTING_STATEMENTS.find(
+    (statement) => statement.key === segment,
+  );
+  return match ? match.key : "balance";
+}
 
 /**
  * Retire d'une liste de sous-menus les pages dont la permission manque.

@@ -21,6 +21,11 @@ import { subscribePosFocus } from "@/lib/pos-focus";
 const SIDEBAR_KEY = "erp-sidebar-collapsed";
 /** Page d'accueil du dashboard — seule page où la sidebar reste affichée. */
 const DASHBOARD_HOME = "/dashboard";
+/**
+ * Préfixe des Paramètres : tout l'écran (rail + sections) occupe la largeur
+ * disponible, sans le plafond de 1212 px réservé aux écrans de module.
+ */
+const SETTINGS_PREFIX = "/dashboard/settings";
 
 export default function DashboardLayout({
   children,
@@ -36,6 +41,9 @@ export default function DashboardLayout({
   // (le slash final éventuel est ignoré).
   const route = (pathname ?? "").replace(/\/+$/, "") || "/";
   const showSidebar = !posFocus && route === DASHBOARD_HOME;
+  // Les Paramètres s'étendent sur toute la largeur de l'écran : leur rail et
+  // leurs tableaux n'ont pas de largeur naturelle à respecter.
+  const fullWidth = route === SETTINGS_PREFIX || route.startsWith(`${SETTINGS_PREFIX}/`);
 
   useEffect(() => {
     try {
@@ -81,8 +89,16 @@ export default function DashboardLayout({
             children
           ) : (
             // Conteneur centré de la maquette (1212 px), qui remplace l'ancien
-            // rembourrage fixe `px-[150px]` — illisible sur petit écran.
-            <div className="mx-auto w-full max-w-[1212px]">{children}</div>
+            // rembourrage fixe `px-[150px]` — illisible sur petit écran. Les
+            // Paramètres en sont exemptés : plein écran, ils profitent aux
+            // grilles, tableaux et listes de modules.
+            <div
+              className={
+                fullWidth ? "w-full" : "mx-auto w-full max-w-[1212px]"
+              }
+            >
+              {children}
+            </div>
           )}
         </main>
       </div>

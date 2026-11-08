@@ -34,6 +34,9 @@ body {
 .model-head-top { display: flex; justify-content: space-between; align-items: center; margin: 0 -8mm 5mm; padding: 4mm 8mm; background: #ffffff; }
 .model-brand { display: flex; align-items: center; gap: 3mm; font-size: 15px; font-weight: bold; color: #1f7fc1; }
 .model-brand img { height: 20mm; }
+/* Miniature de substitution : initiales de l'entreprise quand aucun logo
+   n'est fourni (voir le global Jinja `company_monogram`). */
+.model-brand .mark { display: inline-flex; align-items: center; justify-content: center; width: 20mm; height: 20mm; border-radius: 2mm; background: #1f7fc1; color: #ffffff; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; }
 .model-dots { display: flex; gap: 2mm; }
 .model-dots span { width: 3.2mm; height: 3.2mm; border-radius: 50%; background: #f39c12; display: inline-block; }
 .model-head-main { display: flex; justify-content: space-between; gap: 8mm; }

@@ -7,7 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
 from app.api.deps import SessionDep
 from app.core.dependencies.auth import get_current_active_user
+from app.core.dependencies.company import require_company_profile
 from app.core.dependencies.permissions import require_permission
+from app.core.models.company import Company
 from app.core.models.user import User
 from app.modules.sales.schemas import (
     PosSaleCreate,
@@ -70,6 +72,7 @@ async def create_quote(
     body: QuoteCreate,
     session: SessionDep,
     current_user: User = Depends(require_permission("quote", "create")),
+    _company: Company = Depends(require_company_profile),
 ):
     service = QuoteService(session)
     try:
@@ -154,6 +157,7 @@ async def create_quote_invoice(
     body: QuoteInvoiceCreate,
     session: SessionDep,
     _: User = Depends(require_permission("invoice", "create")),
+    _company: Company = Depends(require_company_profile),
 ):
     """Parcours de vente — « Créer facture » depuis un devis confirmé.
 
@@ -264,6 +268,7 @@ async def create_order(
     body: SalesOrderCreate,
     session: SessionDep,
     _: User = Depends(require_permission("order", "create")),
+    _company: Company = Depends(require_company_profile),
 ):
     service = OrderService(session)
     return await service.create_order(body)
@@ -545,6 +550,7 @@ async def create_pos_sale(
     body: PosSaleCreate,
     session: SessionDep,
     user: User = Depends(require_permission("order", "create")),
+    _company: Company = Depends(require_company_profile),
 ):
     """Vente comptoir simple → commande + stock + facture + paiement.
 

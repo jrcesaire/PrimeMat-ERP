@@ -190,13 +190,13 @@ export function PosQuickPurchase() {
         ) : (
           <>
             {created && (
-              <Card className="border-green-300 bg-green-50">
+              <Card className="border-success/30 bg-success-soft">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base text-green-800">
+                  <CardTitle className="flex items-center gap-2 text-base text-success">
                     <Check className="h-5 w-5" /> Achat {created.reference}{" "}
                     enregistré
                   </CardTitle>
-                  <CardDescription className="text-green-700">
+                  <CardDescription className="text-success">
                     Montant{" "}
                     {formatAmount(created.amount_total, created.currency_code)}
                     {created.status === "paid"

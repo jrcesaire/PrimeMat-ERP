@@ -127,7 +127,7 @@ async def main() -> int:
                 code=code,
                 name=f"Immobilisation {code}",
                 category="equipment",
-                asset_account="245",
+                asset_account="245000",
                 acquisition_date=date(2026, 1, 1),
                 acquisition_cost=1_000_000,
                 useful_life_years=5,
@@ -145,11 +145,11 @@ async def main() -> int:
         print("[0] Comptes dérivés et coefficients dégressifs")
         check(
             "compte d'amortissement déduit (245 → 284)",
-            derived_depreciation_account("245") == "284",
+            derived_depreciation_account("245000") == "284000",
         )
         check(
             "compte d'amortissement déduit (213 → 281)",
-            derived_depreciation_account("213") == "281",
+            derived_depreciation_account("213000") == "281000",
         )
         check("coefficient dégressif 4 ans → 1,5", declining_coefficient(4) == 1.5)
         check("coefficient dégressif 5 ans → 2,0", declining_coefficient(5) == 2.0)
@@ -169,7 +169,7 @@ async def main() -> int:
         )
         check(
             "compte d'amortissement dérivé = 284",
-            linear.depreciation_account == "284",
+            linear.depreciation_account == "284000",
         )
         check(
             "cumul final = 1 200 000",
@@ -296,12 +296,12 @@ async def main() -> int:
         balances = await balances_map()
         check(
             "compte 681 = 240 000 (dotation)",
-            close_to(balances.get("681", 0), 240_000),
-            f"({balances.get('681')})",
+            close_to(balances.get("681000", 0), 240_000),
+            f"({balances.get('681000')})",
         )
         check(
             "compte 284 = -240 000 (amortissement cumulé)",
-            close_to(balances.get("284", 0), -240_000),
+            close_to(balances.get("284000", 0), -240_000),
             f"({balances.get('284')})",
         )
 
@@ -315,7 +315,7 @@ async def main() -> int:
         balances = await balances_map()
         check(
             "solde 681 inchangé après rejeu",
-            close_to(balances.get("681", 0), 240_000),
+            close_to(balances.get("681000", 0), 240_000),
         )
 
         linear = await service.get_asset(company_id, linear.id)
@@ -331,8 +331,8 @@ async def main() -> int:
             f"({rest.total_amount})",
         )
         balances = await balances_map()
-        check("solde 681 = 1 200 000", close_to(balances.get("681", 0), 1_200_000))
-        check("solde 284 = -1 200 000", close_to(balances.get("284", 0), -1_200_000))
+        check("solde 681 = 1 200 000", close_to(balances.get("681000", 0), 1_200_000))
+        check("solde 284 = -1 200 000", close_to(balances.get("284000", 0), -1_200_000))
         check(
             "somme des soldes de tous les comptes = 0",
             close_to(sum(balances.values()), 0),

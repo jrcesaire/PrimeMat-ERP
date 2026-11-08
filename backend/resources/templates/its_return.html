@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>{{ doc_title }}</title>
+{% include "_payroll_style.html" %}
+</head>
+<body>
+<div class="pg-head">
+  <div class="brand">
+    {% if company %}<span class="mono">{{ company_monogram(company) }}</span>{{ company.name }}{% else %}Entreprise{% endif %}
+    <div style="font-size:8px;color:#5a6272;font-weight:400;margin-top:2px">{{ fmt_addr(company) if company else '' }}</div>
+  </div>
+  <div class="title">
+    <h1>ÉTAT ITS</h1>
+    <div class="ref">Période : {{ period.name }}</div>
+    <div class="ref">Impôt sur Traitements et Salaires — barème 2026</div>
+  </div>
+</div>
+
+<table class="grid">
+  <thead><tr>
+    <th style="width:8%">#</th><th>Salarié</th>
+    <th style="width:12%" class="num">Parts</th>
+    <th style="width:20%" class="num">Brut imposable</th>
+    <th style="width:20%" class="num">ITS net</th>
+  </tr></thead>
+  <tbody>
+  {% for line in declaration.lines %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ line.employee }}{% if line.cnps_number %} <span style="color:#8a8fa3">({{ line.cnps_number }})</span>{% endif %}</td>
+      <td class="num">{{ line.parts }}</td>
+      <td class="num">{{ fmt_num(line.gross) }}</td>
+      <td class="num"><b>{{ fmt_num(line.its) }}</b></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals">
+  <div class="row"><span>Effectif</span><b>{{ declaration.employee_count }}</b></div>
+  <div class="grand"><span>TOTAL ITS</span><span>{{ fmt_num(declaration.total_its) }} {{ currency }}</span></div>
+</div>
+
+<div class="foot">
+  {% if company %}{{ company.name }}{% if company.ncc %} · NCC {{ company.ncc }}{% endif %}{% endif %}
+  · ITS net de la réduction pour charges de famille (RICF)
+</div>
+</body></html>

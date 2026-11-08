@@ -13,6 +13,12 @@ export const apiClient = axios.create({
   timeout: 30000,
 });
 
+/** Code machine renvoyé par le serveur quand le profil est incomplet. */
+export const COMPANY_INCOMPLETE = "company_incomplete";
+
+/** Écran vers lequel ramener l'utilisateur dans ce cas. */
+export const COMPANY_SETUP_PATH = "/setup/company";
+
 // Intercepteur requête — ajoute le token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -79,6 +85,23 @@ apiClient.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
+    }
+
+    // 409 « profil incomplet » : le serveur refuse la création d'un document
+    // tant que les mentions obligatoires de l'entreprise manquent. On ramène
+    // l'utilisateur au formulaire au lieu de le laisser devant un échec
+    // inexpliqué — c'est le comportement demandé pour l'étape reportée.
+    const failure = error.response?.data as { detail?: unknown } | undefined;
+    const detail = failure?.detail;
+    if (
+      error.response?.status === 409 &&
+      detail !== null &&
+      typeof detail === "object" &&
+      (detail as { code?: string }).code === COMPANY_INCOMPLETE &&
+      typeof window !== "undefined" &&
+      !window.location.pathname.startsWith(COMPANY_SETUP_PATH)
+    ) {
+      window.location.href = COMPANY_SETUP_PATH;
     }
 
     return Promise.reject(error);

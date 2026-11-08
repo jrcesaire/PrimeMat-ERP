@@ -7,7 +7,7 @@
 <div class="model-head">
   <div class="model-head-top">
     <div class="model-brand">
-      {% if company and company.logo %}<img src="{{ company.logo }}" alt=""/>{% endif %}
+      {% if company and company.logo %}<img src="{{ company.logo }}" alt=""/>{% elif company %}<span class="mark">{{ company_monogram(company) }}</span>{% endif %}
       <span>{{ company.name if company }}</span>
     </div>
     <div class="model-dots"><span></span><span></span><span></span></div>

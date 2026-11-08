@@ -309,14 +309,16 @@ class SupplierInvoiceService:
         amount: float,
         payment_date: date | None = None,
         *,
-        treasury_account: str = "511",
-        journal_code: str = "BAN",
+        treasury: str = "bank",
+        treasury_account: str | None = None,
+        journal_code: str | None = None,
     ) -> SupplierInvoice | None:
         """Enregistre un règlement fournisseur (décaissement).
 
-        ``treasury_account`` / ``journal_code`` permettent de choisir le compte
-        décaissé : banque (``511``/``BAN``) par défaut, caisse (``531``/``CAI``)
-        pour un achat comptoir saisi depuis le PoS.
+        ``treasury`` choisit la **nature** de trésorerie décaissée — ``bank``
+        (journal ``BAN``) par défaut, ``cash`` (journal ``CAI``) pour un achat
+        comptoir saisi depuis le PoS. ``treasury_account`` force un compte
+        précis du plan, auquel cas ``journal_code`` fixe le journal.
         """
         invoice = await self.get_invoice(invoice_id)
         if invoice is None:
@@ -345,6 +347,7 @@ class SupplierInvoiceService:
                 invoice,
                 amount,
                 payment_date or date.today(),
+                treasury=treasury,
                 treasury_account=treasury_account,
                 journal_code=journal_code,
             )
@@ -394,16 +397,13 @@ class SupplierInvoiceService:
         tax = total - untaxed
         purchase_date = data.purchase_date or date.today()
 
-        # Compte de trésorerie décaissé : déduit du mode de règlement (caisse
-        # 531 pour un paiement en espèces, banque 511 sinon), sauf surcharge.
-        from app.modules.accounting.services.posting_service import TREASURY_ACCOUNTS
+        # Nature de trésorerie décaissée : déduite du mode de règlement (caisse
+        # pour un paiement en espèces, banque sinon), sauf compte forcé.
+        from app.modules.accounting.data import treasury_kind
 
-        treasury_account = data.treasury_account or TREASURY_ACCOUNTS.get(
-            data.payment_method, "531"
-        )
-        journal_code = data.journal_code or (
-            "CAI" if treasury_account == "531" else "BAN"
-        )
+        treasury = treasury_kind(data.payment_method)
+        treasury_account = data.treasury_account
+        journal_code = data.journal_code or ("CAI" if treasury == "cash" else "BAN")
 
         invoice = await self.create_invoice(
             SupplierInvoiceCreate(
@@ -447,6 +447,7 @@ class SupplierInvoiceService:
             posted.id,
             due,
             purchase_date,
+            treasury=treasury,
             treasury_account=treasury_account,
             journal_code=journal_code,
         )

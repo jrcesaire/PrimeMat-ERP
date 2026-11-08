@@ -189,22 +189,22 @@ async def main() -> int:
         b = await balances()
         check(
             "grand livre : 601 (achats) débité de 101 694,92",
-            close_to(b.get("601", 0), 101_694.92),
+            close_to(b.get("601000", 0), 101_694.92),
             f"({b.get('601')})",
         )
         check(
             "grand livre : 4452 (TVA déductible) débité de 18 305,08",
-            close_to(b.get("4452", 0), 18_305.08),
+            close_to(b.get("445000", 0), 18_305.08),
             f"({b.get('4452')})",
         )
         check(
             "grand livre : 401 (fournisseurs) soldé après règlement",
-            close_to(b.get("401", 0), 0),
+            close_to(b.get("401000", 0), 0),
             f"({b.get('401')})",
         )
         check(
             "grand livre : 531 (caisse) crédité de 120 000",
-            close_to(b.get("531", 0), -120_000),
+            close_to(b.get("571000", 0), -120_000),
             f"({b.get('531')})",
         )
 
@@ -214,7 +214,7 @@ async def main() -> int:
                 select(func.count(JournalEntryLine.id)).where(
                     JournalEntryLine.company_id == company_id,
                     JournalEntryLine.partner_id == supplier.id,
-                    JournalEntryLine.account_code.in_(["601", "4452", "401"]),
+                    JournalEntryLine.account_code.in_(["601000", "445000", "401000"]),
                 )
             )
         ).scalar_one()
@@ -249,17 +249,17 @@ async def main() -> int:
         b = await balances()
         check(
             "grand livre : 601 porté à 151 694,92",
-            close_to(b.get("601", 0), 151_694.92),
+            close_to(b.get("601000", 0), 151_694.92),
             f"({b.get('601')})",
         )
         check(
             "grand livre : 4452 inchangé (aucune TVA)",
-            close_to(b.get("4452", 0), 18_305.08),
+            close_to(b.get("445000", 0), 18_305.08),
             f"({b.get('4452')})",
         )
         check(
             "grand livre : caisse créditée de 170 000 au total",
-            close_to(b.get("531", 0), -170_000),
+            close_to(b.get("571000", 0), -170_000),
             f"({b.get('531')})",
         )
 
@@ -285,12 +285,12 @@ async def main() -> int:
         b = await balances()
         check(
             "grand livre : 401 crédité de 30 000 (dette ouverte)",
-            close_to(b.get("401", 0), -30_000),
+            close_to(b.get("401000", 0), -30_000),
             f"({b.get('401')})",
         )
         check(
             "grand livre : caisse inchangée (170 000)",
-            close_to(b.get("531", 0), -170_000),
+            close_to(b.get("571000", 0), -170_000),
             f"({b.get('531')})",
         )
 
@@ -324,12 +324,12 @@ async def main() -> int:
         b = await balances()
         check(
             "grand livre : 511 (banque) créditée de 11 800",
-            close_to(b.get("511", 0), -11_800),
+            close_to(b.get("521000", 0), -11_800),
             f"({b.get('511')})",
         )
         check(
             "grand livre : caisse (531) non touchée",
-            close_to(b.get("531", 0), -170_000),
+            close_to(b.get("571000", 0), -170_000),
             f"({b.get('531')})",
         )
 

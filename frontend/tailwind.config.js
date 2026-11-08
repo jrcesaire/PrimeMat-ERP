@@ -19,6 +19,16 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx}",
     "./app/**/*.{js,ts,jsx,tsx}",
   ],
+  /**
+   * Le mode sombre est piloté par la classe `dark` posée sur `<html>` par
+   * `ThemeProvider` (bouton de l'application), **pas** par la préférence
+   * système. Sans cette ligne, Tailwind compile `dark:` en
+   * `@media (prefers-color-scheme: dark)` : les modales et le sélecteur de
+   * thème suivaient alors le système d'exploitation au lieu du bouton, ce qui
+   * donnait un champ de saisie sombre au milieu d'une fenêtre claire (et
+   * inversement).
+   */
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
@@ -40,6 +50,8 @@ module.exports = {
         canvas: "hsl(var(--canvas) / <alpha-value>)",
         surface: "hsl(var(--surface) / <alpha-value>)",
         subtle: "hsl(var(--subtle) / <alpha-value>)",
+        /** Pastille neutre : compteurs, codes de journal, étiquettes. */
+        "neutral-soft": "hsl(var(--neutral-soft) / <alpha-value>)",
         /** Fond très clair de la couleur primaire (état actif, chips). */
         "primary-soft": "hsl(var(--primary-hue) / 0.10)",
 
@@ -48,6 +60,8 @@ module.exports = {
         "success-soft": "hsl(var(--success-soft) / <alpha-value>)",
         warning: "hsl(var(--warning) / <alpha-value>)",
         "warning-soft": "hsl(var(--warning-soft) / <alpha-value>)",
+        info: "hsl(var(--info) / <alpha-value>)",
+        "info-soft": "hsl(var(--info-soft) / <alpha-value>)",
         danger: "hsl(var(--danger) / <alpha-value>)",
         "danger-soft": "hsl(var(--danger-soft) / <alpha-value>)",
       },

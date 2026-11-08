@@ -275,15 +275,35 @@ class OHADAService:
     # ------------------------------------------------------------------ #
     # Clôture d'exercice — verrouillage + report à nouveau automatique
     # ------------------------------------------------------------------ #
-    #: Comptes SYSCOHADA utilisés par la clôture (plan de ``ohada_chart``).
-    RESULT_PROFIT_ACCOUNT = "121"    # Résultat net de l'exercice (bénéfice)
-    RESULT_LOSS_ACCOUNT = "129"      # Résultat net de l'exercice (perte)
-    RETAINED_CREDIT_ACCOUNT = "111"  # Report à nouveau créditeur
-    RETAINED_DEBIT_ACCOUNT = "119"   # Report à nouveau débiteur
+    #: Comptes de clôture, désignés par **clé métier** et résolus selon le
+    #: référentiel de l'entreprise. Les quatre codes coïncident entre le
+    #: SYSCOHADA (``131000`` résultat net, ``121000`` report à nouveau) et le
+    #: SYCEBNL (``131000`` excédent, ``121000`` report des excédents).
+    RESULT_PROFIT_KEY = "result_profit"
+    RESULT_LOSS_KEY = "result_loss"
+    RETAINED_CREDIT_KEY = "retained_credit"
+    RETAINED_DEBIT_KEY = "retained_debit"
     #: Journal des opérations diverses (créé par ``seed_default_journals``).
     CLOSING_JOURNAL = "OD"
     #: Classes soldées à la clôture (charges et produits).
     PNL_CLASSES = ("6", "7", "8")
+
+    async def _closing_codes(self, company_id: int) -> dict[str, str]:
+        """Codes des comptes de clôture du référentiel de l'entreprise."""
+        from app.modules.accounting.data import resolve_accounts
+        from app.modules.accounting.services.account_service import AccountService
+
+        template = await AccountService(self.session).company_template(company_id)
+        aliases = resolve_accounts(template)
+        return {
+            key: aliases[key]
+            for key in (
+                self.RESULT_PROFIT_KEY,
+                self.RESULT_LOSS_KEY,
+                self.RETAINED_CREDIT_KEY,
+                self.RETAINED_DEBIT_KEY,
+            )
+        }
 
     async def year_pnl_balances(
         self, company_id: int, year: FiscalYear
@@ -337,10 +357,11 @@ class OHADAService:
             raw_result += balance
 
         result = -raw_result
+        codes = await self._closing_codes(company_id)
         result_account = (
-            self.RESULT_PROFIT_ACCOUNT
+            codes[self.RESULT_PROFIT_KEY]
             if result > 0
-            else self.RESULT_LOSS_ACCOUNT
+            else codes[self.RESULT_LOSS_KEY]
             if result < 0
             else None
         )
@@ -438,7 +459,7 @@ class OHADAService:
     async def _post_closing_entry(
         self, company_id: int, year: FiscalYear, plan: dict, ledger
     ) -> Optional[str]:
-        """Écriture de clôture : soldage des charges/produits → résultat (121/129)."""
+        """Écriture de clôture : soldage des charges/produits → résultat."""
         if not plan["lines"]:
             return None
 
@@ -448,6 +469,7 @@ class OHADAService:
         )
 
         result = plan["result"]
+        codes = await self._closing_codes(company_id)
         lines = [
             JournalEntryLineCreate(
                 account_code=l["account_code"],
@@ -460,8 +482,8 @@ class OHADAService:
         if result > 0:
             lines.append(
                 JournalEntryLineCreate(
-                    account_code=self.RESULT_PROFIT_ACCOUNT,
-                    label=f"Résultat net de l'exercice {year.name} (bénéfice)",
+                    account_code=codes[self.RESULT_PROFIT_KEY],
+                    label=f"Résultat de l'exercice {year.name} (bénéfice)",
                     debit=0,
                     credit=float(result),
                 )
@@ -469,8 +491,8 @@ class OHADAService:
         elif result < 0:
             lines.append(
                 JournalEntryLineCreate(
-                    account_code=self.RESULT_LOSS_ACCOUNT,
-                    label=f"Résultat net de l'exercice {year.name} (perte)",
+                    account_code=codes[self.RESULT_LOSS_KEY],
+                    label=f"Résultat de l'exercice {year.name} (perte)",
                     debit=float(-result),
                     credit=0,
                 )
@@ -499,7 +521,7 @@ class OHADAService:
         next_year: FiscalYear,
         ledger,
     ) -> Optional[str]:
-        """Affectation du résultat au report à nouveau (121→111 ou 119→129)."""
+        """Affectation du résultat au report à nouveau."""
         result = plan["result"]
         if result == 0:
             return None
@@ -509,16 +531,18 @@ class OHADAService:
             JournalEntryLineCreate,
         )
 
+        codes = await self._closing_codes(company_id)
+
         if result > 0:
             lines = [
                 JournalEntryLineCreate(
-                    account_code=self.RESULT_PROFIT_ACCOUNT,
+                    account_code=codes[self.RESULT_PROFIT_KEY],
                     label=f"Affectation du résultat {year.name}",
                     debit=float(result),
                     credit=0,
                 ),
                 JournalEntryLineCreate(
-                    account_code=self.RETAINED_CREDIT_ACCOUNT,
+                    account_code=codes[self.RETAINED_CREDIT_KEY],
                     label=f"Report à nouveau — résultat {year.name}",
                     debit=0,
                     credit=float(result),
@@ -527,13 +551,13 @@ class OHADAService:
         else:
             lines = [
                 JournalEntryLineCreate(
-                    account_code=self.RETAINED_DEBIT_ACCOUNT,
+                    account_code=codes[self.RETAINED_DEBIT_KEY],
                     label=f"Report à nouveau — perte {year.name}",
                     debit=float(-result),
                     credit=0,
                 ),
                 JournalEntryLineCreate(
-                    account_code=self.RESULT_LOSS_ACCOUNT,
+                    account_code=codes[self.RESULT_LOSS_KEY],
                     label=f"Affectation de la perte {year.name}",
                     debit=0,
                     credit=float(-result),

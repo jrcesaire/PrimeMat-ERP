@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>{{ doc_title }}</title>
+{% include "_payroll_style.html" %}
+</head>
+<body>
+<div class="pg-head">
+  <div class="brand">
+    {% if company %}<span class="mono">{{ company_monogram(company) }}</span>{{ company.name }}{% else %}Entreprise{% endif %}
+    <div style="font-size:8px;color:#5a6272;font-weight:400;margin-top:2px">{{ fmt_addr(company) if company else '' }}</div>
+  </div>
+  <div class="title">
+    <h1>DÉCLARATION CNPS</h1>
+    <div class="ref">Période : {{ period.name }}</div>
+    <div class="ref">Du {{ fmt_date(period.date_start) }} au {{ fmt_date(period.date_end) }}</div>
+  </div>
+</div>
+
+<p style="color:#5a6272">Base cotisable totale : <b>{{ fmt_num(declaration.base) }} {{ currency }}</b> —
+effectif : <b>{{ declaration.employee_count }}</b> salarié(s).</p>
+
+<table class="grid">
+  <thead><tr>
+    <th style="width:14%">Code</th><th>Organisme</th>
+    <th style="width:20%" class="num">Part salariale</th>
+    <th style="width:20%" class="num">Part patronale</th>
+    <th style="width:20%" class="num">Total</th>
+  </tr></thead>
+  <tbody>
+  {% for reg in declaration.registers %}
+    <tr>
+      <td>{{ reg.code }}</td>
+      <td>{{ reg.name }}</td>
+      <td class="num">{{ fmt_num(reg.employee) }}</td>
+      <td class="num">{{ fmt_num(reg.employer) }}</td>
+      <td class="num"><b>{{ fmt_num(reg.total) }}</b></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals">
+  <div class="row"><span>Total part salariale</span><b>{{ fmt_num(declaration.employee_total) }}</b></div>
+  <div class="row"><span>Total part patronale</span><b>{{ fmt_num(declaration.employer_total) }}</b></div>
+  <div class="grand"><span>TOTAL À VERSER</span><span>{{ fmt_num(declaration.grand_total) }} {{ currency }}</span></div>
+</div>
+
+<div class="foot">
+  {% if company %}{{ company.name }}{% if company.cnps_number %} · N° CNPS {{ company.cnps_number }}{% endif %}{% endif %}
+  · Cotisations plafonnées à 45 × SMIG · Document à transmettre à la CNPS
+</div>
+</body></html>

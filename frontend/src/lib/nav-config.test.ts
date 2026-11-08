@@ -6,6 +6,9 @@
  * / « Demandes » existait sur `/dashboard/purchases/demandes`).
  */
 import {
+  ACCOUNTING_STATEMENTS,
+  ACCOUNTING_STATEMENT_HREFS,
+  accountingStatementFromPath,
   filterNavChildren,
   isNavGroup,
   NAV_ITEMS,
@@ -114,6 +117,56 @@ describe("NAV_SECTIONS", () => {
   });
 });
 
+describe("états financiers de la comptabilité", () => {
+  const accounting = NAV_ITEMS.find(
+    (item) => item.href === "/dashboard/accounting",
+  );
+  const accountingLeaves = leavesOf(accounting?.children ?? []);
+
+  it("déclare les quatre états financiers dans l'ordre de l'écran", () => {
+    expect(ACCOUNTING_STATEMENTS.map((statement) => statement.key)).toEqual([
+      "balance",
+      "income",
+      "sheet",
+      "entries",
+    ]);
+  });
+
+  it("vise la route de module correspondante, et une seule", () => {
+    for (const statement of ACCOUNTING_STATEMENTS) {
+      expect(statement.href).toBe(`/dashboard/accounting/${statement.key}`);
+    }
+  });
+
+  it("décrit des routes qui existent bien dans le sous-menu du module", () => {
+    // C'est cette correspondance qui permet à `ModuleNav` de retirer les quatre
+    // onglets de sa barre de chips : une route qui n'y figure pas laisserait un
+    // doublon (ou une entrée fantôme).
+    const hrefs = accountingLeaves.map((leaf) => leaf.href);
+    for (const statement of ACCOUNTING_STATEMENTS) {
+      expect(hrefs).toContain(statement.href);
+    }
+    expect(ACCOUNTING_STATEMENT_HREFS).toEqual(
+      ACCOUNTING_STATEMENTS.map((statement) => statement.href),
+    );
+  });
+
+  it("déduit l'onglet actif de l'URL, la racine ouvrant la balance", () => {
+    expect(accountingStatementFromPath("/dashboard/accounting")).toBe("balance");
+    expect(accountingStatementFromPath("/dashboard/accounting/sheet")).toBe(
+      "sheet",
+    );
+    expect(accountingStatementFromPath("/dashboard/accounting/entries/")).toBe(
+      "entries",
+    );
+    // Une page du module qui n'est pas un état financier retombe sur la balance.
+    expect(accountingStatementFromPath("/dashboard/accounting/vat")).toBe(
+      "balance",
+    );
+    expect(accountingStatementFromPath(null)).toBe("balance");
+  });
+});
+
 describe("filterNavChildren", () => {
   const children: NavChild[] = [
     { label: "Demandes", href: "/a", permission: "purchase_request:view" },
@@ -207,3 +260,34 @@ describe("visibleNavModules", () => {
     ]);
   });
 });
+describe("réglages métier sortis du module Comptabilité", () => {
+  const accounting = NAV_ITEMS.find(
+    (item) => item.href === "/dashboard/accounting",
+  );
+  const accountingLeaves = leavesOf(accounting?.children ?? []);
+
+  it("n'expose plus l'assistant ni les paramètres comptables", () => {
+    // Ces deux écrans ont rejoint `/dashboard/settings` (rail Paramètres →
+    // groupe Comptabilité) : les garder ici recréerait un doublon de route.
+    const hrefs = accountingLeaves.map((leaf) => leaf.href);
+    expect(hrefs).not.toContain("/dashboard/accounting/setup");
+    expect(hrefs).not.toContain("/dashboard/accounting/settings");
+  });
+
+  it("ne référence ces deux routes nulle part dans la navigation", () => {
+    const allHrefs = NAV_ITEMS.flatMap((item) => [
+      item.href,
+      ...leavesOf(item.children ?? []).map((leaf) => leaf.href),
+    ]);
+    expect(allHrefs).not.toContain("/dashboard/accounting/setup");
+    expect(allHrefs).not.toContain("/dashboard/accounting/settings");
+  });
+
+  it("conserve les autres pages du module Comptabilité", () => {
+    const hrefs = accountingLeaves.map((leaf) => leaf.href);
+    expect(hrefs).toContain("/dashboard/accounting/vat");
+    expect(hrefs).toContain("/dashboard/accounting/fiscal-year");
+    expect(hrefs).toContain("/dashboard/accounting/audit");
+  });
+});
+

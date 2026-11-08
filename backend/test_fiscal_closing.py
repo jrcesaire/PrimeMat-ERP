@@ -156,21 +156,21 @@ async def main() -> int:
         # Vente à crédit : D 411 / C 701 + C 4431
         await post(
             date(2026, 3, 15), "VTE", "Facture client FA-001",
-            [("411", "Client", 1_200_000, 0),
-             ("701", "Ventes", 0, 1_000_000),
-             ("4431", "TVA facturée", 0, 200_000)],
+            [("411000", "Client", 1_200_000, 0),
+             ("701000", "Ventes", 0, 1_000_000),
+             ("443000", "TVA facturée", 0, 200_000)],
         )
         # Achat : D 601 / C 401
         await post(
             date(2026, 4, 10), "ACH", "Facture fournisseur FF-001",
-            [("601", "Achats", 400_000, 0),
-             ("401", "Fournisseur", 0, 400_000)],
+            [("601000", "Achats", 400_000, 0),
+             ("401000", "Fournisseur", 0, 400_000)],
         )
         # Encaissement : D 521 / C 411
         await post(
             date(2026, 5, 20), "BAN", "Encaissement client",
-            [("521", "Banque", 1_200_000, 0),
-             ("411", "Client", 0, 1_200_000)],
+            [("521000", "Banque", 1_200_000, 0),
+             ("411000", "Client", 0, 1_200_000)],
         )
         await session.commit()
 
@@ -191,14 +191,14 @@ async def main() -> int:
             f"(obtenu {preview['result']})",
         )
         check("result_type = profit", preview["result_type"] == "profit")
-        check("compte de résultat = 121", preview["result_account"] == "121")
+        check("compte de résultat = 121", preview["result_account"] == "131000")
         check(
             "exercice suivant absent (créé par la clôture)",
             preview["next_year"] is None and preview["next_year_will_be_created"],
         )
         check(
             "comptes à solder : 601 et 701",
-            sorted(l["account_code"] for l in preview["lines"]) == ["601", "701"],
+            sorted(l["account_code"] for l in preview["lines"]) == ["601000", "701000"],
             f"(obtenu {sorted(l['account_code'] for l in preview['lines'])})",
         )
 
@@ -222,27 +222,27 @@ async def main() -> int:
             return {b["account_code"]: b["balance"] for b in rows}
 
         balances = await balances_map()
-        check("charges soldées (601 = 0)", close_to(balances.get("601", 0), 0))
-        check("produits soldés (701 = 0)", close_to(balances.get("701", 0), 0))
+        check("charges soldées (601 = 0)", close_to(balances.get("601000", 0), 0))
+        check("produits soldés (701 = 0)", close_to(balances.get("701000", 0), 0))
         check(
             "TVA collectée conservée au bilan (4431 = -200 000)",
-            close_to(balances.get("4431", 0), -200_000),
+            close_to(balances.get("443000", 0), -200_000),
             f"(obtenu {balances.get('4431')})",
         )
-        check("résultat affecté (121 = 0)", close_to(balances.get("121", 0), 0))
+        check("résultat affecté (121 = 0)", close_to(balances.get("131000", 0), 0))
         check(
             "report à nouveau créditeur (111 = -600 000)",
-            close_to(balances.get("111", 0), -600_000),
+            close_to(balances.get("121000", 0), -600_000),
             f"(obtenu {balances.get('111')})",
         )
         check(
             "trésorerie intacte (521 = 1 200 000)",
-            close_to(balances.get("521", 0), 1_200_000),
+            close_to(balances.get("521000", 0), 1_200_000),
         )
-        check("créance client soldée (411 = 0)", close_to(balances.get("411", 0), 0))
+        check("créance client soldée (411 = 0)", close_to(balances.get("411000", 0), 0))
         check(
             "dette fournisseur intacte (401 = -400 000)",
-            close_to(balances.get("401", 0), -400_000),
+            close_to(balances.get("401000", 0), -400_000),
         )
         total = sum(balances.values())
         check(
@@ -283,7 +283,7 @@ async def main() -> int:
                 date(2026, 6, 1),
                 "OD",
                 "Écriture interdite sur exercice clôturé",
-                [("601", "Achats", 1000, 0), ("401", "Fournisseur", 0, 1000)],
+                [("601000", "Achats", 1000, 0), ("401000", "Fournisseur", 0, 1000)],
             )
             check("écriture sur exercice clôturé refusée", False, "(aucune erreur)")
         except ValueError as exc:
@@ -300,25 +300,25 @@ async def main() -> int:
         check("statut de l'exercice = open", reopened.status == "open")
 
         balances = await balances_map()
-        check("charges restaurées (601 = 400 000)", close_to(balances.get("601", 0), 400_000))
+        check("charges restaurées (601 = 400 000)", close_to(balances.get("601000", 0), 400_000))
         check(
             "produits restaurés (701 = -1 000 000)",
-            close_to(balances.get("701", 0), -1_000_000),
+            close_to(balances.get("701000", 0), -1_000_000),
         )
         check(
             "résultat soldé après réouverture (121 = 0)",
-            close_to(balances.get("121", 0), 0),
+            close_to(balances.get("131000", 0), 0),
             f"(obtenu {balances.get('121')})",
         )
-        check("report à nouveau retiré (111 = 0)", close_to(balances.get("111", 0), 0))
+        check("report à nouveau retiré (111 = 0)", close_to(balances.get("121000", 0), 0))
 
         await ohada.close_fiscal_year(company_id, year_id)
         balances = await balances_map()
         check(
             "re-clôture : report à nouveau (111 = -600 000)",
-            close_to(balances.get("111", 0), -600_000),
+            close_to(balances.get("121000", 0), -600_000),
         )
-        check("re-clôture : résultat soldé (121 = 0)", close_to(balances.get("121", 0), 0))
+        check("re-clôture : résultat soldé (121 = 0)", close_to(balances.get("131000", 0), 0))
 
         from sqlalchemy import func
 

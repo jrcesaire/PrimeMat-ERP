@@ -77,8 +77,8 @@ class FixedAsset(Base, TenantMixin):
     asset_account: Mapped[str] = MappedColumn(String(10), index=True)
     #: Compte d'amortissement cumulé (ex. ``284``).
     depreciation_account: Mapped[str] = MappedColumn(String(10))
-    #: Compte de dotation (``681`` exploitation, ``686`` financier).
-    expense_account: Mapped[str] = MappedColumn(String(10), default="681")
+    #: Compte de dotation (``681000`` exploitation, ``686000`` financier).
+    expense_account: Mapped[str] = MappedColumn(String(10), default="681000")
     #: Journal des écritures d'amortissement (``OD`` par défaut).
     journal_code: Mapped[str] = MappedColumn(String(10), default="OD")
 

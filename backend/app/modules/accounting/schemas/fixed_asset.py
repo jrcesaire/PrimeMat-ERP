@@ -25,9 +25,9 @@ class FixedAssetCreate(BaseModel):
         description="Compte d'amortissement cumulé (ex. 284). Vide = dérivé du compte d'immobilisation.",
     )
     expense_account: str = Field(
-        default="681",
+        default="681000",
         max_length=10,
-        description="Compte de dotation (681 exploitation, 686 financier)",
+        description="Compte de dotation (681000 exploitation, 686000 financier)",
     )
     journal_code: str = Field(default="OD", max_length=10)
     acquisition_date: date

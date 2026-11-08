@@ -62,10 +62,13 @@ def derived_depreciation_account(asset_account: str) -> str:
     Le 2e chiffre de la classe 2 identifie la nature de l'immobilisation
     (1 incorporelle, 2 terrain, 3 bâtiment, 4 matériel, 6 financière) ; le
     compte d'amortissement correspondant est ``28`` + ce chiffre
-    (``245`` → ``284``, ``213`` → ``281``).
+    (``245000`` → ``284000``, ``213000`` → ``281000``).
+
+    La longueur du code d'origine est conservée : les plans embarqués
+    numérotent sur six chiffres, une entité peut subdiviser plus finement.
     """
     if len(asset_account) >= 2 and asset_account.startswith("2"):
-        return f"28{asset_account[1]}"
+        return f"28{asset_account[1]}".ljust(len(asset_account), "0")
     return "28"
 
 

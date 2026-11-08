@@ -1,47 +1,26 @@
 /**
  * Layout des paramètres.
  *
- * Affiche la navigation secondaire du module « Paramètres » (mêmes sections que
- * le sous-menu de la sidebar, cf. `components/settings/settings-nav.tsx`)
- * au-dessus de l'écran de la section courante.
+ * Disposition maître-détail : le rail de navigation (même design que la sidebar
+ * du tableau de bord) à gauche, la section courante à droite. Le rail liste les
+ * réglages transverses **et** un groupe par module, cf.
+ * `lib/settings-config.ts` — remplace l'ancienne barre d'onglets horizontale,
+ * qui dupliquait le sous-menu de la sidebar et ne laissait aucune place aux
+ * réglages métier.
  */
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { useSettingsNav } from "@/components/settings/settings-nav";
+import { SettingsSidebar } from "@/components/settings/settings-sidebar";
 
 export default function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const items = useSettingsNav();
-
   return (
-    <div className="space-y-6">
-      <nav className="flex flex-wrap gap-1 border-b border-line">
-        {items.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "rounded-t-md px-4 py-2 text-sm transition-colors",
-                isActive
-                  ? "border-b-2 border-blue-600 font-medium text-blue-600"
-                  : "text-muted hover:bg-subtle",
-              )}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-      {children}
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+      <SettingsSidebar />
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }

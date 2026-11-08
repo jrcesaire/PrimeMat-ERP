@@ -60,6 +60,27 @@ export function printPurchaseOrder(orderId: number | string): Promise<void> {
   return openPdf(`/purchases/orders/${orderId}/pdf`);
 }
 
+/** Bulletin de paie d'un salarié. */
+export function printPayslip(payslipId: number | string): Promise<void> {
+  return openPdf(`/payroll/payslips/${payslipId}/pdf`, "Bulletin de paie.pdf");
+}
+
+/** Bordereau CNPS d'une période de paie. */
+export function printCnpsReturn(periodId: number | string): Promise<void> {
+  return openPdf(
+    `/payroll/declarations/cnps/pdf?period_id=${periodId}`,
+    "Declaration CNPS.pdf",
+  );
+}
+
+/** État ITS d'une période de paie. */
+export function printItsReturn(periodId: number | string): Promise<void> {
+  return openPdf(
+    `/payroll/declarations/its/pdf?period_id=${periodId}`,
+    "Etat ITS.pdf",
+  );
+}
+
 /**
  * Impression ticket POS sur imprimante thermique 80 mm :
  * récupère le HTML du ticket et l'envoie dans une fenêtre d'impression

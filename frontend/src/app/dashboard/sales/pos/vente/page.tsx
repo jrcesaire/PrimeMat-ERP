@@ -390,7 +390,7 @@ function PosPageInner() {
               Vente {detail?.reference ?? ""}
             </h1>
             {detail?.archived && (
-              <span className="rounded bg-gray-200 px-2 py-0.5 text-xs font-medium text-muted">
+              <span className="rounded bg-neutral-soft px-2 py-0.5 text-xs font-medium text-muted">
                 Archivée
               </span>
             )}
@@ -550,12 +550,12 @@ function PosPageInner() {
         </div>
 
         {scanMsg && (
-          <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-700">{scanMsg}</div>
+          <div className="rounded-md bg-warning-soft p-3 text-sm text-warning">{scanMsg}</div>
         )}
 
         {lastSale && (
-          <div className="flex items-center justify-between rounded-md border border-green-200 bg-green-50 px-4 py-3">
-            <p className="text-sm font-medium text-green-800">
+          <div className="flex items-center justify-between rounded-md border border-success/30 bg-success-soft px-4 py-3">
+            <p className="text-sm font-medium text-success">
               Vente {lastSale.ref} enregistrée ✓ — reçu envoyé à l'impression.
             </p>
             <div className="flex gap-2">

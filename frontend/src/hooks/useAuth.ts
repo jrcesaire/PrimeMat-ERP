@@ -129,3 +129,26 @@ export function useCurrentCompany() {
     staleTime: 1000 * 60 * 5,
   });
 }
+
+/**
+ * Met à jour l'entreprise (identité, logo, référentiel comptable…).
+ *
+ * L'API expose un PUT : seuls les champs transmis changent. Le cache de
+ * l'entreprise est invalidé, ainsi que celui du référentiel comptable, qui en
+ * dépend.
+ */
+export function useUpdateCompany() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...data
+    }: { id: number } & Partial<Omit<Company, "id">>): Promise<Company> => {
+      const response = await apiClient.put(`/core/companies/${id}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: COMPANY_KEY });
+    },
+  });
+}

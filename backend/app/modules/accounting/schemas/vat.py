@@ -21,12 +21,12 @@ class VATReturnCreate(VATPeriodRequest):
     """Création d'une déclaration de TVA."""
 
     counterpart_account: str = Field(
-        default="441",
+        default="444000",
         max_length=10,
         description="Compte de l'État servant de contrepartie (TVA due / crédit)",
     )
     payment_account: str = Field(
-        default="521", max_length=10, description="Compte débité au règlement"
+        default="521000", max_length=10, description="Compte débité au règlement"
     )
     journal_code: str = Field(default="OD", max_length=10)
     notes: Optional[str] = Field(default=None, max_length=1000)

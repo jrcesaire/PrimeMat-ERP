@@ -64,3 +64,13 @@ dbg.db
 # artefacts
 frontend/_build_out.txt
 backend/test_fiscal.py
+
+# Dumps de contexte (repomix / IA) — volumineux et régénérables
+repomix-output-*.xml
+Context PrimeMat-ERP.xml
+
+# Script ad-hoc de vérification des pins (hors application)
+backend/_checkpins.py
+
+# État local de la CLI Supabase (référence projet, versions)
+supabase/.temp/

@@ -7,7 +7,8 @@ Idempotent et sûr :
 - Log uniquement l'email du compte créé, jamais le mot de passe
 
 Crée :
-- les devises de référence (XOF, EUR, USD)
+- les devises de référence (catalogue ISO 4217 complet, voir
+  ``app.core.data.countries_currencies``)
 - l'entreprise par défaut (+ agence principale)
 - les permissions système
 - les rôles système (admin, manager, vendeur, comptable, magasinier)
@@ -21,6 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.data.countries_currencies import CURRENCIES
 from app.core.security import hash_password
 
 logger = logging.getLogger(__name__)
@@ -28,12 +30,10 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------ #
 # Référentiels
 # ------------------------------------------------------------------ #
-BASE_CURRENCIES: dict[str, tuple[str, str, int]] = {
-    "XOF": ("Franc CFA (BCEAO)", "FCFA", 0),
-    "EUR": ("Euro", "€", 2),
-    "USD": ("Dollar US", "$", 2),
-    "NGN": ("Naira", "₦", 2),
-}
+# Les devises de référence proviennent de ``app.core.data.countries_currencies``
+# (généré depuis l'extrait officiel de la Banque de France, complété par CLDR).
+# Elles ne sont donc plus listées ici : le catalogue complet — et non plus les
+# quatre devises historiques — est ainsi disponible à la première installation.
 
 # Ressources → actions ouvertes aux rôles métier
 SYSTEM_PERMISSIONS: dict[str, list[str]] = {
@@ -73,6 +73,11 @@ SYSTEM_PERMISSIONS: dict[str, list[str]] = {
     "account": ["view", "create", "edit"],
     "journal_entry": ["view", "create", "edit", "post"],
     "fiscal_year": ["view", "create", "edit", "close"],
+    "employee": ["view", "create", "edit", "delete"],
+    "contract": ["view", "create", "edit", "delete"],
+    "payroll_structure": ["view", "edit"],
+    "payroll_period": ["view", "create", "edit", "close"],
+    "payslip": ["view", "create", "edit", "validate", "cancel", "pay"],
 }
 ROLES: list[dict] = [
     {
@@ -177,7 +182,72 @@ ROLES: list[dict] = [
             "purchase_reception": ["view", "create", "validate"],
         },
     },
+    {
+        "code": "hr",
+        "name": "Ressources humaines",
+        "description": "Gestion du personnel, contrats et bulletins de paie.",
+        "is_system": True,
+        "is_global": False,
+        "permissions": {
+            "employee": ["view", "create", "edit", "delete"],
+            "contract": ["view", "create", "edit", "delete"],
+            "payroll_structure": ["view"],
+            "payroll_period": ["view", "create"],
+            "payslip": ["view", "create", "edit", "validate"],
+            "report": ["view"],
+        },
+    },
 ]
+# ------------------------------------------------------------------ #
+# Données de référence
+# ------------------------------------------------------------------ #
+async def seed_base_currencies(session: AsyncSession) -> list[str]:
+    """Insère les devises de référence manquantes. Retourne les codes créés.
+
+    Les devises sont des **données de référence**, communes à toutes les
+    entreprises : elles doivent exister même quand le bootstrap automatique est
+    désactivé (``BOOTSTRAP_ON_STARTUP=false``), sans quoi le parcours de
+    première installation refuse la devise choisie — ``/setup/admin`` valide la
+    devise **avant** de peupler quoi que ce soit.
+
+    Opération idempotente : une seule lecture des codes existants, puis les
+    seules insertions manquantes.
+    """
+    from app.core.models.currency import Currency
+
+    existing = set(
+        (await session.execute(select(Currency.code))).scalars().all()
+    )
+    created: list[str] = []
+    for code, (name, symbol, decimals) in CURRENCIES.items():
+        if code in existing:
+            continue
+        session.add(Currency(
+            code=code, name=name, symbol=symbol,
+            decimal_places=decimals, is_active=True,
+        ))
+        created.append(code)
+    if created:
+        await session.flush()
+    return created
+
+
+async def seed_reference_data() -> list[str]:
+    """Peuple les données de référence au démarrage, inconditionnellement.
+
+    Appelée par le lifespan de l'application : le parcours de première
+    installation doit pouvoir valider la devise choisie même lorsque le
+    bootstrap automatique est désactivé — c'est la configuration attendue en
+    production.
+    """
+    from app.core.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as session:
+        created = await seed_base_currencies(session)
+        await session.commit()
+        return created
+
+
 # ------------------------------------------------------------------ #
 # Bootstrap
 # ------------------------------------------------------------------ #
@@ -222,20 +292,8 @@ async def bootstrap_defaults(
         "perms": [], "roles": [], "users": [], "categories": [],
     }
 
-    # 1. Devises
-    for code, (name, symbol, decimals) in BASE_CURRENCIES.items():
-        existing = (await session.execute(
-            select(Currency).where(Currency.code == code)
-        )).scalar_one_or_none()
-        if existing:
-            continue
-        session.add(Currency(
-            code=code, name=name, symbol=symbol,
-            decimal_places=decimals, is_active=True,
-        ))
-        created["currencies"].append(code)
-    if created["currencies"]:
-        await session.flush()
+    # 1. Devises — données de référence, voir `seed_base_currencies`
+    created["currencies"] = await seed_base_currencies(session)
 
     # 2. Entreprise par défaut
     company = (await session.execute(
@@ -365,13 +423,32 @@ async def bootstrap_defaults(
     from app.modules.accounting.services.account_service import AccountService
 
     acct_service = AccountService(session)
-    accounts_created = await acct_service.seed_ohada_chart(company.id)
+    accounts_created = await acct_service.seed_ohada_chart(
+        company.id, company.chart_of_accounts
+    )
     journals_created = await acct_service.seed_default_journals(company.id)
     if accounts_created or journals_created:
         created["accounts"] = accounts_created
         created["journals"] = journals_created
 
+    # Le socle (entreprise, rôles, permissions, compte, plan comptable) est
+    # validé **avant** l'étape Paie : celle-ci est indépendante et best-effort,
+    # pour qu'un schéma Paie absent (migrations partielles, suite de tests qui
+    # n'importe pas tous les modèles) ne fasse jamais échouer le bootstrap.
     await session.commit()
+
+    # 9. Paramétrage de paie (structure + règles Côte d'Ivoire)
+    try:
+        from app.modules.payroll.seed.payroll_ci import seed_payroll_ci
+
+        payroll_created = await seed_payroll_ci(session, company.id)
+        await session.commit()
+        if any(payroll_created.values()):
+            created["payroll"] = payroll_created
+    except Exception:  # noqa: BLE001 — best effort (schéma Paie absent)
+        await session.rollback()
+        logger.exception("Peuplement du paramétrage de paie impossible")
+
     return created
 
 
@@ -461,6 +538,57 @@ async def sync_system_permissions() -> list[str]:
 
     async with AsyncSessionLocal() as session:
         return await _sync_system_permissions(session)
+
+
+async def sync_payroll_defaults() -> int:
+    """Garantit la structure de paie par défaut pour chaque entreprise.
+
+    Le socle Paie (structure + catégories + règles + organisme) n'est semé que
+    par le **bootstrap**, qui ne s'exécute que sur une base vide : sur une base
+    existante où le module Paie est activé plus tard, la table serait vide et
+    la **liste déroulante « Structure de paie » du salarié sans option**.
+    Idempotent — même esprit que ``sync_system_permissions``.
+
+    Retourne le nombre d'entreprises dotées d'une structure à cette exécution.
+    """
+    from app.core.database import AsyncSessionLocal
+    from app.core.models.company import Company
+    from app.modules.payroll.models.structure import PayrollStructure
+    from app.modules.payroll.seed.payroll_ci import build_default_structure
+    from app.modules.payroll.services.settings_service import (
+        PayrollSettingsService,
+    )
+
+    created = 0
+    async with AsyncSessionLocal() as session:
+        companies = (
+            await session.execute(
+                select(Company).execution_options(include_all_tenants=True)
+            )
+        ).scalars().all()
+        for company in companies:
+            try:
+                existing = (
+                    await session.execute(
+                        select(PayrollStructure)
+                        .where(PayrollStructure.company_id == company.id)
+                        .execution_options(include_all_tenants=True)
+                    )
+                ).scalars().first()
+                if existing is not None:
+                    continue
+                settings_values = await PayrollSettingsService(session).get(company.id)
+                await build_default_structure(session, company.id, settings_values)
+                created += 1
+            except Exception:  # noqa: BLE001 — best effort (schéma Paie absent)
+                await session.rollback()
+                logger.exception(
+                    "Structure de paie non créée pour l'entreprise %s", company.id
+                )
+        if created:
+            await session.commit()
+            logger.info("Structures de paie créées pour %d entreprise(s)", created)
+    return created
 
 
 async def run_bootstrap_if_needed() -> dict[str, list[str]] | None:

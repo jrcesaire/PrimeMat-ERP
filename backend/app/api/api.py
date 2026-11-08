@@ -32,6 +32,7 @@ MODULE_ROUTES: dict[str, tuple[str, str]] = {
     "finance": ("/finance", "app.modules.finance.api"),
     "reporting": ("/reporting", "app.modules.reporting.api"),
     "accounting": ("/accounting", "app.modules.accounting.api"),
+    "payroll": ("/payroll", "app.modules.payroll.api"),
 }
 
 # Catalogue chargé par défaut (socle réutilisable)

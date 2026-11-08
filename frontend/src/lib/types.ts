@@ -2,6 +2,8 @@
  * Types partagés entre le frontend et le backend.
  */
 
+import type { ChartOfAccounts } from "./accounting-charts";
+
 export interface User {
   id: number;
   email: string;
@@ -44,6 +46,20 @@ export interface Company {
   rccm?: string | null;
   /** Capital social */
   share_capital?: string | null;
+  /** Tribunal de commerce dont dépend l'entreprise */
+  greffe?: string | null;
+  /** Numéro de code importateur */
+  importer_code?: string | null;
+  /** Numéro de caisse sociale */
+  social_security_code?: string | null;
+  /** Code d'activité principale */
+  activity_code?: string | null;
+  /** Date d'arrêté des comptes (ex. « 31/12 ») */
+  closing_date?: string | null;
+  /** Durée de l'exercice en mois (12 = année civile) */
+  fiscal_year_months?: number;
+  /** Référentiel du plan comptable tenu par l'entreprise. */
+  chart_of_accounts?: ChartOfAccounts;
   currency_code: string;
   tax_country?: string;
   is_active: boolean;
@@ -1380,5 +1396,161 @@ export interface VATPreview {
   net_due: number;
   credit_carry: number;
   lines: VATLine[];
+}
+
+
+// ------------------------------------------------------------------ #
+// Paie (Payroll)
+// ------------------------------------------------------------------ #
+export interface PayrollEmployee {
+  id: number;
+  reference: string;
+  first_name: string;
+  last_name: string;
+  full_name?: string | null;
+  gender?: string | null;
+  marital_status?: string | null;
+  dependents?: number | null;
+  tax_parts?: number | null;
+  job_title?: string | null;
+  department?: string | null;
+  hire_date?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  cnps_number?: string | null;
+  tax_id?: string | null;
+  status: string;
+}
+
+export interface PayrollContractInline {
+  structure_id: number | null;
+  date_start?: string | null;
+  job_title?: string | null;
+  wage: number;
+  wage_type?: string;
+  work_rate?: number;
+}
+
+export interface PayrollEmployeeCreate {
+  reference: string;
+  first_name: string;
+  last_name: string;
+  gender?: string;
+  marital_status?: string;
+  dependents?: number;
+  tax_parts?: number | null;
+  job_title?: string;
+  hire_date?: string;
+  phone?: string;
+  email?: string;
+  cnps_number?: string;
+  tax_id?: string;
+  contract?: PayrollContractInline | null;
+}
+
+export interface PayrollStructure {
+  id: number;
+  name: string;
+  code: string;
+  country: string;
+  is_default: boolean;
+  is_active: boolean;
+}
+
+export interface PayrollContract {
+  id: number;
+  reference: string;
+  employee_id: number;
+  structure_id: number;
+  date_start?: string | null;
+  date_end?: string | null;
+  job_title?: string | null;
+  wage: number;
+  wage_type: string;
+  work_rate: number;
+  currency_code: string;
+  state: string;
+}
+
+export interface PayrollPayslip {
+  id: number;
+  number: string;
+  run_id: number | null;
+  period_id: number | null;
+  employee_id: number;
+  contract_id: number | null;
+  structure_id: number | null;
+  date_from: string;
+  date_to: string;
+  payment_date?: string | null;
+  state: string;
+  gross: number;
+  total_deductions: number;
+  net_wage: number;
+  employer_cost: number;
+  entry_id: number | null;
+}
+
+export interface PayrollPeriod {
+  id: number;
+  name: string;
+  date_start: string;
+  date_end: string;
+  payment_date: string | null;
+  state: string;
+}
+
+export interface PayrollRun {
+  id: number;
+  period_id: number;
+  reference: string;
+  state: string;
+  total_net: number;
+}
+
+export interface PayrollItsBracket {
+  up_to: number | null;
+  rate: number;
+}
+
+export interface PayrollSettings {
+  currency: string;
+  smig: number;
+  cnps_salary_rate: number;
+  cnps_employer_rate: number;
+  cnps_ceiling_multiple: number;
+  ricf_per_half_part: number;
+  transport_exempt: number;
+  its_brackets: PayrollItsBracket[];
+}
+
+export interface CnpsDeclaration {
+  period: PayrollPeriod & { id: number };
+  employee_count: number;
+  base: number;
+  employee_total: number;
+  employer_total: number;
+  grand_total: number;
+  registers: {
+    code: string;
+    name: string;
+    employee: number;
+    employer: number;
+    total: number;
+  }[];
+}
+
+export interface ItsDeclaration {
+  period: PayrollPeriod & { id: number };
+  employee_count: number;
+  total_its: number;
+  lines: {
+    employee_id: number;
+    employee: string;
+    cnps_number?: string | null;
+    parts: number;
+    gross: number;
+    its: number;
+  }[];
 }
 

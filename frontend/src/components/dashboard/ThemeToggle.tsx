@@ -32,7 +32,7 @@ export function ThemeToggle() {
         style={{ height: 22, width: 22 }}
       >
         {isDark ? (
-          <Moon className="h-3.5 w-3.5 text-slate-700" />
+          <Moon className="h-3.5 w-3.5 text-ink" />
         ) : (
           <Sun className="h-3.5 w-3.5 text-amber-500" />
         )}

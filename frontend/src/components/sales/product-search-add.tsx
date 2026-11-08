@@ -113,7 +113,7 @@ export function ProductSearchAdd({ onAdd, categoryId }: Props) {
               onClick={() => add(p)}
               onMouseEnter={() => setHighlight(i)}
               className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
-                i === highlight ? "bg-blue-50" : "hover:bg-subtle"
+                i === highlight ? "bg-info-soft" : "hover:bg-subtle"
               }`}
             >
               <span className="font-medium text-ink">

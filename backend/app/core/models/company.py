@@ -10,7 +10,7 @@ from sqlalchemy import JSON, Boolean, Column, Enum, ForeignKey, Integer, String,
 from sqlalchemy.orm import Mapped, MappedColumn, relationship
 
 from app.core.database import Base
-from app.shared.enums import TaxRegime
+from app.shared.enums import ChartOfAccounts, TaxRegime
 
 
 # Table d'association Entreprise <-> Devise autorisée
@@ -60,6 +60,19 @@ class Company(Base):
     rccm: Mapped[str | None] = MappedColumn(String(100), nullable=True, default=None)
     share_capital: Mapped[str | None] = MappedColumn(String(100), nullable=True, default=None)
 
+    # Renseignements d'entité — saisis à l'assistant de configuration fiscale
+    # et repris sur les documents officiels (devis, factures, états).
+    greffe: Mapped[str | None] = MappedColumn(String(120), nullable=True, default=None)
+    importer_code: Mapped[str | None] = MappedColumn(String(60), nullable=True, default=None)
+    social_security_code: Mapped[str | None] = MappedColumn(String(60), nullable=True, default=None)
+    activity_code: Mapped[str | None] = MappedColumn(String(60), nullable=True, default=None)
+    # Date d'arrêté des comptes — « 31/12 » ou une date complète.
+    closing_date: Mapped[str | None] = MappedColumn(String(32), nullable=True, default=None)
+    # Durée de l'exercice en mois (12 = année civile).
+    fiscal_year_months: Mapped[int] = MappedColumn(
+        Integer, nullable=False, default=12, server_default="12"
+    )
+
     currency_code: Mapped[str] = MappedColumn(
         String(3), ForeignKey("currencies.code"), nullable=False, default="XOF"
     )
@@ -72,6 +85,16 @@ class Company(Base):
     )
     suggested_tax_regime: Mapped[TaxRegime | None] = MappedColumn(
         Enum(TaxRegime), nullable=True, default=None
+    )
+
+    # Référentiel du plan comptable — commercial par défaut. Il détermine le
+    # plan chargé par le seed et la codification des comptes (6 chiffres dans
+    # les deux cas, mais les comptes de capitaux et la classe 7 diffèrent).
+    chart_of_accounts: Mapped[ChartOfAccounts] = MappedColumn(
+        Enum(ChartOfAccounts),
+        nullable=False,
+        default=ChartOfAccounts.SYSCOHADA,
+        server_default=ChartOfAccounts.SYSCOHADA.value,
     )
 
     is_active: Mapped[bool] = MappedColumn(Boolean, default=True)
