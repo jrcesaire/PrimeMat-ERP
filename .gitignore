@@ -72,5 +72,9 @@ Context PrimeMat-ERP.xml
 # Script ad-hoc de vérification des pins (hors application)
 backend/_checkpins.py
 
+# Logs et état d'exécution des serveurs de développement
+# (backend/logs/dev_state.json : PIDs lances, cf. backend/scripts/)
+backend/logs/
+
 # État local de la CLI Supabase (référence projet, versions)
 supabase/.temp/

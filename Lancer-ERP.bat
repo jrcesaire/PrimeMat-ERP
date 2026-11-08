@@ -39,4 +39,9 @@ echo Login : admin@abc.com  /  Code entreprise : GEA
 echo.
 echo Vous pouvez fermer cette fenetre, les serveurs
 echo continuent de tourner en arriere-plan.
+echo.
+echo RECHARGEMENT AUTOMATIQUE ACTIF : toute modification de code (backend
+echo ou frontend) est prise en compte sans redemarrer les serveurs.
+echo Pour le desactiver :  set ERP_RELOAD=0  avant de lancer ce fichier.
+echo.
 pause

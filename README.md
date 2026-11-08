@@ -70,6 +70,26 @@ npm install
 npm run dev
 ```
 
+### Lancer toute la stack (recommandé)
+
+```bat
+Lancer-ERP.bat     :: backends (8001/8002) + frontend (3000), serveurs détachés
+Arreter-ERP.bat    :: arrêt de tous les serveurs
+```
+
+Le **rechargement à chaud est actif** : modifier un fichier `.py` de
+`backend/app` (ou un fichier du frontend) est pris en compte
+automatiquement, sans redémarrer quoi que ce soit. Pour le désactiver :
+`set ERP_RELOAD=0` avant de lancer le script.
+
+> Les serveurs tournent **détachés** sur Windows (ils survivent à la fermeture de
+> la fenêtre). Dans ce mode, le rechargement natif d'uvicorn échoue
+> (`CTRL_C_EVENT` impossible sans console) : `backend/scripts/dev_server.py`
+> applique donc un correctif qui relance l'ouvrier via `terminate()`, socket
+> d'écoute conservée (aucune coupure). Logs applicatifs complets :
+> `backend/logs/uvicorn_8001.log` et `backend/logs/uvicorn_8002.log`.
+
+
 ## 🔑 Accès par défaut (premier démarrage)
 
 Au **premier démarrage** (base vide, mode dev), l'application crée automatiquement les données de démarrage :

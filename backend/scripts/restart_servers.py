@@ -1,15 +1,71 @@
-"""Redémarre les serveurs uvicorn (8001/8002) de façon détachée."""
+"""Redémarre les serveurs uvicorn (8001/8002) de façon détachée.
+
+Rechargement automatique : ``--reload`` est actif par défaut, donc toute
+modification d'un fichier ``.py`` de ``backend/app`` est prise en compte
+**sans redémarrer** les serveurs. La surveillance est limitée au dossier
+``app`` et n'inclut que ``*.py`` : les écritures de la base SQLite (``*.db``),
+les logs et les caches ne déclenchent aucun rechargement parasite.
+
+Les PIDs lancés sont enregistrés dans ``logs/dev_state.json`` : c'est ce que
+``stop_servers.py`` utilise pour arrêter aussi le superviseur du
+rechargement (un arrêt par port ne suffirait pas).
+
+Désactiver : ``set ERP_RELOAD=0`` (ou option ``--no-reload``).
+"""
+import argparse
+import json
 import os
 import subprocess
 import sys
 import time
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 
 BACKEND = Path(__file__).resolve().parents[1]
 LOGS = BACKEND / "logs"
 LOGS.mkdir(exist_ok=True)
 PORTS = (8001, 8002)
+STATE_FILE = LOGS / "dev_state.json"
+
+# Dossiers surveillés par le rechargement automatique (relatifs au backend).
+# Limiter la surveillance à `app` évite de recharger sur les écritures de la
+# base SQLite, des logs ou des caches : uvicorn ne surveille que « *.py ».
+RELOAD_DIRS = ("app",)
+
+
+def reload_enabled() -> bool:
+    """Le rechargement automatique est-il demandé ? (actif par défaut)"""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--reload", action="store_true")
+    parser.add_argument("--no-reload", action="store_true")
+    args, _ = parser.parse_known_args()
+    if args.no_reload:
+        return False
+    if args.reload:
+        return True
+    return os.getenv("ERP_RELOAD", "1").strip().lower() not in (
+        "", "0", "false", "no", "off",
+    )
+
+
+def uvicorn_command(port: int, reload: bool) -> list[str]:
+    """Commande de démarrage d'un serveur uvicorn.
+
+    En mode rechargement, on passe par ``scripts/dev_server.py`` : il applique
+    le correctif Windows « détaché » (voir la docstring de ce fichier) et
+    n'utilise aucun motif glob en ligne de commande — un motif comme ``*.py``
+    serait développé par Windows en liste de fichiers et casserait le CLI.
+    """
+    if reload:
+        return [
+            sys.executable,
+            str(Path(__file__).resolve().parent / "dev_server.py"),
+        ]
+    return [
+        sys.executable, "-m", "uvicorn", "app.main:app",
+        "--host", "0.0.0.0", "--port", str(port),
+    ]
 
 
 def kill_listeners(ports: tuple[int, ...]) -> None:
@@ -62,18 +118,50 @@ def run_migrations() -> None:
 kill_listeners(PORTS)
 run_migrations()
 
+RELOAD = reload_enabled()
+print("Rechargement automatique :",
+      "ACTIF (rechargement a chaud du code)" if RELOAD else "inactif")
+
+pids: dict[str, int] = {}
 for port in PORTS:
     out = open(LOGS / f"uvicorn_{port}.out.log", "w", encoding="utf-8")
     err = open(LOGS / f"uvicorn_{port}.err.log", "w", encoding="utf-8")
+    # Le lanceur de rechargement lit sa configuration dans l'environnement.
+    # ERP_LOG_FILE : l'ouvrier n'herite pas des descripteurs du superviseur
+    # detache, on lui donne donc son propre fichier de logs.
+    env = {
+        **os.environ,
+        "ERP_PORT": str(port),
+        "ERP_HOST": "0.0.0.0",
+        "ERP_RELOAD_DIRS": ",".join(RELOAD_DIRS),
+        "ERP_LOG_FILE": str(LOGS / f"uvicorn_{port}.log"),
+    }
     proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "app.main:app",
-         "--host", "0.0.0.0", "--port", str(port)],
+        uvicorn_command(port, RELOAD),
         cwd=str(BACKEND),
+        env=env,
         stdout=out, stderr=err,
         creationflags=CREATE_FLAGS,
         close_fds=True,
     )
+    pids[str(port)] = proc.pid
     print(f"Port {port} : PID {proc.pid}")
+
+# Trace des PIDs : permet à stop_servers.py d'arrêter aussi le superviseur
+# du rechargement automatique (sinon il relance ses ouvriers).
+STATE_FILE.write_text(
+    json.dumps(
+        {
+            "reload": RELOAD,
+            "reload_dirs": [str(BACKEND / d) for d in RELOAD_DIRS],
+            "pids": pids,
+            "started_at": datetime.now().isoformat(timespec="seconds"),
+        },
+        indent=2,
+    ),
+    encoding="utf-8",
+)
+print(f"PIDs enregistres dans {STATE_FILE}")
 
 # Attente / health check
 for _ in range(30):
