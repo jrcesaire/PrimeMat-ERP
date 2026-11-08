@@ -28,6 +28,10 @@ export const DOC_MODELS: { key: string; label: string }[] = [
   { key: "delivery", label: "Bons de livraison" },
   { key: "payment", label: "Reçus / Paiements" },
   { key: "expense", label: "Dépenses" },
+  { key: "employee", label: "Matricules employés" },
+  { key: "payroll_contract", label: "Contrats de travail" },
+  { key: "payslip", label: "Bulletins de paie" },
+  { key: "payroll_run", label: "Lots de paie" },
   { key: "journal", label: "Écritures comptables" },
 ];
 

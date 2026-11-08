@@ -1432,7 +1432,8 @@ export interface PayrollContractInline {
 }
 
 export interface PayrollEmployeeCreate {
-  reference: string;
+  /** Optionnel : généré automatiquement (séquence « employee ») si absent. */
+  reference?: string;
   first_name: string;
   last_name: string;
   gender?: string;

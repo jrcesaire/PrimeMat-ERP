@@ -19,6 +19,7 @@ import Link from "next/link";
 import { ArrowUpRight, Search, Settings, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useModuleStates } from "@/hooks/useModules";
+import { useCurrentUser, usePermission } from "@/hooks/useAuth";
 import { APP_TILES, type AppTile } from "@/lib/module-registry";
 import { ANIMATED_APP_ICONS } from "@/components/icons/animated-icons";
 import { APP_ICONS } from "@/components/icons/app-icons";
@@ -105,7 +106,16 @@ function Tile({ app, disabled = false }: { app: AppTile; disabled?: boolean }) {
 
 export function AppLauncher() {
   const { data: moduleStates = [], isLoading } = useModuleStates();
+  const { data: currentUser } = useCurrentUser();
+  const can = usePermission();
   const [query, setQuery] = useState("");
+
+  // Une application ne s'affiche que si l'utilisateur y est **habilité**
+  // (`permission` de la tuile). Tant que le profil n'est pas chargé, on
+  // n'applique pas le filtre : sinon la grille se viderait au premier rendu.
+  const filterReady = Boolean(currentUser);
+  const allowed = (app: AppTile) =>
+    !app.permission || !filterReady || can(app.permission);
 
   // Modules backend actifs (core exclu — pas une application métier)
   const activeModules = new Set(
@@ -115,7 +125,7 @@ export function AppLauncher() {
   );
 
   const activeApps = APP_TILES.filter(
-    (a) => a.always || activeModules.has(a.module)
+    (a) => (a.always || activeModules.has(a.module)) && allowed(a)
   );
 
   // Modules installés mais désactivés → section « autres applications »
@@ -130,9 +140,13 @@ export function AppLauncher() {
       m.status !== "uninstalled"
   );
 
-  // Applications du catalogue rattachées à un module désactivé
+  // Applications du catalogue rattachées à un module désactivé (et que
+  // l'utilisateur serait habilité à utiliser une fois le module activé)
   const inactiveApps = APP_TILES.filter(
-    (a) => !a.always && inactiveModules.some((m) => m.name === a.module)
+    (a) =>
+      !a.always &&
+      inactiveModules.some((m) => m.name === a.module) &&
+      allowed(a)
   );
   // Dé-duplique : une seule tuile par module désactivé
   const seen = new Set<string>();

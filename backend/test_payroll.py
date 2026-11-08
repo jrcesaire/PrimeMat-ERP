@@ -322,6 +322,16 @@ async def test_employee_and_payslip(session, company, structure):
         company.id,
     )
     check("salarié créé", employee.reference == "E001")
+    # Matricule généré automatiquement s'il n'est pas fourni (nomenclature
+    # « employee » — Paramètres → Séquences). Sans contrat, pour ne pas ajouter
+    # un bulletin aux lots suivants.
+    auto = await EmployeeService(session).create(
+        EmployeeCreate(first_name="Auto", last_name="Matricule"),
+        company.id,
+    )
+    check("matricule auto-généré (séquence « employee »)",
+          bool(auto.reference) and auto.reference.startswith("MAT"),
+          f"({auto.reference})")
     check("parts fiscales dérivées (marié → 2 parts)", near(employee.tax_parts, 2))
     check("parts fiscales dérivées (célibataire + 2 enfants → 2,5 parts)",
           near(derive_tax_parts("single", 2), 2.5))

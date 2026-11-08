@@ -20,6 +20,7 @@ import {
   Truck,
   Users,
   Warehouse,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +32,13 @@ export interface AppTile {
   description: string;
   href: string;
   icon: LucideIcon;
+  /**
+   * Permission requise pour **voir** l'application (`ressource:action`).
+   * Absente = visible par tous. Le superadministrateur voit toujours tout.
+   * Une tuile dont l'utilisateur n'a pas la permission ne s'affiche pas :
+   * l'accueil ne propose que ce qu'il est habilité à utiliser.
+   */
+  permission?: string;
   /** Toujours affichée, indépendamment de l état des modules. */
   always?: boolean;
 }
@@ -48,6 +56,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "sales",
     module: "sales",
+    permission: "order:view",
     label: "Ventes",
     description: "Devis et commandes clients",
     href: "/dashboard/sales",
@@ -56,6 +65,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "pos",
     module: "sales",
+    permission: "pos:view",
     label: "Point de vente",
     description: "Vente comptoir rapide",
     href: "/dashboard/sales/pos",
@@ -64,6 +74,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "invoicing",
     module: "invoicing",
+    permission: "invoice:view",
     label: "Facturation",
     description: "Factures clients",
     href: "/dashboard/invoicing",
@@ -72,6 +83,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "crm",
     module: "crm",
+    permission: "partner:view",
     label: "Contacts",
     description: "Clients et fournisseurs",
     href: "/dashboard/contacts",
@@ -80,6 +92,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "catalogue",
     module: "catalogue",
+    permission: "product:view",
     label: "Catalogue",
     description: "Produits et catégories",
     href: "/dashboard/catalogue",
@@ -88,6 +101,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "stock",
     module: "stock",
+    permission: "stock_level:view",
     label: "Stock",
     description: "Inventaire et mouvements",
     href: "/dashboard/stock",
@@ -96,6 +110,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "delivery",
     module: "delivery",
+    permission: "delivery:view",
     label: "Livraison",
     description: "Bons de livraison",
     href: "/dashboard/delivery",
@@ -104,6 +119,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "payments",
     module: "payments",
+    permission: "payment:view",
     label: "Paiements",
     description: "Encaissements et reçus",
     href: "/dashboard/payments",
@@ -112,6 +128,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "finance",
     module: "finance",
+    permission: "expense:view",
     label: "Dépenses",
     description: "Charges de l'entreprise",
     href: "/dashboard/expenses",
@@ -120,6 +137,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "treasury",
     module: "finance",
+    permission: "treasury:view",
     label: "Trésorerie",
     description: "Comptes, relevés et rapprochement",
     href: "/dashboard/treasury",
@@ -128,6 +146,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "purchases",
     module: "purchases",
+    permission: "purchase:view",
     label: "Achats",
     description: "Besoins d'achat fournisseurs",
     href: "/dashboard/purchases",
@@ -136,6 +155,7 @@ export const APP_TILES: AppTile[] = [
   {
     key: "accounting",
     module: "accounting",
+    permission: "account:view",
     label: "Comptabilité",
     description: "Écritures et états financiers",
     href: "/dashboard/accounting",
@@ -144,9 +164,19 @@ export const APP_TILES: AppTile[] = [
   {
     key: "reporting",
     module: "reporting",
+    permission: "report:view",
     label: "Reporting",
     description: "Indicateurs de performance",
     href: "/dashboard/reporting",
     icon: BarChart3,
+  },
+  {
+    key: "payroll",
+    module: "payroll",
+    permission: "payslip:view",
+    label: "Paie",
+    description: "Employés, bulletins et déclarations",
+    href: "/dashboard/payroll",
+    icon: Wallet,
   },
 ];

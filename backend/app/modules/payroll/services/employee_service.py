@@ -70,6 +70,13 @@ class EmployeeService:
             payload["tax_parts"] = derive_tax_parts(
                 payload.get("marital_status"), payload.get("dependents")
             )
+        # Matricule généré automatiquement s'il n'est pas fourni : numérotation
+        # séquentielle, pilotée par la nomenclature « employee » (Paramètres →
+        # Séquences) — ex. MAT-0001, MAT-0002…
+        if not (payload.get("reference") or "").strip():
+            payload["reference"] = await SequenceService(self.session).next_value(
+                "employee", "MAT"
+            )
         employee = Employee(
             **payload,
             company_id=company_id,

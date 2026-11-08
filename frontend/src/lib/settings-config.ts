@@ -17,10 +17,12 @@ import {
   BookOpen,
   FileText,
   FolderTree,
+  Hash,
   Plug,
   Settings as SettingsIcon,
   Store,
   Users,
+  Wallet,
   Wand2,
   type LucideIcon,
 } from "lucide-react";
@@ -62,9 +64,17 @@ export const SETTINGS_APP_GROUP: SettingsGroup = {
       icon: SettingsIcon,
     },
     {
+      key: "sequences",
+      label: "Séquences",
+      description:
+        "Nomenclature des références : matricules, pièces et documents",
+      href: "/dashboard/settings/sequences",
+      icon: Hash,
+    },
+    {
       key: "documents",
       label: "Documents",
-      description: "Nomenclature des pièces, filigrane et conditions de vente",
+      description: "Filigrane et conditions de vente des documents",
       href: "/dashboard/settings/documents",
       icon: FileText,
     },
@@ -131,6 +141,17 @@ export const SETTINGS_MODULE_LINKS: Record<string, SettingsLink[]> = {
       href: "/dashboard/sales/pos/reglages",
       icon: Store,
       permissions: ["pos:edit"],
+    },
+  ],
+  payroll: [
+    {
+      key: "payroll-settings",
+      label: "Paramètres de paie",
+      description:
+        "SMIG, taux CNPS, plafond, RICF et barème de l'impôt (ITS)",
+      href: "/dashboard/payroll/settings",
+      icon: Wallet,
+      permissions: ["payroll_structure:view"],
     },
   ],
 };

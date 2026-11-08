@@ -10,7 +10,6 @@ from pydantic import BaseModel, ConfigDict
 # Employé
 # ------------------------------------------------------------------ #
 class EmployeeBase(BaseModel):
-    reference: str
     last_name: str
     first_name: str
     gender: str | None = "unset"
@@ -48,6 +47,8 @@ class ContractInline(BaseModel):
 
 
 class EmployeeCreate(EmployeeBase):
+    #: Matricule — **généré automatiquement** (séquence « employee ») si absent.
+    reference: str | None = None
     #: Paramètres de paie optionnels (salaire de base, structure) saisis à la création.
     contract: ContractInline | None = None
 
@@ -83,6 +84,7 @@ class EmployeeRead(EmployeeBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    reference: str
     status: str
     full_name: str | None = None
 

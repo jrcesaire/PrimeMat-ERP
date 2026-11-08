@@ -99,6 +99,11 @@ DEFAULT_SETTINGS: dict[str, dict[str, Any]] = {
             "expense": {"prefix": "DEP", "padding": 6, "reset": "never", "suffix_type": "none", "suffix_custom": ""},
             "product": {"prefix": "PRD", "padding": 6, "reset": "never", "suffix_type": "none", "suffix_custom": ""},
             "journal": {"prefix": "ECR", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
+            # Numérotation des personnes et des pièces de paie
+            "employee": {"prefix": "MAT", "padding": 4, "reset": "never", "suffix_type": "none", "suffix_custom": ""},
+            "payroll_contract": {"prefix": "CTR", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
+            "payslip": {"prefix": "PAIE", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
+            "payroll_run": {"prefix": "LPAIE", "padding": 4, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
         },
         "type": "json",
         "is_public": True,

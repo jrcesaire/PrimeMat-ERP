@@ -85,8 +85,8 @@ export default function EmployeesPage() {
 
   const submit = async () => {
     setError(null);
-    if (!form.reference || !form.first_name || !form.last_name) {
-      setError("Matricule, prénom et nom sont obligatoires.");
+    if (!form.first_name || !form.last_name) {
+      setError("Prénom et nom sont obligatoires.");
       return;
     }
     if (!form.structure_id) {
@@ -94,7 +94,9 @@ export default function EmployeesPage() {
       return;
     }
     const payload: PayrollEmployeeCreate = {
-      reference: form.reference,
+      // Matricule laissé vide → généré automatiquement (ordre d'entrée,
+      // séquence « employee » de Paramètres → Séquences).
+      reference: form.reference.trim() || undefined,
       first_name: form.first_name,
       last_name: form.last_name,
       job_title: form.job_title || undefined,
@@ -220,10 +222,14 @@ export default function EmployeesPage() {
 
           <div className="grid max-h-[60vh] gap-4 overflow-y-auto pr-1 sm:grid-cols-2">
             <div>
-              <label className={labelCls}>Matricule *</label>
-              <input className={inputCls} placeholder="ex. E001"
+              <label className={labelCls}>Matricule</label>
+              <input className={inputCls} placeholder="généré automatiquement"
                 value={form.reference}
                 onChange={(e) => set("reference", e.target.value)} />
+              <p className="mt-1 text-[11px] text-slate-400">
+                Laisser vide pour une numérotation automatique (MAT-0001,
+                MAT-0002…) — réglable dans Paramètres → Séquences.
+              </p>
             </div>
             <div>
               <label className={labelCls}>Emploi</label>

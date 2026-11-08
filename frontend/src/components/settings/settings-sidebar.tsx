@@ -6,9 +6,9 @@
  * groupes en capitales discrètes.
  *
  * Contenu : le groupe « Application » (réglages transverses) puis **un groupe
- * par application du lanceur**, qui accueille les réglages propres au module.
- * Les entrées sont filtrées par permission et par module actif ; un module sans
- * réglage reste listé pour réserver son emplacement.
+ * par application du lanceur** qui possède réellement des réglages. Les
+ * entrées sont filtrées par permission et par module actif ; un module sans
+ * réglage n'est **pas listé** (il apparaîtra dès que ses paramètres existeront).
  *
  * Sous `lg`, le rail se replie en une rangée de chips horizontale.
  */
@@ -80,7 +80,10 @@ export function SettingsSidebar() {
     .filter(
       (group) => !group.module || !activeModules || activeModules.has(group.module),
     )
-    .map((group) => ({ ...group, links: group.links.filter(allowed) }));
+    .map((group) => ({ ...group, links: group.links.filter(allowed) }))
+    // Un module sans aucun réglage accessible n'apparaît pas : la liste ne
+    // montre que ce qui existe réellement.
+    .filter((group) => group.links.length > 0);
 
   const flatLinks = groups.flatMap((group) => group.links);
 
@@ -148,34 +151,28 @@ export function SettingsSidebar() {
               <div key={group.key} className="space-y-0.5">
                 <p className={NAV_GROUP_LABEL}>{group.label}</p>
 
-                {group.links.length === 0 ? (
-                  <p className="px-3 py-1 text-[10px] italic text-faint">
-                    Aucun paramètre pour l&apos;instant
-                  </p>
-                ) : (
-                  group.links.map((link) => {
-                    const active = isLinkActive(route, link.href);
-                    return (
-                      <div
-                        key={link.href}
-                        className={cn(
-                          NAV_ENTRY_ROW,
-                          active ? NAV_ENTRY_ACTIVE : NAV_ENTRY_IDLE,
-                        )}
+                {group.links.map((link) => {
+                  const active = isLinkActive(route, link.href);
+                  return (
+                    <div
+                      key={link.href}
+                      className={cn(
+                        NAV_ENTRY_ROW,
+                        active ? NAV_ENTRY_ACTIVE : NAV_ENTRY_IDLE,
+                      )}
+                    >
+                      <Link
+                        href={link.href}
+                        title={link.description}
+                        aria-label={link.label}
+                        className={NAV_ENTRY_LINK}
                       >
-                        <Link
-                          href={link.href}
-                          title={link.description}
-                          aria-label={link.label}
-                          className={NAV_ENTRY_LINK}
-                        >
-                          <link.icon className={NAV_ENTRY_ICON} />
-                          <span className="truncate">{link.label}</span>
-                        </Link>
-                      </div>
-                    );
-                  })
-                )}
+                        <link.icon className={NAV_ENTRY_ICON} />
+                        <span className="truncate">{link.label}</span>
+                      </Link>
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>

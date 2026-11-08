@@ -37,14 +37,9 @@ import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api/client";
 import { COMPANY_KEY, useCurrentCompany, useCurrentUser } from "@/hooks/useAuth";
 import { useModules, useModuleActions } from "@/hooks/useModules";
-import {
-  useCategories,
-  useCreateCategory,
-  useUpdateCategory,
-  useDeleteCategory,
-} from "@/hooks/useCatalogue";
 import type { Company, ModuleInfo } from "@/lib/types";
 import { DocumentsTab } from "@/components/settings/documents-tab";
+import { SequencesTab } from "@/components/settings/sequences-tab";
 import CategoriesTab from "@/components/settings/categories-tab";
 import {
   useConfirm,
@@ -93,6 +88,7 @@ function moduleName(name: string): string {
 
 export type SettingsSection =
   | "general"
+  | "sequences"
   | "documents"
   | "categories"
   | "modules"
@@ -100,7 +96,8 @@ export type SettingsSection =
 
 const SECTION_DESCRIPTIONS: Record<SettingsSection, string> = {
   general: "Configuration de l'application et de l'entreprise",
-  documents: "Nomenclature des pièces, filigrane et conditions de vente",
+  sequences: "Nomenclature des références : matricules, pièces et documents",
+  documents: "Filigrane et conditions de vente des documents",
   categories: "Familles et sous-familles du catalogue",
   modules: "Activation et désactivation des modules métier",
   users: "Comptes utilisateurs, rôles et droits d'accès",
@@ -760,6 +757,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
         </div>
       )}
 
+      {section === "sequences" && <SequencesTab />}
       {section === "documents" && <DocumentsTab />}
 
       {section === "categories" && canManageCategories && <CategoriesTab />}
