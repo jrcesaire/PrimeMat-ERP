@@ -20,7 +20,10 @@ import { ArrowUpRight, Search, Settings, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useModuleStates } from "@/hooks/useModules";
 import { useCurrentUser, usePermission } from "@/hooks/useAuth";
-import { APP_TILES, type AppTile } from "@/lib/module-registry";
+import {
+  partitionAppTiles,
+  type AppTile,
+} from "@/lib/module-registry";
 import { ANIMATED_APP_ICONS } from "@/components/icons/animated-icons";
 import { APP_ICONS } from "@/components/icons/app-icons";
 import { cn } from "@/lib/utils";
@@ -117,44 +120,12 @@ export function AppLauncher() {
   const allowed = (app: AppTile) =>
     !app.permission || !filterReady || can(app.permission);
 
-  // Modules backend actifs (core exclu — pas une application métier)
-  const activeModules = new Set(
-    moduleStates
-      .filter((m) => m.is_active && m.status === "active" && m.name !== "core")
-      .map((m) => m.name)
+  // Répartition centralisée dans le registre pour tester la visibilité des
+  // tuiles, notamment celle du module Paie nouvellement synchronisé.
+  const { active: activeApps, disabled: disabledApps } = useMemo(
+    () => partitionAppTiles(moduleStates, allowed),
+    [moduleStates, allowed],
   );
-
-  const activeApps = APP_TILES.filter(
-    (a) => (a.always || activeModules.has(a.module)) && allowed(a)
-  );
-
-  // Modules installés mais désactivés → section « autres applications »
-  const knownModules = new Set(
-    APP_TILES.filter((a) => !a.always).map((a) => a.module)
-  );
-  const inactiveModules = moduleStates.filter(
-    (m) =>
-      m.name !== "core" &&
-      knownModules.has(m.name) &&
-      !activeModules.has(m.name) &&
-      m.status !== "uninstalled"
-  );
-
-  // Applications du catalogue rattachées à un module désactivé (et que
-  // l'utilisateur serait habilité à utiliser une fois le module activé)
-  const inactiveApps = APP_TILES.filter(
-    (a) =>
-      !a.always &&
-      inactiveModules.some((m) => m.name === a.module) &&
-      allowed(a)
-  );
-  // Dé-duplique : une seule tuile par module désactivé
-  const seen = new Set<string>();
-  const disabledApps = inactiveApps.filter((a) => {
-    if (seen.has(a.module)) return false;
-    seen.add(a.module);
-    return true;
-  });
 
   // Filtre de recherche local sur le libellé et la description.
   const visibleApps = useMemo(() => {

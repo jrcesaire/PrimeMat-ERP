@@ -3,6 +3,7 @@ Service de gestion des paramètres (Settings).
 
 Gère la sérialisation, un cache en mémoire, et les paramètres par défaut.
 """
+
 from __future__ import annotations
 
 import json
@@ -15,6 +16,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.models.setting import Setting
 
 logger = logging.getLogger(__name__)
+
+
+def as_mapping(value: Any) -> dict[str, Any]:
+    """Ramène une valeur de paramètre JSON à un dictionnaire utilisable.
+
+    Une valeur peut avoir été enregistrée **doublement encodée** (chaîne JSON au
+    lieu d'un objet) : ``SettingService.get`` renvoie alors une chaîne, ce qui
+    faisait échouer les traitements la consommant (``{**blob}`` →
+    ``TypeError: 'str' object is not a mapping``). On la décode donc ici.
+
+    Une valeur **corrompue** — dictionnaire indexé par position de caractère,
+    produit par un « spread » de chaîne côté client
+    (``{"0": "{", "1": "\\"", ...}``) — est ignorée : les valeurs par défaut
+    reprennent la main au lieu de propager le charabia.
+    """
+    for _ in range(3):
+        if not isinstance(value, str):
+            break
+        try:
+            value = json.loads(value)
+        except (TypeError, ValueError):
+            return {}
+    if not isinstance(value, dict):
+        return {}
+    if value and all(str(key).isdigit() for key in value):
+        logger.warning("Paramètre JSON corrompu (clés indexées) — ignoré")
+        return {}
+    return value
+
 
 DEFAULT_SETTINGS: dict[str, dict[str, Any]] = {
     "invoice_prefix": {"value": "FA", "type": "string", "is_public": True},
@@ -91,19 +121,91 @@ DEFAULT_SETTINGS: dict[str, dict[str, Any]] = {
     # Nomenclature des documents (préfixe / série / suffixe par type)
     "doc_nomenclature": {
         "value": {
-            "quote": {"prefix": "DEV", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
-            "order": {"prefix": "COM", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
-            "invoice": {"prefix": "FAC", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
-            "delivery": {"prefix": "BL", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
-            "payment": {"prefix": "REC", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
-            "expense": {"prefix": "DEP", "padding": 6, "reset": "never", "suffix_type": "none", "suffix_custom": ""},
-            "product": {"prefix": "PRD", "padding": 6, "reset": "never", "suffix_type": "none", "suffix_custom": ""},
-            "journal": {"prefix": "ECR", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
+            "quote": {
+                "prefix": "DEV",
+                "padding": 6,
+                "reset": "year",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
+            "order": {
+                "prefix": "COM",
+                "padding": 6,
+                "reset": "year",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
+            "invoice": {
+                "prefix": "FAC",
+                "padding": 6,
+                "reset": "year",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
+            "delivery": {
+                "prefix": "BL",
+                "padding": 6,
+                "reset": "year",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
+            "payment": {
+                "prefix": "REC",
+                "padding": 6,
+                "reset": "year",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
+            "expense": {
+                "prefix": "DEP",
+                "padding": 6,
+                "reset": "never",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
+            "product": {
+                "prefix": "PRD",
+                "padding": 6,
+                "reset": "never",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
+            "journal": {
+                "prefix": "ECR",
+                "padding": 6,
+                "reset": "year",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
             # Numérotation des personnes et des pièces de paie
-            "employee": {"prefix": "MAT", "padding": 4, "reset": "never", "suffix_type": "none", "suffix_custom": ""},
-            "payroll_contract": {"prefix": "CTR", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
-            "payslip": {"prefix": "PAIE", "padding": 6, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
-            "payroll_run": {"prefix": "LPAIE", "padding": 4, "reset": "year", "suffix_type": "none", "suffix_custom": ""},
+            "employee": {
+                "prefix": "MAT",
+                "padding": 4,
+                "reset": "never",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
+            "payroll_contract": {
+                "prefix": "CTR",
+                "padding": 6,
+                "reset": "year",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
+            "payslip": {
+                "prefix": "PAIE",
+                "padding": 6,
+                "reset": "year",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
+            "payroll_run": {
+                "prefix": "LPAIE",
+                "padding": 4,
+                "reset": "year",
+                "suffix_type": "none",
+                "suffix_custom": "",
+            },
         },
         "type": "json",
         "is_public": True,
@@ -150,18 +252,27 @@ class SettingService:
             return default
 
         val = self._deserialize(setting.value, setting.type)
+        if key == "doc_nomenclature":
+            # Point unique de normalisation : les consommateurs reçoivent
+            # toujours un dictionnaire, jamais une chaîne doublement encodée.
+            val = as_mapping(val)
         _CACHE[cache_key] = val
         return val
 
     async def update(
-        self, key: str, value: Any, type: str | None = None,
-        is_public: bool | None = None, description: str | None = None,
-company_id: int | None = None,
+        self,
+        key: str,
+        value: Any,
+        type: str | None = None,
+        is_public: bool | None = None,
+        description: str | None = None,
+        company_id: int | None = None,
     ) -> Setting | None:
         """Met a jour un parametre existant (None si introuvable)."""
         result = await self.session.execute(
             select(Setting).where(
-                Setting.key == key, Setting.company_id == company_id,
+                Setting.key == key,
+                Setting.company_id == company_id,
             )
         )
         setting: Setting | None = result.scalars().first()
@@ -182,22 +293,30 @@ company_id: int | None = None,
         return setting
 
     async def set(
-        self, key: str, value: Any, type: str = "string",
-        is_public: bool = False, description: str | None = None,
+        self,
+        key: str,
+        value: Any,
+        type: str = "string",
+        is_public: bool = False,
+        description: str | None = None,
         company_id: int | None = None,
     ) -> Setting:
         """Crée ou met à jour un paramètre."""
         serialized = self._serialize(value, type)
         result = await self.session.execute(
             select(Setting).where(
-                Setting.key == key, Setting.company_id == company_id,
+                Setting.key == key,
+                Setting.company_id == company_id,
             )
         )
         setting: Setting | None = result.scalars().first()
         if setting is None:
             setting = Setting(
-                key=key, value=serialized, type=type,
-                is_public=is_public, description=description,
+                key=key,
+                value=serialized,
+                type=type,
+                is_public=is_public,
+                description=description,
                 company_id=company_id,
             )
             self.session.add(setting)
@@ -215,21 +334,21 @@ company_id: int | None = None,
         return setting
 
     async def get_all(
-        self, company_id: int | None = None, public_only: bool = False,
+        self,
+        company_id: int | None = None,
+        public_only: bool = False,
     ) -> dict[str, Any]:
         """Retourne tous les paramètres sous forme de dictionnaire."""
         stmt = select(Setting)
         if company_id is not None:
-            stmt = stmt.where(
-                (Setting.company_id == company_id) |
-                (Setting.company_id.is_(None))
-            )
+            stmt = stmt.where((Setting.company_id == company_id) | (Setting.company_id.is_(None)))
         if public_only:
             stmt = stmt.where(Setting.is_public.is_(True))
         result = await self.session.execute(stmt.order_by(Setting.key))
         output: dict[str, Any] = {}
         for s in result.scalars().all():
-            output[s.key] = self._deserialize(s.value, s.type)
+            value = self._deserialize(s.value, s.type)
+            output[s.key] = as_mapping(value) if s.key == "doc_nomenclature" else value
         return output
 
     def _serialize(self, value: Any, type: str) -> str:
@@ -243,7 +362,14 @@ company_id: int | None = None,
 
     def _deserialize(self, value: str, type: str) -> Any:
         if type == "json":
-            return json.loads(value)
+            try:
+                return json.loads(value)
+            except (TypeError, ValueError):
+                # Un paramètre mal formé ne doit jamais faire échouer une page
+                # entière. Les consommateurs de nomenclature le normalisent en
+                # dictionnaire vide ; les autres reçoivent la valeur brute.
+                logger.warning("Valeur JSON invalide dans les paramètres")
+                return value
         if type == "boolean":
             return value.lower() in ("true", "1", "yes")
         if type == "integer":

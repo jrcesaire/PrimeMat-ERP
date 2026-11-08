@@ -4,6 +4,7 @@ Registre des modules — charge et suit l'état des modules métier.
 Le Core est toujours actif. Les modules métier peuvent être installés,
 activés, désactivés ou désinstallés indépendamment.
 """
+
 from __future__ import annotations
 
 import logging
@@ -57,18 +58,46 @@ class ModuleRegistry:
             # Core toujours actif — persiste s'il manque
             if CORE_MODULE not in self.modules:
                 core = ModuleInfo(
-                    name=CORE_MODULE, version=settings.app_version,
-                    status="active", is_active=True,
+                    name=CORE_MODULE,
+                    version=settings.app_version,
+                    status="active",
+                    is_active=True,
                 )
                 session.add(core)
                 self.modules[CORE_MODULE] = core
+
+            # Tous les modules **livrés avec le code** sont persistés : un module
+            # ajouté après coup (ex. Paie) apparaît donc aussi sur une base créée
+            # avant son arrivée. Il est activé d'office s'il fait partie des
+            # modules par défaut (``DEFAULT_MODULES``), sinon il reste installé,
+            # à activer depuis Paramètres → Modules.
+            default_modules = set(settings.default_modules)
+            for name in AVAILABLE_MODULES:
+                if name in self.modules:
+                    continue
+                is_default = name in default_modules
+                info = ModuleInfo(
+                    name=name,
+                    version="0.1.0",
+                    status="active" if is_default else "installed",
+                    is_active=is_default,
+                )
+                session.add(info)
+                self.modules[name] = info
+                logger.info(
+                    "Module %s enregistré (%s)",
+                    name,
+                    "actif" if is_default else "installé",
+                )
 
             # Modules par défaut — persiste ceux qui manquent
             for name in settings.default_modules:
                 if name not in self.modules:
                     info = ModuleInfo(
-                        name=name, version="0.1.0",
-                        status="installed", is_active=True,
+                        name=name,
+                        version="0.1.0",
+                        status="active",
+                        is_active=True,
                     )
                     session.add(info)
                     self.modules[name] = info
@@ -90,7 +119,8 @@ class ModuleRegistry:
     def list_active_modules(self) -> list[str]:
         """Liste les modules actifs."""
         return [
-            name for name, info in self.modules.items()
+            name
+            for name, info in self.modules.items()
             if info.is_active and info.status == "active"
         ]
 
@@ -101,9 +131,7 @@ class ModuleRegistry:
         info = self.modules.get(module_name)
         return info.config or {} if info else {}
 
-    def set_module_config(
-        self, module_name: str, config: dict[str, Any]
-    ) -> None:
+    def set_module_config(self, module_name: str, config: dict[str, Any]) -> None:
         info = self.modules.get(module_name)
         if info is None:
             raise ValueError(f"Module '{module_name}' inconnu")

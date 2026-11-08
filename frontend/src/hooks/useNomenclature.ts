@@ -95,12 +95,38 @@ export const DEFAULT_NOMENCLATURE: DocNomenclature = {
   suffix_custom: "",
 };
 
+/**
+ * Convertit la valeur brute du paramètre en nomenclature exploitable.
+ *
+ * Les anciennes versions enregistraient parfois une chaîne JSON doublement
+ * encodée. Une valeur corrompue par un spread de chaîne produit quant à elle
+ * un objet dont les clés sont des positions (`0`, `1`, …) : il ne faut surtout
+ * pas l'exposer à l'interface, qui tenterait sinon de rendre des millions de
+ * lignes. Dans ces cas, les valeurs par défaut du backend reprennent la main.
+ */
+export function asNomenclatureMap(value: unknown): NomenclatureMap {
+  let data: unknown = value;
+  for (let i = 0; i < 3 && typeof data === "string"; i += 1) {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      return {};
+    }
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) return {};
+  const entries = Object.entries(data as Record<string, unknown>);
+  if (entries.length > 0 && entries.every(([key]) => /^\d+$/.test(key))) {
+    return {};
+  }
+  return data as NomenclatureMap;
+}
+
 export function useNomenclature() {
   return useQuery({
     queryKey: NOMENCLATURE_KEY,
     queryFn: async (): Promise<NomenclatureMap> => {
       const res = await apiClient.get("/core/settings/doc_nomenclature");
-      return (res.data?.value ?? {}) as NomenclatureMap;
+      return asNomenclatureMap(res.data?.value);
     },
   });
 }
@@ -111,13 +137,15 @@ export function useSaveNomenclature() {
     mutationFn: async (config: NomenclatureMap) => {
       await apiClient.post("/core/settings/", {
         key: "doc_nomenclature",
-        value: JSON.stringify(config),
+        // Le service sérialise une seule fois les paramètres de type « json ».
+        value: config,
         type: "json",
         is_public: true,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NOMENCLATURE_KEY });
+      queryClient.invalidateQueries({ queryKey: SEQUENCES_KEY });
     },
   });
 }

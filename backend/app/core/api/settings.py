@@ -16,10 +16,12 @@ Endpoints de gestion des paramètres.
 - PUT  /settings/watermark/opacity — opacité du filigrane (1–100 %)
 - PUT  /settings/watermark/saturation — saturation du filigrane (0–100 %, 0 = N&B)
 """
+
 from __future__ import annotations
 
 import base64
 import os
+from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
@@ -68,14 +70,18 @@ async def list_sequences(
     """
     from app.core.models.sequence import Sequence
     from app.core.services.sequence_service import SequenceService
-    from app.core.services.setting_service import DEFAULT_SETTINGS, SettingService
+    from app.core.services.setting_service import (
+        DEFAULT_SETTINGS,
+        SettingService,
+        as_mapping,
+    )
     from app.core.tenant import get_current_company
 
     # Nomenclature **effective** = valeurs par défaut + surcharges enregistrées.
-    # Une valeur stockée vide (ou partielle) ne doit jamais masquer les séquences
-    # par défaut : la liste reste ainsi toujours renseignée.
-    defaults = (DEFAULT_SETTINGS.get("doc_nomenclature", {}).get("value") or {})
-    stored = await SettingService(session).get("doc_nomenclature", {}) or {}
+    # `as_mapping` tolère une valeur vide, partielle, doublement encodée ou
+    # corrompue : la liste des séquences reste donc toujours renseignée.
+    defaults = as_mapping(DEFAULT_SETTINGS.get("doc_nomenclature", {}).get("value"))
+    stored = as_mapping(await SettingService(session).get("doc_nomenclature", {}))
     config = {**defaults, **stored}
     company_id = get_current_company() or 1
 
@@ -85,7 +91,7 @@ async def list_sequences(
 
     sequences: list[dict] = []
     for model, cfg in config.items():
-        rule = cfg or {}
+        rule = cfg if isinstance(cfg, dict) else {}
         row = by_model.get(model)
         try:
             preview = await sequence_service.preview(model, company_id)
@@ -113,7 +119,9 @@ class SettingUpsert(BaseModel):
     """Corps JSON pour la création / mise à jour d'un paramètre."""
 
     key: str | None = Field(default=None, description="Clé (optionnelle pour PUT dédié)")
-    value: str = Field(default="")
+    # JSON natif : les paramètres de type « json » acceptent notamment un objet.
+    # Les chaînes restent acceptées pour compatibilité avec les anciens clients.
+    value: Any = Field(default="")
     type: str = "string"
     is_public: bool = False
     description: str | None = None
@@ -253,9 +261,7 @@ async def upload_watermark(
     elif head.startswith(b"\xff\xd8\xff"):
         ext = ".jpg"
     else:
-        raise HTTPException(
-            status_code=400, detail="Le filigrane doit être un PNG ou un JPEG"
-        )
+        raise HTTPException(status_code=400, detail="Le filigrane doit être un PNG ou un JPEG")
     if len(data) > _WATERMARK_MAX_BYTES:
         raise HTTPException(status_code=400, detail="Image trop volumineuse (max 2 Mo)")
     base = _resources_dir()
@@ -389,6 +395,7 @@ async def get_setting(
 ):
     """Retourne la valeur d'un paramètre par clé."""
     from app.core.services.setting_service import SettingService
+
     svc = SettingService(session)
     value = await svc.get(key)
     if value is None:
@@ -404,6 +411,7 @@ async def create_setting(
 ):
     """Crée ou met à jour un paramètre (body JSON — compatible longues valeurs)."""
     from app.core.services.setting_service import SettingService
+
     svc = SettingService(session)
     setting = await svc.set(
         body.key or "setting",
@@ -425,10 +433,9 @@ async def update_setting(
 ):
     """Met à jour un paramètre existant (body JSON partiel)."""
     from app.core.services.setting_service import SettingService
+
     svc = SettingService(session)
-    setting = await svc.update(
-        key, body.value, body.type, body.is_public, body.description
-    )
+    setting = await svc.update(key, body.value, body.type, body.is_public, body.description)
     if setting is None:
         raise HTTPException(status_code=404, detail=f"Paramètre '{key}' introuvable")
     return setting

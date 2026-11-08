@@ -180,3 +180,63 @@ export const APP_TILES: AppTile[] = [
     icon: Wallet,
   },
 ];
+
+export interface LauncherModuleState {
+  name: string;
+  status: string;
+  is_active: boolean;
+}
+
+/**
+ * Répartition des tuiles du lanceur selon l'état des modules et les droits.
+ *
+ * Une application sans ligne `module_infos` ne peut pas apparaître : la
+ * synchronisation du registre backend est donc indispensable pour les modules
+ * livrés après la création de la base. Une tuile désactivée reste proposée dans
+ * la section d'activation, mais une tuile sans permission reste toujours cachée.
+ */
+export function partitionAppTiles(
+  moduleStates: readonly LauncherModuleState[] | undefined,
+  isAllowed: (app: AppTile) => boolean,
+): { active: AppTile[]; disabled: AppTile[] } {
+  if (!moduleStates) return { active: [], disabled: [] };
+
+  const activeModules = new Set(
+    moduleStates
+      .filter(
+        (module) =>
+          module.is_active && module.status === "active" && module.name !== "core",
+      )
+      .map((module) => module.name),
+  );
+  const active = APP_TILES.filter(
+    (app) =>
+      (app.always || activeModules.has(app.module)) && isAllowed(app),
+  );
+
+  const knownModules = new Set(
+    APP_TILES.filter((app) => !app.always).map((app) => app.module),
+  );
+  const inactiveModules = moduleStates.filter(
+    (module) =>
+      module.name !== "core" &&
+      knownModules.has(module.name) &&
+      !activeModules.has(module.name) &&
+      module.status !== "uninstalled",
+  );
+  const inactive = APP_TILES.filter(
+    (app) =>
+      !app.always &&
+      inactiveModules.some((module) => module.name === app.module) &&
+      isAllowed(app),
+  );
+
+  // Une seule tuile par module désactivé, même si plusieurs routes en dépendent.
+  const seen = new Set<string>();
+  const disabled = inactive.filter((app) => {
+    if (seen.has(app.module)) return false;
+    seen.add(app.module);
+    return true;
+  });
+  return { active, disabled };
+}

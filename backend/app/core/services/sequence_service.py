@@ -13,6 +13,7 @@ La table ``sequences`` conserve le compteur et la clé de période :
 le compteur est remis à zéro quand la période (mois / trimestre /
 semestre / année) change.
 """
+
 from __future__ import annotations
 
 import logging
@@ -76,9 +77,7 @@ class SequenceService:
             reset = "never"
         current = seq.last_number if seq else 0
         key = self._period_key(reset, date.today())
-        if key is not None and (
-            seq is None or (seq.date_ranges or {}).get("last_period") != key
-        ):
+        if key is not None and (seq is None or (seq.date_ranges or {}).get("last_period") != key):
             current = 0
         increment = seq.number_increment if seq else 1
         return self._compose(cfg, seq, current + increment)
@@ -97,18 +96,15 @@ class SequenceService:
         Tolère la valeur renvoyée en dict ou en chaîne JSON (double
         sérialisation possible via l'API des paramètres).
         """
-        import json
+        from app.core.services.setting_service import (
+            DEFAULT_SETTINGS,
+            SettingService,
+            as_mapping,
+        )
 
-        from app.core.services.setting_service import DEFAULT_SETTINGS, SettingService
-
-        defaults = DEFAULT_SETTINGS.get("doc_nomenclature", {}).get("value") or {}
-        raw = await SettingService(self.session).get("doc_nomenclature", None)
-        if isinstance(raw, str):
-            try:
-                raw = json.loads(raw)
-            except (ValueError, TypeError):
-                raw = None
-        data = {**defaults, **raw} if isinstance(raw, dict) else dict(defaults)
+        defaults = as_mapping(DEFAULT_SETTINGS.get("doc_nomenclature", {}).get("value"))
+        stored = as_mapping(await SettingService(self.session).get("doc_nomenclature", None))
+        data = {**defaults, **stored}
 
         entry = data.get(model)
         if isinstance(entry, dict):
@@ -173,9 +169,7 @@ class SequenceService:
                 current = 0
         return current
 
-    async def _get_or_create(
-        self, model: str, company_id: int, prefix: str | None
-    ) -> Sequence:
+    async def _get_or_create(self, model: str, company_id: int, prefix: str | None) -> Sequence:
         result = await self.session.execute(
             select(Sequence)
             .where(
@@ -204,4 +198,3 @@ class SequenceService:
         elif prefix and not seq.prefix:
             seq.prefix = prefix
         return seq
-
