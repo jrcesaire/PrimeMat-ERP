@@ -87,27 +87,35 @@ class SequenceService:
     # Nomenclature (configuration par type de document)
     # ------------------------------------------------------------------ #
     async def _get_config(self, model: str) -> dict:
-        """Lit la nomenclature du type de document (paramètre JSON).
+        """Lit la nomenclature **effective** du type (défauts + surcharges).
+
+        Les valeurs par défaut de ``doc_nomenclature`` (``DEFAULT_SETTINGS``) sont
+        fusionnées avec la valeur enregistrée : une nomenclature **vide** ou
+        **partielle** ne fait donc plus perdre les préfixes et réglages connus
+        (un enregistrement incomplet historiquement masquait tout).
 
         Tolère la valeur renvoyée en dict ou en chaîne JSON (double
         sérialisation possible via l'API des paramètres).
         """
         import json
 
-        from app.core.services.setting_service import SettingService
+        from app.core.services.setting_service import DEFAULT_SETTINGS, SettingService
 
+        defaults = DEFAULT_SETTINGS.get("doc_nomenclature", {}).get("value") or {}
         raw = await SettingService(self.session).get("doc_nomenclature", None)
         if isinstance(raw, str):
             try:
                 raw = json.loads(raw)
             except (ValueError, TypeError):
                 raw = None
-        if isinstance(raw, dict):
-            entry = raw.get(model)
-            if isinstance(entry, dict):
-                return entry
-            # Entree absente (ex. type produit ajoute apres coup) :
-            # serie 6 chiffres par defaut, prefixe fourni par la Sequence.
+        data = {**defaults, **raw} if isinstance(raw, dict) else dict(defaults)
+
+        entry = data.get(model)
+        if isinstance(entry, dict):
+            return entry
+        if data:
+            # Type inconnu de la nomenclature : repli neutre, le préfixe vient
+            # alors de la ``Sequence`` (créée avec le préfixe demandé).
             return {"padding": 6, "reset": "never", "suffix_type": "none"}
         return {}
 

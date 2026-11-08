@@ -68,10 +68,15 @@ async def list_sequences(
     """
     from app.core.models.sequence import Sequence
     from app.core.services.sequence_service import SequenceService
-    from app.core.services.setting_service import SettingService
+    from app.core.services.setting_service import DEFAULT_SETTINGS, SettingService
     from app.core.tenant import get_current_company
 
-    config = await SettingService(session).get("doc_nomenclature", {}) or {}
+    # Nomenclature **effective** = valeurs par défaut + surcharges enregistrées.
+    # Une valeur stockée vide (ou partielle) ne doit jamais masquer les séquences
+    # par défaut : la liste reste ainsi toujours renseignée.
+    defaults = (DEFAULT_SETTINGS.get("doc_nomenclature", {}).get("value") or {})
+    stored = await SettingService(session).get("doc_nomenclature", {}) or {}
+    config = {**defaults, **stored}
     company_id = get_current_company() or 1
 
     rows = (await session.execute(select(Sequence))).scalars().all()

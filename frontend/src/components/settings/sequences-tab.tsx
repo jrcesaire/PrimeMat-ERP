@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { useModuleStates } from "@/hooks/useModules";
 import {
   DEFAULT_NOMENCLATURE,
+  DOC_MODELS,
   DOC_MODEL_LABELS,
   MODEL_MODULE,
   useNomenclature,
@@ -46,7 +47,11 @@ const SUFFIX_OPTIONS: { value: DocNomenclature["suffix_type"]; label: string }[]
 
 export function SequencesTab() {
   const { data: config, isLoading } = useNomenclature();
-  const { data: sequences = [], isLoading: loadingSequences } = useSequences();
+  const {
+    data: sequences,
+    isLoading: loadingSequences,
+    isError: stateUnavailable,
+  } = useSequences();
   const { data: moduleStates } = useModuleStates();
   const save = useSaveNomenclature();
   const [draft, setDraft] = useState<Record<string, DocNomenclature>>({});
@@ -56,21 +61,46 @@ export function SequencesTab() {
     if (config) setDraft({ ...config });
   }, [config]);
 
-  // Modules actifs — `null` tant que la liste n'est pas chargée : on n'applique
-  // alors aucun filtre, pour ne pas masquer les séquences au premier rendu.
-  const activeModules = moduleStates
-    ? new Set(
-        moduleStates
-          .filter((m) => m.is_active && m.status === "active")
-          .map((m) => m.name),
-      )
-    : null;
+  // Modules actifs — `null` tant que la liste n'est pas chargée (ou vide, ce qui
+  // ne renseigne pas) : on n'applique alors aucun filtre, pour ne jamais
+  // masquer les séquences par erreur.
+  const activeModules =
+    moduleStates && moduleStates.length > 0
+      ? new Set(
+          moduleStates
+            .filter((m) => m.is_active && m.status === "active")
+            .map((m) => m.name),
+        )
+      : null;
 
-  /** Séquences en vigueur : définies, et rattachées à un module actif. */
-  const visible = sequences.filter((entry) => {
-    const module = MODEL_MODULE[entry.model];
-    return !module || !activeModules || activeModules.has(module);
-  });
+  // La **nomenclature est la source** des séquences en vigueur : la liste
+  // s'affiche donc toujours. L'endpoint d'état (dernier n° émis, prochaine
+  // référence) l'enrichit **quand il est disponible** — sans lui, on retombe
+  // sur l'aperçu calculé localement.
+  const stateByModel = new Map((sequences ?? []).map((s) => [s.model, s]));
+  // Types affichés = ceux de la nomenclature ; si celle-ci est vide (valeur
+  // enregistrée vide, ou service non chargé), on retombe sur la liste complète
+  // des types connus — les séquences ne peuvent donc **jamais** disparaître.
+  const configuredModels = Object.keys(config ?? {});
+  const sourceModels = configuredModels.length
+    ? configuredModels
+    : DOC_MODELS.map((m) => m.key);
+  const visible = sourceModels
+    .filter((model) => {
+      const moduleName = MODEL_MODULE[model];
+      return !moduleName || !activeModules || activeModules.has(moduleName);
+    })
+    .map((model) => {
+      const rule = { ...DEFAULT_NOMENCLATURE, ...(config?.[model] ?? {}) };
+      const state = stateByModel.get(model);
+      return {
+        model,
+        rule,
+        inUse: state?.in_use ?? false,
+        lastNumber: state?.last_number ?? 0,
+        next: state?.next_reference || previewReference(rule),
+      };
+    });
 
   const update = (model: string, patch: Partial<DocNomenclature>) =>
     setDraft((d) => ({
@@ -80,7 +110,19 @@ export function SequencesTab() {
 
   const handleSave = async () => {
     setSaved(false);
-    await save.mutateAsync(draft);
+    // On enregistre l'**union** : séquences affichées + surcharges locales.
+    // Écrire un objet partiel (ou vide) effacerait la nomenclature et ferait
+    // disparaître toutes les séquences.
+    const payload: Record<string, DocNomenclature> = { ...draft };
+    for (const entry of visible) {
+      payload[entry.model] = {
+        ...DEFAULT_NOMENCLATURE,
+        ...entry.rule,
+        ...(draft[entry.model] ?? {}),
+      };
+    }
+    if (Object.keys(payload).length === 0) return;
+    await save.mutateAsync(payload);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -99,6 +141,12 @@ export function SequencesTab() {
         <span className="font-mono">FAC-000123-2609</span>. Seules les séquences
         réellement utilisées par les modules <strong>activés</strong> sont listées.
       </p>
+      {stateUnavailable && (
+        <p className="mb-5 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          L&apos;état des compteurs est indisponible : les séquences restent
+          modifiables et la prochaine référence est estimée localement.
+        </p>
+      )}
       {loading ? (
         <p className="flex items-center gap-2 text-muted">
           <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
@@ -119,9 +167,9 @@ export function SequencesTab() {
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h3 className="font-medium text-ink">{label}</h3>
                   <div className="flex flex-wrap items-center gap-2">
-                    {entry.in_use ? (
+                    {entry.inUse ? (
                       <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
-                        Dernier n° émis : {entry.last_number}
+                        Dernier n° émis : {entry.lastNumber}
                       </span>
                     ) : (
                       <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
@@ -129,7 +177,7 @@ export function SequencesTab() {
                       </span>
                     )}
                     <span className="rounded-md bg-blue-50 px-3 py-1 font-mono text-sm text-blue-700">
-                      Prochaine : {entry.next_reference || previewReference(cfg)}
+                      Prochaine : {entry.next}
                     </span>
                   </div>
                 </div>
