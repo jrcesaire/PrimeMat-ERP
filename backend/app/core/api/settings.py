@@ -54,6 +54,56 @@ def _watermark_existing(base: str) -> str | None:
     return None
 
 
+@router.get("/sequences")
+async def list_sequences(
+    session: SessionDep,
+    _: User = Depends(require_permission("setting", "view")),
+):
+    """Séquences **en vigueur** : nomenclature appliquée + état du compteur.
+
+    Ne renvoie que les types réellement définis par le paramètre
+    ``doc_nomenclature`` (aucune liste statique) — pour chacun : la règle
+    appliquée (préfixe, longueur, réinitialisation, suffixe), le dernier numéro
+    émis et la **prochaine référence** (sans consommer le compteur).
+    """
+    from app.core.models.sequence import Sequence
+    from app.core.services.sequence_service import SequenceService
+    from app.core.services.setting_service import SettingService
+    from app.core.tenant import get_current_company
+
+    config = await SettingService(session).get("doc_nomenclature", {}) or {}
+    company_id = get_current_company() or 1
+
+    rows = (await session.execute(select(Sequence))).scalars().all()
+    by_model = {row.model: row for row in rows}
+    sequence_service = SequenceService(session)
+
+    sequences: list[dict] = []
+    for model, cfg in config.items():
+        rule = cfg or {}
+        row = by_model.get(model)
+        try:
+            preview = await sequence_service.preview(model, company_id)
+        except Exception:  # noqa: BLE001 — un aperçu ne doit jamais bloquer
+            preview = ""
+        sequences.append(
+            {
+                "model": model,
+                "prefix": rule.get("prefix", ""),
+                "padding": rule.get("padding", 6),
+                "reset": rule.get("reset", "never"),
+                "suffix_type": rule.get("suffix_type", "none"),
+                "suffix_custom": rule.get("suffix_custom", ""),
+                #: Une séquence est « en vigueur » dès qu'elle a émis un numéro
+                #: (compteur existant) ; sinon elle est prête mais non utilisée.
+                "in_use": row is not None,
+                "last_number": int(row.last_number) if row is not None else 0,
+                "next_reference": preview,
+            }
+        )
+    return {"company_id": company_id, "sequences": sequences}
+
+
 class SettingUpsert(BaseModel):
     """Corps JSON pour la création / mise à jour d'un paramètre."""
 

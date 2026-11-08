@@ -1,12 +1,11 @@
 /**
  * Onglet Paramètres → Séquences.
  *
- * Nomenclature des références par type : matricules employés, contrats,
- * bulletins, lots de paie, devis, commandes, factures, bons de livraison,
- * reçus, dépenses et écritures comptables. Chaque type définit un **préfixe**,
- * la **longueur de la série**, la **réinitialisation** (jamais / mensuelle /
- * trimestrielle / semestrielle / annuelle) et un **suffixe** (aucun / MMAA /
- * AAAA / personnalisé), avec aperçu de la prochaine référence.
+ * N'affiche que les séquences **en vigueur** : les types réellement définis par
+ * la nomenclature (`doc_nomenclature`) et rattachés à un module **actif** —
+ * aucune liste statique. Pour chacune : la règle appliquée (préfixe, longueur
+ * de série, réinitialisation, suffixe), le **dernier numéro émis** et la
+ * **prochaine référence**.
  *
  * Le filigrane et les CGV restent dans l'onglet « Documents ».
  */
@@ -18,11 +17,14 @@ import { Hash, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useModuleStates } from "@/hooks/useModules";
 import {
   DEFAULT_NOMENCLATURE,
-  DOC_MODELS,
+  DOC_MODEL_LABELS,
+  MODEL_MODULE,
   useNomenclature,
   useSaveNomenclature,
+  useSequences,
   previewReference,
   type DocNomenclature,
 } from "@/hooks/useNomenclature";
@@ -44,6 +46,8 @@ const SUFFIX_OPTIONS: { value: DocNomenclature["suffix_type"]; label: string }[]
 
 export function SequencesTab() {
   const { data: config, isLoading } = useNomenclature();
+  const { data: sequences = [], isLoading: loadingSequences } = useSequences();
+  const { data: moduleStates } = useModuleStates();
   const save = useSaveNomenclature();
   const [draft, setDraft] = useState<Record<string, DocNomenclature>>({});
   const [saved, setSaved] = useState(false);
@@ -51,6 +55,22 @@ export function SequencesTab() {
   useEffect(() => {
     if (config) setDraft({ ...config });
   }, [config]);
+
+  // Modules actifs — `null` tant que la liste n'est pas chargée : on n'applique
+  // alors aucun filtre, pour ne pas masquer les séquences au premier rendu.
+  const activeModules = moduleStates
+    ? new Set(
+        moduleStates
+          .filter((m) => m.is_active && m.status === "active")
+          .map((m) => m.name),
+      )
+    : null;
+
+  /** Séquences en vigueur : définies, et rattachées à un module actif. */
+  const visible = sequences.filter((entry) => {
+    const module = MODEL_MODULE[entry.model];
+    return !module || !activeModules || activeModules.has(module);
+  });
 
   const update = (model: string, patch: Partial<DocNomenclature>) =>
     setDraft((d) => ({
@@ -65,34 +85,53 @@ export function SequencesTab() {
     setTimeout(() => setSaved(false), 3000);
   };
 
+  const loading = isLoading || loadingSequences;
+
   return (
     <Card className="p-6">
       <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
         <Hash className="h-5 w-5 text-blue-600" />
-        Nomenclature des séquences
+        Séquences en vigueur
       </h2>
       <p className="mb-5 text-sm text-muted">
         Format : <span className="font-mono">PRÉFIXE-SERIE-SUFFIXE</span> — ex.{" "}
         <span className="font-mono">MAT-0001</span> (matricule d&apos;un salarié) ou{" "}
-        <span className="font-mono">FAC-000123-2609</span>. La série peut être
-        réinitialisée périodiquement. Les matricules employés suivent l&apos;ordre
-        d&apos;entrée.
+        <span className="font-mono">FAC-000123-2609</span>. Seules les séquences
+        réellement utilisées par les modules <strong>activés</strong> sont listées.
       </p>
-      {isLoading ? (
+      {loading ? (
         <p className="flex items-center gap-2 text-muted">
           <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
         </p>
+      ) : visible.length === 0 ? (
+        <p className="text-sm text-muted">
+          Aucune séquence en vigueur : activez les modules concernés ou définissez
+          une nomenclature.
+        </p>
       ) : (
         <div className="space-y-4">
-          {DOC_MODELS.map(({ key, label }) => {
+          {visible.map((entry) => {
+            const key = entry.model;
             const cfg = { ...DEFAULT_NOMENCLATURE, ...draft[key] };
+            const label = DOC_MODEL_LABELS[key] ?? key;
             return (
               <div key={key} className="rounded-lg border border-line p-4">
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h3 className="font-medium text-ink">{label}</h3>
-                  <span className="rounded-md bg-blue-50 px-3 py-1 font-mono text-sm text-blue-700">
-                    {previewReference(cfg)}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {entry.in_use ? (
+                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                        Dernier n° émis : {entry.last_number}
+                      </span>
+                    ) : (
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                        Prête — aucun numéro émis
+                      </span>
+                    )}
+                    <span className="rounded-md bg-blue-50 px-3 py-1 font-mono text-sm text-blue-700">
+                      Prochaine : {entry.next_reference || previewReference(cfg)}
+                    </span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
@@ -179,12 +218,12 @@ export function SequencesTab() {
       )}
 
       <div className="mt-5 flex items-center gap-3">
-        <Button onClick={handleSave} disabled={save.isPending || isLoading}>
+        <Button onClick={handleSave} disabled={save.isPending || loading}>
           {save.isPending ? "Enregistrement…" : "Enregistrer les séquences"}
         </Button>
         {saved && (
           <span className="text-sm text-green-600">
-            Séquences enregistrées ✓ — appliquées aux prochains documents.
+            Séquences enregistrées ✓ — appliquées aux prochains numéros.
           </span>
         )}
       </div>

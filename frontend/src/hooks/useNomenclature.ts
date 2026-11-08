@@ -33,7 +33,59 @@ export const DOC_MODELS: { key: string; label: string }[] = [
   { key: "payslip", label: "Bulletins de paie" },
   { key: "payroll_run", label: "Lots de paie" },
   { key: "journal", label: "Écritures comptables" },
+  { key: "product", label: "Références produits" },
 ];
+
+/** Libellé d'un type de séquence (repli : le code du modèle). */
+export const DOC_MODEL_LABELS: Record<string, string> = Object.fromEntries(
+  DOC_MODELS.map((m) => [m.key, m.label]),
+);
+
+/**
+ * Module backend dont dépend chaque séquence : une séquence rattachée à un
+ * module **désactivé** n'est pas listée dans Paramètres → Séquences.
+ */
+export const MODEL_MODULE: Record<string, string> = {
+  quote: "sales",
+  order: "sales",
+  invoice: "invoicing",
+  delivery: "delivery",
+  payment: "payments",
+  expense: "finance",
+  journal: "accounting",
+  product: "catalogue",
+  employee: "payroll",
+  payroll_contract: "payroll",
+  payslip: "payroll",
+  payroll_run: "payroll",
+};
+
+/** Séquence **en vigueur** : règle appliquée + état du compteur. */
+export interface SequenceEntry {
+  model: string;
+  prefix: string;
+  padding: number;
+  reset: DocNomenclature["reset"];
+  suffix_type: DocNomenclature["suffix_type"];
+  suffix_custom: string;
+  /** Vrai dès qu'un numéro a été émis (compteur existant). */
+  in_use: boolean;
+  last_number: number;
+  /** Prochaine référence (aperçu, sans consommer le compteur). */
+  next_reference: string;
+}
+
+export const SEQUENCES_KEY = ["settings", "sequences"];
+
+export function useSequences() {
+  return useQuery({
+    queryKey: SEQUENCES_KEY,
+    queryFn: async (): Promise<SequenceEntry[]> => {
+      const res = await apiClient.get("/core/settings/sequences");
+      return (res.data?.sequences ?? []) as SequenceEntry[];
+    },
+  });
+}
 
 export const DEFAULT_NOMENCLATURE: DocNomenclature = {
   prefix: "",
