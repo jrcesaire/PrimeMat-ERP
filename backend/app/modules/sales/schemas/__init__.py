@@ -69,6 +69,8 @@ class QuoteCreate(BaseModel):
     # Remise globale (montant) et TVA (%)
     discount_amount: float = 0
     tax_percent: float = 0
+    # Frais d'expédition forfaitaires — s'ajoutent après la remise globale.
+    shipping_amount: float = 0
     # Infos commerciales (stockées dans metadata_json)
     payment_term: str | None = None
     customer_reference: str | None = None
@@ -88,6 +90,7 @@ class QuoteUpdate(BaseModel):
     terms: str | None = None
     discount_amount: float | None = None
     tax_percent: float | None = None
+    shipping_amount: float | None = None
     payment_term: str | None = None
     customer_reference: str | None = None
     status: str | None = None
@@ -109,6 +112,7 @@ class QuoteRead(BaseModel):
     amount_untaxed: float
     discount_amount: float
     tax_amount: float
+    shipping_amount: float = 0
     amount_total: float
     expected_margin: float | None = None
     notes: str | None = None

@@ -9,6 +9,7 @@ import { apiClient } from "@/lib/api/client";
 
 export const OPERATIONS_KEYS = {
   invoices: "invoices",
+  billableOrders: "invoicing-billable-orders",
   payments: "payments",
   deliveries: "deliveries",
   expenses: "expenses",
@@ -118,6 +119,37 @@ export function useInvoice(invoiceId: number) {
   });
 }
 
+export interface BillableOrder {
+  id: number;
+  reference: string;
+  partner_id: number;
+  /** Statut de la commande : `draft`, `confirmed`, `reserved`… */
+  status: string;
+  order_date: string;
+  currency_code: string;
+  amount_total: number;
+  invoiced_amount: number;
+  remaining_amount: number;
+}
+
+/**
+ * Commandes restant à facturer.
+ *
+ * Le backend écarte les commandes annulées/retournées, les ventes comptoir et
+ * celles déjà entièrement facturées, puis calcule le reste **avant** la limite :
+ * la liste est donc déjà triée de la plus récente à la plus ancienne, sans
+ * dépendre d'une seconde requête sur les factures.
+ */
+export function useBillableOrders() {
+  return useQuery({
+    queryKey: [OPERATIONS_KEYS.billableOrders],
+    queryFn: async (): Promise<BillableOrder[]> => {
+      const res = await apiClient.get("/invoicing/invoices/billable-orders");
+      return res.data;
+    },
+  });
+}
+
 export function useCreateInvoiceFromOrder() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -146,6 +178,10 @@ export function useCreateInvoiceFromOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+      queryClient.invalidateQueries({
+        queryKey: [OPERATIONS_KEYS.billableOrders],
+      });
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
     },
   });
 }
@@ -195,6 +231,10 @@ export function useCreateInvoiceFromQuote() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+      queryClient.invalidateQueries({
+        queryKey: [OPERATIONS_KEYS.billableOrders],
+      });
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
     },
   });
 }
@@ -209,6 +249,9 @@ export function usePostInvoice() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+      queryClient.invalidateQueries({
+        queryKey: [OPERATIONS_KEYS.billableOrders],
+      });
     },
   });
 }
@@ -239,6 +282,9 @@ export function useCancelInvoice() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+      queryClient.invalidateQueries({
+        queryKey: [OPERATIONS_KEYS.billableOrders],
+      });
     },
   });
 }
@@ -252,6 +298,9 @@ export function useDeleteInvoice() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [OPERATIONS_KEYS.invoices] });
+      queryClient.invalidateQueries({
+        queryKey: [OPERATIONS_KEYS.billableOrders],
+      });
       queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
     },
   });

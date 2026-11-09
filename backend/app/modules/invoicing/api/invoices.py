@@ -12,7 +12,11 @@ from app.core.dependencies.company import require_company_profile
 from app.core.dependencies.permissions import require_permission
 from app.core.models.company import Company
 from app.core.models.user import User
-from app.modules.invoicing.schemas import InvoiceFromOrder, InvoiceRead
+from app.modules.invoicing.schemas import (
+    BillableOrderRead,
+    InvoiceFromOrder,
+    InvoiceRead,
+)
 # noqa: F401  (import enregistre les modèles)
 from app.modules.invoicing.services.export_service import InvoiceExportService
 from app.modules.invoicing.services.invoice_service import InvoiceService
@@ -56,6 +60,20 @@ async def export_invoices(
         include_rows=not template, include_pos=include_pos
     )
     return export_response(format, "Factures", headers, rows)
+
+
+@router.get("/invoices/billable-orders", response_model=list[BillableOrderRead])
+async def list_billable_orders(
+    session: SessionDep,
+    limit: int = 100,
+    _: User = Depends(require_permission("invoice", "create")),
+):
+    """Commandes restant à facturer, triées de la plus récente.
+
+    Déclaré AVANT ``/invoices/{invoice_id}`` : sinon « billable-orders » serait
+    interprété comme un identifiant et renverrait 422.
+    """
+    return await InvoiceService(session).list_billable_orders(limit=limit)
 
 
 @router.get("/invoices/{invoice_id}", response_model=InvoiceRead)

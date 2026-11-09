@@ -89,6 +89,7 @@
       <div class="row"><span>Sous-total HT</span><b>{{ fmt_num(quote.amount_untaxed if quote.amount_untaxed is not none else quote.amount_total) }}</b></div>
       {% if quote.discount_amount %}<div class="row"><span>Remise</span><b>- {{ fmt_num(quote.discount_amount) }}</b></div>{% endif %}
       {% if quote.tax_amount %}<div class="row"><span>TVA</span><b>{{ fmt_num(quote.tax_amount) }}</b></div>{% endif %}
+      {% if quote.shipping_amount %}<div class="row"><span>Expédition</span><b>{{ fmt_num(quote.shipping_amount) }}</b></div>{% endif %}
       <div class="grand"><span>Total</span><span style="float:right">{{ fmt_num(quote.amount_total) }} {{ currency }}</span></div>
       <div class="amount-words">
         Arrêté le présent devis à la somme de :<br>

@@ -264,6 +264,7 @@ class QuoteService:
         quote: Quote,
         tax_percent: float = 0,
         global_discount: float | None = None,
+        shipping: float | None = None,
     ) -> None:
         """Calcule les totaux du devis.
 
@@ -271,17 +272,27 @@ class QuoteService:
           remises par ligne)
         - ``discount_amount`` : remise globale (montant fixe)
         - ``tax_amount``     : TVA appliquée sur (HT − remise globale)
-        - ``amount_total``   : HT − remise globale + TVA
+        - ``shipping_amount``: frais d'expédition forfaitaires
+        - ``amount_total``   : HT − remise globale + TVA + expédition
+
+        L'expédition est ajoutée **après** la remise globale : elle n'est donc
+        jamais remisée (et n'entre pas dans l'assiette de TVA), ce qui la place
+        juste avant le total sur le document.
         """
         untaxed = sum(float(l.subtotal or 0) for l in quote.lines)
         discount = max(float(global_discount or 0), 0)
+        shipping_cost = max(
+            float(shipping if shipping is not None else quote.shipping_amount or 0),
+            0,
+        )
         base = max(untaxed - discount, 0)
         tax = base * float(tax_percent or 0) / 100
 
         quote.amount_untaxed = untaxed
         quote.discount_amount = discount
+        quote.shipping_amount = shipping_cost
         quote.tax_amount = tax
-        quote.amount_total = base + tax
+        quote.amount_total = base + tax + shipping_cost
 
     @staticmethod
     def _merge_metadata(
@@ -323,7 +334,9 @@ class QuoteService:
             prepared = await prepare_line_data(self.session, line_data)
             quote.lines.append(build_quote_line(prepared))
         self._merge_metadata(quote, data.payment_term, data.customer_reference)
-        self._recompute_totals(quote, data.tax_percent, data.discount_amount)
+        self._recompute_totals(
+            quote, data.tax_percent, data.discount_amount, data.shipping_amount
+        )
 
         # Le document hérite du tenant de son partenaire
         if quote.company_id is None:
@@ -406,10 +419,11 @@ class QuoteService:
                 quote.lines.append(line)
             recompute = True
 
-        # Remise globale / TVA modifiables seules
+        # Remise globale / TVA / expédition modifiables seules
         if (
             data.discount_amount is not None
             or data.tax_percent is not None
+            or data.shipping_amount is not None
             or recompute
         ):
             self._recompute_totals(
@@ -420,6 +434,9 @@ class QuoteService:
                 data.discount_amount
                 if data.discount_amount is not None
                 else float(quote.discount_amount or 0),
+                data.shipping_amount
+                if data.shipping_amount is not None
+                else float(quote.shipping_amount or 0),
             )
             if data.tax_percent is not None:
                 meta = dict(quote.metadata_json or {})
@@ -613,7 +630,11 @@ class QuoteService:
             order.lines.append(build_order_line_from_quote(ql))
 
         order.amount_untaxed = quote.amount_untaxed
+        order.discount_amount = quote.discount_amount
         order.tax_amount = quote.tax_amount
+        # Les frais d'expédition suivent le devis : le total de la commande
+        # reste cohérent avec celui du devis (HT − remise + TVA + expédition).
+        order.shipping_amount = float(quote.shipping_amount or 0)
         order.amount_total = quote.amount_total
         # La commande hérite du tenant du devis
         order.company_id = quote.company_id

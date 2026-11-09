@@ -214,6 +214,8 @@ function NewQuotePageInner() {
   const [terms, setTerms] = useState("");
   const [taxPercent, setTaxPercent] = useState(0);
   const [globalDiscount, setGlobalDiscount] = useState(0);
+  // Frais d'expédition forfaitaires — ajoutés après la remise globale.
+  const [shippingAmount, setShippingAmount] = useState(0);
   const [lines, setLines] = useState<LineState[]>([emptyLine()]);
   const [activeTab, setActiveTab] = useState<"lines" | "info" | "notes">("lines");
   const [expandedKey, setExpandedKey] = useState<number | null>(null);
@@ -258,6 +260,11 @@ function NewQuotePageInner() {
     setPartnerId(entity.partner_id);
     setSiteId(entity.site_id ?? null);
     setNotes(entity.notes ?? "");
+    // Devis comme commande portent les frais d'expédition : on les affiche
+    // dans la barre des totaux (seul le devis les enregistre).
+    setShippingAmount(
+      Number((entity as { shipping_amount?: number | null }).shipping_amount ?? 0)
+    );
     setLines(
       entity.lines.map((l) => {
         const product = products.find((p) => p.id === l.product_id) ?? null;
@@ -399,7 +406,9 @@ function NewQuotePageInner() {
   );
   const base = Math.max(subTotal - (Number(globalDiscount) || 0), 0);
   const taxAmount = base * ((Number(taxPercent) || 0) / 100);
-  const grandTotal = base + taxAmount;
+  // L'expédition s'ajoute après la remise globale : elle n'est jamais remisée.
+  const shipping = Math.max(Number(shippingAmount) || 0, 0);
+  const grandTotal = base + taxAmount + shipping;
 
   // --- Enregistrement ---
   const buildPayloadLines = () =>
@@ -466,6 +475,7 @@ function NewQuotePageInner() {
             terms: terms || null,
             discount_amount: Number(globalDiscount) || 0,
             tax_percent: Number(taxPercent) || 0,
+            shipping_amount: Number(shippingAmount) || 0,
             payment_term: paymentTerm,
             customer_reference: customerReference || null,
             lines: payloadLines,
@@ -496,6 +506,7 @@ function NewQuotePageInner() {
           terms: terms || null,
           discount_amount: Number(globalDiscount) || 0,
           tax_percent: Number(taxPercent) || 0,
+          shipping_amount: Number(shippingAmount) || 0,
           payment_term: paymentTerm,
           customer_reference: customerReference || null,
           lines: payloadLines,
@@ -1157,6 +1168,21 @@ function NewQuotePageInner() {
             <span className="font-medium text-ink">
               {formatCurrency(taxAmount)}
             </span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted">Expédition :</span>
+            <NumberInput
+              min={0}
+              className="h-8 w-28 text-right"
+              value={shippingAmount}
+              onChange={(v) => setShippingAmount(v || 0)}
+              disabled={!!editOrderId}
+              title={
+                editOrderId
+                  ? "Les frais d'expédition sont saisis sur le devis d'origine."
+                  : "Coût d'expédition forfaitaire — ajouté après la remise globale."
+              }
+            />
           </div>
           <div className="flex items-center gap-3">
             <div>

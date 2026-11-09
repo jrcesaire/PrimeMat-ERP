@@ -55,6 +55,20 @@ class InvoiceRead(BaseModel):
     lines: list[InvoiceLineRead] = []
 
 
+class BillableOrderRead(BaseModel):
+    """Commande non annulée dont le reste à facturer est strictement positif."""
+
+    id: int
+    reference: str
+    partner_id: int
+    status: str
+    order_date: date
+    currency_code: str
+    amount_total: float
+    invoiced_amount: float
+    remaining_amount: float
+
+
 class InvoiceFromOrder(BaseModel):
     """Body : créer une facture depuis une commande.
 

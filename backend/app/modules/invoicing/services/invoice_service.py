@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from datetime import date, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -15,9 +15,20 @@ from app.modules.invoicing.models.invoice import (
     InvoiceLineCut,
 )
 from app.modules.sales.models.order import SalesOrder, SalesOrderLine
-from app.shared.enums import InvoiceStatus
+from app.shared.enums import InvoiceStatus, SalesOrderStatus
 
 logger = logging.getLogger(__name__)
+
+# Statuts de commande qui interdisent définitivement la facturation.
+# Tout le reste est facturable tant qu'il reste un montant à facturer : une
+# commande issue d'un devis confirmé est créée en brouillon
+# (``QuoteService.confirm_quote``) et doit rester facturable — c'est le
+# parcours « Créer facture » de l'écran Ventes, et l'écran Facturation s'appuie
+# sur la même règle pour ne pas proposer une liste vide.
+NON_BILLABLE_ORDER_STATUSES: tuple[str, ...] = (
+    SalesOrderStatus.CANCELLED.value,
+    SalesOrderStatus.RETURNED.value,
+)
 
 
 class InvoiceService:
@@ -45,6 +56,77 @@ class InvoiceService:
             sum(amount for status, amount in result.all()
                 if status not in excluded)
         )
+
+    async def list_billable_orders(self, limit: int = 100) -> list[dict]:
+        """Commandes restant à facturer, les plus récentes d'abord.
+
+        Une commande est **facturable** dès lors qu'elle n'est ni annulée ni
+        retournée et qu'il reste un montant à facturer. Le statut « confirmé »
+        n'est donc pas exigé seul : une commande issue d'un devis confirmé est
+        créée en brouillon (``QuoteService.confirm_quote``) puis facturée par le
+        parcours « Créer facture » de l'écran Ventes. Filtrer sur le seul statut
+        « confirmé » vidait la liste du formulaire alors que des commandes
+        restaient à facturer.
+
+        Le filtrage et le calcul du reste sont faits en base, *avant* la limite :
+        le formulaire ne dépend plus du téléchargement de toutes les commandes
+        ni d'une seconde liste de factures tronquée à 100. Les ventes comptoir
+        sont exclues (facturées au moment de la vente).
+        """
+        excluded = (
+            InvoiceStatus.CANCELLED.value,
+            InvoiceStatus.CREDIT.value,
+        )
+        invoiced_amount = func.coalesce(func.sum(Invoice.amount_total), 0)
+        invoiced_by_order = (
+            select(
+                Invoice.order_id.label("order_id"),
+                invoiced_amount.label("invoiced_amount"),
+            )
+            .where(
+                Invoice.order_id.is_not(None),
+                Invoice.status.notin_(excluded),
+            )
+            .group_by(Invoice.order_id)
+            .subquery()
+        )
+        order_invoiced = func.coalesce(
+            invoiced_by_order.c.invoiced_amount, 0
+        )
+        remaining = SalesOrder.amount_total - order_invoiced
+        stmt = (
+            select(
+                SalesOrder,
+                order_invoiced.label("invoiced_amount"),
+                remaining.label("remaining_amount"),
+            )
+            .outerjoin(
+                invoiced_by_order,
+                invoiced_by_order.c.order_id == SalesOrder.id,
+            )
+            .where(
+                SalesOrder.status.notin_(NON_BILLABLE_ORDER_STATUSES),
+                SalesOrder.fulfillment_mode != "pos",
+                remaining > 0.005,
+            )
+            .order_by(SalesOrder.order_date.desc(), SalesOrder.id.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return [
+            {
+                "id": order.id,
+                "reference": order.reference,
+                "partner_id": order.partner_id,
+                "status": order.status,
+                "order_date": order.order_date,
+                "currency_code": order.currency_code,
+                "amount_total": float(order.amount_total or 0),
+                "invoiced_amount": float(invoiced or 0),
+                "remaining_amount": float(remaining_amount or 0),
+            }
+            for order, invoiced, remaining_amount in result.all()
+        ]
 
     async def get_invoice(self, invoice_id: int) -> Invoice | None:
         return await self.session.get(Invoice, invoice_id)
@@ -94,8 +176,12 @@ class InvoiceService:
         - ``post=False`` → brouillon (défaut, façon Odoo) ; ``post=True`` →
           comptabilisée immédiatement.
 
-        Lève ``ValueError`` si la commande est introuvable, entièrement
-        facturée, ou si le montant d'acompte est invalide.
+        Lève ``ValueError`` si la commande est introuvable, annulée/retournée,
+        entièrement facturée, ou si le montant d'acompte est invalide.
+
+        Une commande **brouillon** reste facturable : c'est le cas des commandes
+        générées par un devis confirmé (``QuoteService.confirm_quote``), que le
+        parcours « Créer facture » de l'écran Ventes facture directement.
         """
         from app.modules.sales.models.order import SalesOrder
 
@@ -109,6 +195,11 @@ class InvoiceService:
         order = result.scalar_one_or_none()
         if order is None:
             raise ValueError(f"Commande {order_id} introuvable")
+        if order.status in NON_BILLABLE_ORDER_STATUSES:
+            raise ValueError(
+                "Cette commande ne peut plus être facturée "
+                f"(statut « {order.status} »)."
+            )
 
         order_total = float(order.amount_total or 0)
         invoiced = await self.get_order_invoiced_total(order.id)
@@ -136,6 +227,10 @@ class InvoiceService:
             payment_communication=f"INV/{reference}",
             company_id=order.company_id,
         )
+
+        # Lignes de pied de facture (forfaits) — exclues de l'assiette de TVA.
+        shipping_line: InvoiceLine | None = None
+        discount_line: InvoiceLine | None = None
 
         if mode == "down_payment_percent":
             if value is None or value <= 0 or value > 100:
@@ -215,11 +310,71 @@ class InvoiceService:
                         )
                 invoice.lines.append(line)
 
-        # Totaux — lignes HT + TVA proportionnelle (source de vérité : lignes)
+            # Frais d'expédition de la commande : forfait non remisé, reporté
+            # en pied de facture hors assiette de TVA — sans quoi la facture
+            # resterait en dessous du total de la commande et celle-ci ne
+            # serait jamais « entièrement facturée ».
+            shipping = round(float(getattr(order, "shipping_amount", 0) or 0), 2)
+            if shipping > 0:
+                shipping_line = InvoiceLine(
+                    description=f"Expédition — {order_ref}",
+                    quantity=1,
+                    unit="forfait",
+                    unit_price=shipping,
+                    subtotal=shipping,
+                    position=9999,
+                    company_id=order.company_id,
+                )
+                invoice.lines.append(shipping_line)
+
+            # Remise globale du devis : reportée en ligne négative (comme sur
+            # le devis) pour que la facture reflète le total réellement dû.
+            # Elle n'entre pas dans l'assiette de TVA, déjà réduite par le
+            # ratio de TVA hérité de la commande. Plafonnée au HT facturé,
+            # comme sur le devis (le total n'y est jamais négatif).
+            goods_total = round(
+                sum(
+                    float(l.subtotal or 0)
+                    for l in invoice.lines
+                    if l is not shipping_line
+                ),
+                2,
+            )
+            discount = min(
+                round(float(getattr(order, "discount_amount", 0) or 0), 2),
+                max(goods_total, 0),
+            )
+            if discount > 0:
+                discount_line = InvoiceLine(
+                    description=f"Remise globale — {order_ref}",
+                    quantity=1,
+                    unit="forfait",
+                    unit_price=-discount,
+                    subtotal=-discount,
+                    position=9998,
+                    company_id=order.company_id,
+                )
+                invoice.lines.append(discount_line)
+
+        # Totaux — lignes HT + TVA proportionnelle (source de vérité : lignes).
+        # Expédition et remise globale restent hors de l'assiette de TVA.
+        adjustments = {
+            line
+            for line in (shipping_line, discount_line)
+            if line is not None
+        }
         invoice.amount_untaxed = round(
             sum(float(l.subtotal or 0) for l in invoice.lines), 4
         )
-        invoice.tax_amount = round(invoice.amount_untaxed * tax_ratio, 4)
+        taxable_untaxed = round(
+            sum(
+                float(l.subtotal or 0)
+                for l in invoice.lines
+                if l not in adjustments
+            ),
+            4,
+        )
+        invoice.tax_amount = round(taxable_untaxed * tax_ratio, 4)
         invoice.amount_total = round(invoice.amount_untaxed + invoice.tax_amount, 4)
 
         self.session.add(invoice)

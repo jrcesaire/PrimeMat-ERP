@@ -248,6 +248,8 @@ export interface Quote {
   amount_untaxed: number;
   discount_amount: number;
   tax_amount: number;
+  /** Frais d'expédition forfaitaires — ajoutés après la remise globale. */
+  shipping_amount: number;
   amount_total: number;
   expected_margin: number | null;
   created_at: string;
@@ -519,6 +521,8 @@ export interface QuoteCreate {
   terms?: string | null;
   discount_amount?: number;
   tax_percent?: number;
+  /** Frais d'expédition forfaitaires (jamais remisés). */
+  shipping_amount?: number;
   payment_term?: string | null;
   customer_reference?: string | null;
   lines: QuoteLineCreate[];
@@ -553,6 +557,8 @@ export interface QuoteUpdate {
   terms?: string | null;
   discount_amount?: number | null;
   tax_percent?: number | null;
+  /** Frais d'expédition forfaitaires (jamais remisés). */
+  shipping_amount?: number | null;
   payment_term?: string | null;
   customer_reference?: string | null;
   status?: string;

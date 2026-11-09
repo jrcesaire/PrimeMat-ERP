@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, ChevronUp, PackagePlus, X } from "lucide-react";
+import { PackagePlus, X } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -257,24 +257,6 @@ export function ProductPicker({
             </span>
           )}
         </button>
-      )}
-      {/* Chevron : bascule l'ouverture / fermeture du panneau. */}
-      {open ? (
-        <ChevronUp
-          className="h-4 w-4 shrink-0 text-faint cursor-pointer hover:text-muted"
-          onClick={(e) => {
-            e.stopPropagation();
-            setOpen(false);
-          }}
-        />
-      ) : (
-        <ChevronDown
-          className="h-4 w-4 shrink-0 text-faint cursor-pointer hover:text-muted"
-          onClick={(e) => {
-            e.stopPropagation();
-            setOpen(true);
-          }}
-        />
       )}
 
       {/* Panneau en portail : échappe au `overflow-hidden` du Card et aux

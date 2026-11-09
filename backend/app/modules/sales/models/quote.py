@@ -48,6 +48,10 @@ class Quote(Base, TenantMixin):
     amount_untaxed: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
     discount_amount: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
     tax_amount: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
+    # Frais d'expédition forfaitaires : ajoutés **après** la remise globale
+    # (donc jamais remisés) et affichés juste avant le total — même convention
+    # que ``SalesOrder.shipping_amount``.
+    shipping_amount: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
     amount_total: Mapped[float] = MappedColumn(Numeric(14, 4), default=0)
 
     # Marge prévisionnelle

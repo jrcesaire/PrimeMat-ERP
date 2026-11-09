@@ -841,6 +841,13 @@ export default function SalesPage() {
                           const isDraft = o.status === "draft";
                           const isConfirmed =
                             o.status === "confirmed" && o.fulfillment_mode !== "pos";
+                          // Une commande reste facturable hors annulation /
+                          // retour (même règle que le backend et l'écran
+                          // Facturation) : une commande issue d'un devis
+                          // confirmé est encore en brouillon.
+                          const canInvoice =
+                            !["cancelled", "returned"].includes(o.status) &&
+                            o.fulfillment_mode !== "pos";
                           return (
                             <>
                               <IconAction
@@ -929,17 +936,17 @@ export default function SalesPage() {
                               </IconAction>
                               <IconAction
                                 title={
-                                  isConfirmed
+                                  canInvoice
                                     ? remainingFor(o.id, o.amount_total) > 0
                                       ? `Créer une facture pour ${o.reference}`
                                       : `${o.reference} déjà entièrement facturée`
-                                    : "La facturation nécessite une commande confirmée"
+                                    : "Commande annulée : facturation impossible"
                                 }
                                 disabled={
-                                  !isConfirmed || remainingFor(o.id, o.amount_total) <= 0
+                                  !canInvoice || remainingFor(o.id, o.amount_total) <= 0
                                 }
                                 className={
-                                  isConfirmed && remainingFor(o.id, o.amount_total) > 0
+                                  canInvoice && remainingFor(o.id, o.amount_total) > 0
                                     ? "text-emerald-600 hover:bg-emerald-50"
                                     : "text-faint"
                                 }

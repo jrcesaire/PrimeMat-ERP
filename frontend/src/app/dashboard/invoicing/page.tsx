@@ -11,8 +11,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExportButton } from "@/components/shared/export-button";
 import { ViewSwitcher } from "@/components/shared/view-switcher";
-import { useInvoices, useCreateInvoiceFromOrder, usePostInvoice, useDeleteInvoice } from "@/hooks/useOperations";
-import { useOrders } from "@/hooks/useSales";
+import {
+  useInvoices,
+  useBillableOrders,
+  useCreateInvoiceFromOrder,
+  usePostInvoice,
+  useDeleteInvoice,
+} from "@/hooks/useOperations";
 import { usePermission } from "@/hooks/useAuth";
 import { useConfirm } from "@/components/ui/confirm";
 import {
@@ -20,7 +25,7 @@ import {
   confirmPostOptions,
 } from "@/components/ui/confirm";
 import { printInvoice } from "@/lib/api/pdf";
-import { cn, formatCurrency, formatDate, lastRouteSegment, StatusBadge } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, lastRouteSegment, STATUS_LABELS, StatusBadge } from "@/lib/utils";
 
 /** Vue du module Facturation (sous-routes « Créer » / « Liste »). */
 export type InvoicingView = "new" | "list";
@@ -34,7 +39,11 @@ export default function InvoicingPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { data: invoices = [], isLoading } = useInvoices();
-  const { data: orders = [] } = useOrders();
+  const {
+    data: billable = [],
+    isLoading: loadingBillable,
+    isError: billableError,
+  } = useBillableOrders();
   const createInvoice = useCreateInvoiceFromOrder();
   const postInvoice = usePostInvoice();
   const deleteInvoice = useDeleteInvoice();
@@ -93,25 +102,13 @@ export default function InvoicingPage() {
     }
   };
 
-  // Commandes confirmées avec un reste à facturer (acomptes inclus)
-  const invoicedByOrder = new Map<number, number>();
-  invoices.forEach((i) => {
-    if (i.order_id && !["cancelled", "credit"].includes(i.status)) {
-      invoicedByOrder.set(i.order_id, (invoicedByOrder.get(i.order_id) ?? 0) + i.amount_total);
-    }
-  });
-  const billable = orders.filter(
-    (o) =>
-      o.status === "confirmed" &&
-      Math.max(o.amount_total - (invoicedByOrder.get(o.id) ?? 0), 0) > 0.005,
-  );
-
   const handleCreate = async () => {
     setError(null);
     if (!orderId) return setError("Choisissez une commande.");
     try {
-      await createInvoice.mutateAsync({ orderId });
+      const invoice = await createInvoice.mutateAsync({ orderId });
       setOrderId(null);
+      router.push(`/dashboard/invoicing/${invoice.id}`);
     } catch (err: unknown) {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -143,27 +140,48 @@ export default function InvoicingPage() {
 
       {/* Facturer une commande */}
       <Card className={cn("space-y-3 p-4", view !== "new" && "hidden")}>
-        <h2 className="font-semibold text-ink">Facturer une commande confirmée</h2>
+        <div>
+          <h2 className="font-semibold text-ink">Facturer une commande</h2>
+          <p className="text-xs text-muted">
+            Commandes restant à facturer — le statut est rappelé quand la commande
+            n&apos;est pas encore confirmée.
+          </p>
+        </div>
         {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
         <div className="flex flex-wrap items-center gap-2">
           <select
             className="min-w-64 rounded-md border border-line px-3 py-2 text-sm"
             value={orderId ?? ""}
+            disabled={loadingBillable}
             onChange={(e) => setOrderId(e.target.value ? Number(e.target.value) : null)}
           >
-            <option value="">— Commande —</option>
+            <option value="">
+              {loadingBillable ? "Chargement des commandes…" : "— Commande —"}
+            </option>
             {billable.map((o) => (
               <option key={o.id} value={o.id}>
-                {o.reference} — {formatCurrency(o.amount_total)}
+                {o.reference} — {formatCurrency(o.remaining_amount)} à facturer
+                {o.status === "confirmed"
+                  ? ""
+                  : ` (${(STATUS_LABELS[o.status]?.label ?? o.status).toLowerCase()})`}
               </option>
             ))}
           </select>
-          <Button onClick={handleCreate} disabled={createInvoice.isPending}>
+          <Button
+            onClick={handleCreate}
+            disabled={!orderId || createInvoice.isPending || loadingBillable}
+          >
             {createInvoice.isPending ? "Création…" : "Créer la facture"}
           </Button>
-          {billable.length === 0 && (
+          {billableError && (
+            <p className="text-xs text-red-600">
+              Impossible de charger les commandes facturables.
+            </p>
+          )}
+          {!loadingBillable && !billableError && billable.length === 0 && (
             <p className="text-xs text-faint">
-              Aucune commande confirmée en attente de facturation.
+              Aucune commande en attente de facturation : elles sont déjà
+              facturées, annulées, ou issues d&apos;une vente comptoir.
             </p>
           )}
         </div>
