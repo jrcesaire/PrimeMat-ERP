@@ -612,7 +612,13 @@ class DocumentEngine:
         try:
             return self._render_with_chromium(html, page_width)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Rendu Chromium impossible (%s) - repli xhtml2pdf", exc)
+            # Le message de certaines erreurs Playwright est vide : joindre la
+            # pile rend le diagnostic exploitable sans masquer le repli.
+            logger.warning(
+                "Rendu Chromium impossible (%s) - repli xhtml2pdf",
+                exc or type(exc).__name__,
+                exc_info=True,
+            )
         from io import BytesIO
 
         from xhtml2pdf import pisa
@@ -662,45 +668,70 @@ class DocumentEngine:
             ) + html
         return html
 
-    def _render_with_chromium(self, html: str, page_width: str | None = None) -> bytes:
-        """Rendu HTML -> PDF via Chromium headless (fidelite Chrome).
+    async def _render_with_chromium_async(
+        self, html: str, page_width: str | None = None
+    ) -> bytes:
+        """Rendu Chromium asynchrone, exécuté sur une boucle dédiée.
 
-        Aucune URL externe : seul notre HTML local est charge (set_content),
-        sans JavaScript. Un verrou global limite a un rendu a la fois.
+        L'API asynchrone (et non ``sync_playwright``) est volontaire : sous
+        Windows, Uvicorn passe en boucle ``Selector`` lorsqu'il active le
+        rechargement à chaud. Une boucle Selector ne sait pas créer de
+        sous-processus ; ``sync_playwright`` ouvrait alors un tel loop dans le
+        thread de rendu et échouait avec ``NotImplementedError``, ce qui
+        déclenchait à tort le repli xhtml2pdf (documents déformés sur deux
+        pages). Le wrapper synchrone ci-dessous impose donc une boucle
+        ``Proactor`` sous Windows, quelle que soit la politique globale.
+        """
+        from playwright.async_api import async_playwright
+
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch(args=list(_CHROMIUM_LAUNCH_ARGS))
+            try:
+                page = await browser.new_page(java_script_enabled=False)
+                await page.set_content(html, wait_until="load")
+                # Les @font-face data URI font partie du document :
+                # attendre leur résolution avant l'impression
+                # (best-effort — document.fonts reste accessible
+                # même avec le JS désactivé sur la page).
+                try:
+                    await page.evaluate("async () => { await document.fonts.ready; }")
+                except Exception:  # noqa: BLE001 — jamais bloquant
+                    logger.debug("document.fonts.ready indisponible", exc_info=True)
+                kwargs = {
+                    "format": "A4",
+                    "print_background": True,
+                    "prefer_css_page_size": True,
+                    "margin": {"top": "0", "bottom": "0", "left": "0", "right": "0"},
+                }
+                if page_width:
+                    kwargs.pop("format", None)
+                    kwargs["width"] = page_width
+                return bytes(await page.pdf(**kwargs))
+            finally:
+                await browser.close()
+
+    def _render_with_chromium(self, html: str, page_width: str | None = None) -> bytes:
+        """Rendu HTML -> PDF via Chromium headless (fidélité Chrome).
+
+        Aucune URL externe : seul notre HTML local est chargé (set_content),
+        sans JavaScript. Un verrou global limite à un rendu à la fois.
 
         Documents A4 : la pagination « Page X / Y » est estampillée après
         coup (``_apply_pagination``), Chromium ignorant les « margin
-        boxes » CSS du socle.  Ticket POS (``page_width``) : format
-        rouleau, sans pagination.
-        """
-        from playwright.sync_api import sync_playwright
+        boxes » CSS du socle. Ticket POS (``page_width``) : format rouleau,
+        sans pagination.
 
+        Une boucle Proactor explicite est nécessaire sous Windows : le mode
+        reload d'Uvicorn impose sinon une boucle Selector, incapable de lancer
+        le sous-processus Chromium depuis ce thread.
+        """
+        import asyncio
+        import sys
+
+        loop_factory = asyncio.ProactorEventLoop if sys.platform == "win32" else None
         with _CHROMIUM_LOCK:
-            with sync_playwright() as pw:
-                browser = pw.chromium.launch(args=list(_CHROMIUM_LAUNCH_ARGS))
-                try:
-                    page = browser.new_page(java_script_enabled=False)
-                    page.set_content(html, wait_until="load")
-                    # Les @font-face data URI font partie du document :
-                    # attendre leur résolution avant l'impression
-                    # (best-effort — document.fonts reste accessible
-                    # même avec le JS désactivé sur la page).
-                    try:
-                        page.evaluate("async () => { await document.fonts.ready; }")
-                    except Exception:  # noqa: BLE001 — jamais bloquant
-                        logger.debug("document.fonts.ready indisponible", exc_info=True)
-                    kwargs = {
-                        "format": "A4",
-                        "print_background": True,
-                        "prefer_css_page_size": True,
-                        "margin": {"top": "0", "bottom": "0", "left": "0", "right": "0"},
-                    }
-                    if page_width:
-                        kwargs.pop("format", None)
-                        kwargs["width"] = page_width
-                    return bytes(page.pdf(**kwargs))
-                finally:
-                    browser.close()
+            with asyncio.Runner(loop_factory=loop_factory) as runner:
+                return runner.run(self._render_with_chromium_async(html, page_width))
 
     def _watermark_file(self) -> str | None:
         """Chemin de l'image de filigrane chargée (None si absente).
