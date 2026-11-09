@@ -62,7 +62,7 @@ L'application est conçue comme un ensemble de **modules indépendants et démon
 # Backend
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+uvicorn app.main:app
 
 # Frontend
 cd frontend
@@ -77,16 +77,17 @@ Lancer-ERP.bat     :: backends (8001/8002) + frontend (3000), serveurs détaché
 Arreter-ERP.bat    :: arrêt de tous les serveurs
 ```
 
-Le **rechargement à chaud est actif** : modifier un fichier `.py` de
-`backend/app` (ou un fichier du frontend) est pris en compte
-automatiquement, sans redémarrer quoi que ce soit. Pour le désactiver :
-`set ERP_RELOAD=0` avant de lancer le script.
+Le **rechargement automatique des backends est désactivé par défaut** : les
+modifications de code Python nécessitent un redémarrage via
+`Lancer-ERP.bat`. Cela évite d'interrompre une requête longue (PDF, paie,
+import). Pour l'activer ponctuellement : `set ERP_RELOAD=1` avant de lancer le
+script. Le frontend Next.js conserve son rechargement de développement.
 
-> Les serveurs tournent **détachés** sur Windows (ils survivent à la fermeture de
-> la fenêtre). Dans ce mode, le rechargement natif d'uvicorn échoue
-> (`CTRL_C_EVENT` impossible sans console) : `backend/scripts/dev_server.py`
-> applique donc un correctif qui relance l'ouvrier via `terminate()`, socket
-> d'écoute conservée (aucune coupure). Logs applicatifs complets :
+> Les serveurs tournent **détachés** sur Windows (ils survivent à la fermeture
+> de la fenêtre). Si le rechargement backend est activé, le mécanisme natif
+> d'uvicorn échoue sans console (`CTRL_C_EVENT` impossible) :
+> `backend/scripts/dev_server.py` applique un correctif qui relance l'ouvrier
+> via `terminate()`, socket d'écoute conservée. Logs applicatifs complets :
 > `backend/logs/uvicorn_8001.log` et `backend/logs/uvicorn_8002.log`.
 
 

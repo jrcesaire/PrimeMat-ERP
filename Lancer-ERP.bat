@@ -40,8 +40,8 @@ echo.
 echo Vous pouvez fermer cette fenetre, les serveurs
 echo continuent de tourner en arriere-plan.
 echo.
-echo RECHARGEMENT AUTOMATIQUE ACTIF : toute modification de code (backend
-echo ou frontend) est prise en compte sans redemarrer les serveurs.
-echo Pour le desactiver :  set ERP_RELOAD=0  avant de lancer ce fichier.
+echo RECHARGEMENT AUTOMATIQUE BACKEND DESACTIVE : les modifications Python
+echo necessitent un redemarrage des serveurs.
+echo Pour l'activer ponctuellement :  set ERP_RELOAD=1  avant ce fichier.
 echo.
 pause

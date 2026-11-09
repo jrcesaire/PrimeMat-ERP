@@ -1,16 +1,15 @@
 """Redémarre les serveurs uvicorn (8001/8002) de façon détachée.
 
-Rechargement automatique : ``--reload`` est actif par défaut, donc toute
-modification d'un fichier ``.py`` de ``backend/app`` est prise en compte
-**sans redémarrer** les serveurs. La surveillance est limitée au dossier
-``app`` et n'inclut que ``*.py`` : les écritures de la base SQLite (``*.db``),
-les logs et les caches ne déclenchent aucun rechargement parasite.
+Le rechargement automatique est **désactivé par défaut** : une modification de
+code Python nécessite donc un redémarrage explicite des backends. Cela évite
+qu'une écriture de fichier interrompe une requête longue (génération PDF,
+import, calcul de paie) et garantit que les serveurs exécutent une version
+stable du code.
 
-Les PIDs lancés sont enregistrés dans ``logs/dev_state.json`` : c'est ce que
-``stop_servers.py`` utilise pour arrêter aussi le superviseur du
-rechargement (un arrêt par port ne suffirait pas).
+Les PIDs lancés sont enregistrés dans ``logs/dev_state.json``.
 
-Désactiver : ``set ERP_RELOAD=0`` (ou option ``--no-reload``).
+Activer temporairement : ``set ERP_RELOAD=1`` ou option ``--reload``.
+Désactiver explicitement : option ``--no-reload``.
 """
 import argparse
 import json
@@ -35,7 +34,7 @@ RELOAD_DIRS = ("app",)
 
 
 def reload_enabled() -> bool:
-    """Le rechargement automatique est-il demandé ? (actif par défaut)"""
+    """Le rechargement automatique est-il explicitement demandé ?"""
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--reload", action="store_true")
     parser.add_argument("--no-reload", action="store_true")
@@ -44,8 +43,8 @@ def reload_enabled() -> bool:
         return False
     if args.reload:
         return True
-    return os.getenv("ERP_RELOAD", "1").strip().lower() not in (
-        "", "0", "false", "no", "off",
+    return os.getenv("ERP_RELOAD", "0").strip().lower() in (
+        "1", "true", "yes", "on",
     )
 
 
